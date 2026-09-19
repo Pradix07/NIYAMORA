@@ -6,18 +6,18 @@ class UnitSalePriceEvaluator(BaseRuleEvaluator):
     """
     Evaluates Rule 6(11) (inserted by G.S.R. 779(E)):
     Unit Sale Price (USP) declaration on pre-packaged commodities:
-    - per gram (₹/g) where net quantity is less than 1 kg
-    - per kilogram (₹/kg) where net quantity is more than 1 kg
-    - per millilitre (₹/ml) where net volume is less than 1 litre
-    - per litre (₹/l) where net volume is more than 1 litre
-    - per centimetre (₹/cm) where net length is less than 1 metre
-    - per metre (₹/m) where net length is more than 1 metre
-    - per number / per unit (₹/unit, ₹/piece, ₹/item, ₹/tablet, ₹/capsule) for commodities sold by number/count
+    - per gram (₹/g) where net quantity is less than 1 kg (< 1 kg)
+    - per kilogram (₹/kg) where net quantity is more or equal to 1 kg (>= 1 kg)
+    - per millilitre (₹/ml) where net volume is less than 1 litre (< 1 L)
+    - per litre (₹/l) where net volume is more or equal to 1 litre (>= 1 L)
+    - per centimetre (₹/cm) where net length is less than 1 metre (< 1 m)
+    - per metre (₹/m) where net length is more or equal to 1 metre (>= 1 m)
+    - per number / per unit (₹/unit, ₹/piece, ₹/item, ₹/tablet, ₹/capsule) for commodities sold by number/unit
     
     Statutory Exceptions & Scope Notes:
     - Central Rule 6(11) USP evaluation is not applied where State Excise laws/rules govern; N/A with State Excise scope note.
-    - Retail sale price equals unit sale price (e.g. package quantity is exactly 1 kg, 1 L, 1 m, 1 unit)
-    - Combination / multipack packages where individual unit sale prices are declared
+    - Retail Sale Price equals Unit Sale Price proviso: For packages containing quantities of exactly 1 kg, 1 L, 1 m, or 1 unit, the retail sale price and the unit sale price are the same and no separate unit sale price is required to be mentioned (Rule 6(11) proviso).
+    - Multi-unit or non-unit packages (e.g. 2 kg, 2 L, 500 g, 500 ml, 10 units) must evaluate the applicable declared Unit Sale Price.
     """
 
     def evaluate(
@@ -181,36 +181,43 @@ class UnitSalePriceEvaluator(BaseRuleEvaluator):
         """
         Returns (basis_description, unit_symbol_string, regex_pattern, is_equal_rsp).
         val is in normalized base units (grams for weight, ml for volume, cm for length, count for number).
+        
+        Exact Rule 6(11) Statutory Thresholds:
+        - Weight < 1 kg (1000g) -> per g; Weight >= 1 kg -> per kg
+        - Volume < 1 L (1000ml) -> per ml; Volume >= 1 L -> per L
+        - Length < 1 m (100cm) -> per cm; Length >= 1 m -> per m
+        - Count / Number -> per number / per unit
+        
+        Rule 6(11) Proviso (RSP == USP):
+        - Single base unit packs (exactly 1 kg, 1 L, 1 m, 1 unit) satisfy RSP == USP.
         """
         if unit_type == "weight":
-            if abs(val - 1000.0) < 1e-3:
-                return ("per-kilogram", "/ kg", r"(?:/|\bper\s*)(?:kg|kilo|kilogram)\b", True)
-            elif val < 1000.0:
+            is_equal_rsp = abs(val - 1000.0) < 1e-3
+            if val < 1000.0:
                 return ("per-gram", "/ g", r"(?:/|\bper\s*)(?:g|gm|gram)\b", False)
             else:
-                return ("per-kilogram", "/ kg", r"(?:/|\bper\s*)(?:kg|kilo|kilogram)\b", False)
+                # >= 1 kg (e.g. 1 kg, 2 kg) -> per-kilogram
+                return ("per-kilogram", "/ kg", r"(?:/|\bper\s*)(?:kg|kilo|kilogram)\b", is_equal_rsp)
                 
         elif unit_type == "volume":
-            if abs(val - 1000.0) < 1e-3:
-                return ("per-litre", "/ L", r"(?:/|\bper\s*)(?:l|lt|ltr|litre|liter)\b", True)
-            elif val < 1000.0:
+            is_equal_rsp = abs(val - 1000.0) < 1e-3
+            if val < 1000.0:
                 return ("per-millilitre", "/ ml", r"(?:/|\bper\s*)(?:ml|millilitre|milliliter)\b", False)
             else:
-                return ("per-litre", "/ L", r"(?:/|\bper\s*)(?:l|lt|ltr|litre|liter)\b", False)
+                # >= 1 L (e.g. 1 L, 2 L) -> per-litre
+                return ("per-litre", "/ L", r"(?:/|\bper\s*)(?:l|lt|ltr|litre|liter)\b", is_equal_rsp)
                 
         elif unit_type == "length":
-            if abs(val - 100.0) < 1e-3:
-                return ("per-metre", "/ m", r"(?:/|\bper\s*)(?:m|metre|meter)\b", True)
-            elif val < 100.0:
+            is_equal_rsp = abs(val - 100.0) < 1e-3
+            if val < 100.0:
                 return ("per-centimetre", "/ cm", r"(?:/|\bper\s*)(?:cm|centimetre|centimeter)\b", False)
             else:
-                return ("per-metre", "/ m", r"(?:/|\bper\s*)(?:m|metre|meter)\b", False)
+                # >= 1 m (e.g. 1 m, 5 m) -> per-metre
+                return ("per-metre", "/ m", r"(?:/|\bper\s*)(?:m|metre|meter)\b", is_equal_rsp)
                 
         elif unit_type == "count":
-            if abs(val - 1.0) < 1e-3:
-                return ("per-unit", "/ unit", r"(?:/|\bper\s*)(?:unit|piece|item|tablet|capsule|count)\b", True)
-            else:
-                return ("per-unit", "/ unit", r"(?:/|\bper\s*)(?:unit|piece|item|tablet|capsule|count|number)\b", False)
+            is_equal_rsp = abs(val - 1.0) < 1e-3
+            return ("per-unit", "/ unit", r"(?:/|\bper\s*)(?:unit|piece|item|tablet|capsule|count|number)\b", is_equal_rsp)
                 
         return ("applicable unit", "", r"", False)
 

@@ -533,13 +533,68 @@ def test_usp_state_excise_liquor_exemption_na():
     assert status_map["LMPC-DECL-USP"] == "N/A"
     assert "State Excise" in expl_map["LMPC-DECL-USP"]
 
-def test_usp_1kg_unit_pack_rsp_equals_usp_proviso():
-    """Verify exactly 1 kg package where RSP = USP satisfies Rule 6(11) proviso without separate duplicate declaration."""
-    pdf = create_synthetic_artwork_pdf(net_qty="1 kg", mrp="₹ 450.00 (incl. of all taxes)", usp=None)
-    res = client.post("/api/upload-check", files={"file": ("1kg_pack.pdf", pdf, "application/pdf")}, data={"product_name": "Organic Flour 1kg", "brand": "Aura", "packaging_type": "Bag"})
-    evals = client.get(f"/api/inspections/{res.json()['inspection_id']}/evaluations").json()
-    status_map = {e["rule_code"]: e["status"] for e in evals}
-    assert status_map["LMPC-DECL-USP"] == "PASS"
+def test_usp_1kg_per_kg_and_proviso():
+    """Verify 1 kg package requires per-kg basis and satisfies RSP=USP proviso under Rule 6(11)."""
+    # 1. With explicit per-kg USP -> PASS
+    pdf_declared = create_synthetic_artwork_pdf(net_qty="1 kg", mrp="₹ 450.00 (incl. of all taxes)", usp="₹ 450.00 / kg")
+    res1 = client.post("/api/upload-check", files={"file": ("1kg_decl.pdf", pdf_declared, "application/pdf")}, data={"product_name": "Flour 1kg", "brand": "Aura", "packaging_type": "Bag"})
+    evals1 = client.get(f"/api/inspections/{res1.json()['inspection_id']}/evaluations").json()
+    status_map1 = {e["rule_code"]: e["status"] for e in evals1}
+    assert status_map1["LMPC-DECL-USP"] == "PASS"
+
+    # 2. Without separate USP -> PASS under RSP = USP proviso
+    pdf_proviso = create_synthetic_artwork_pdf(net_qty="1 kg", mrp="₹ 450.00 (incl. of all taxes)", usp=None)
+    res2 = client.post("/api/upload-check", files={"file": ("1kg_proviso.pdf", pdf_proviso, "application/pdf")}, data={"product_name": "Flour 1kg", "brand": "Aura", "packaging_type": "Bag"})
+    evals2 = client.get(f"/api/inspections/{res2.json()['inspection_id']}/evaluations").json()
+    status_map2 = {e["rule_code"]: e["status"] for e in evals2}
+    assert status_map2["LMPC-DECL-USP"] == "PASS"
+
+def test_usp_1l_and_2l_per_litre_threshold_and_proviso():
+    """Verify 1 L (proviso/per-litre) and 2 L (per-litre required) under Rule 6(11)."""
+    # 1. 1 L package with declared per-litre USP -> PASS
+    pdf_1l_decl = create_synthetic_artwork_pdf(net_qty="1 l", mrp="₹ 180.00 (incl. of all taxes)", usp="₹ 180.00 / L")
+    res1 = client.post("/api/upload-check", files={"file": ("1L_decl.pdf", pdf_1l_decl, "application/pdf")}, data={"product_name": "Juice 1L", "brand": "Aura", "packaging_type": "Bottle"})
+    evals1 = client.get(f"/api/inspections/{res1.json()['inspection_id']}/evaluations").json()
+    assert {e["rule_code"]: e["status"] for e in evals1}["LMPC-DECL-USP"] == "PASS"
+
+    # 2. 1 L package without separate USP -> PASS under RSP = USP proviso
+    pdf_1l_proviso = create_synthetic_artwork_pdf(net_qty="1 l", mrp="₹ 180.00 (incl. of all taxes)", usp=None)
+    res2 = client.post("/api/upload-check", files={"file": ("1L_proviso.pdf", pdf_1l_proviso, "application/pdf")}, data={"product_name": "Juice 1L", "brand": "Aura", "packaging_type": "Bottle"})
+    evals2 = client.get(f"/api/inspections/{res2.json()['inspection_id']}/evaluations").json()
+    assert {e["rule_code"]: e["status"] for e in evals2}["LMPC-DECL-USP"] == "PASS"
+
+    # 3. 2 L package without USP -> ISSUE (multi-pack requires separate per-litre declaration)
+    pdf_2l_fail = create_synthetic_artwork_pdf(net_qty="2 l", mrp="₹ 350.00 (incl. of all taxes)", usp=None)
+    res3 = client.post("/api/upload-check", files={"file": ("2L_fail.pdf", pdf_2l_fail, "application/pdf")}, data={"product_name": "Oil 2L", "brand": "Aura", "packaging_type": "Can"})
+    evals3 = client.get(f"/api/inspections/{res3.json()['inspection_id']}/evaluations").json()
+    assert {e["rule_code"]: e["status"] for e in evals3}["LMPC-DECL-USP"] == "ISSUE"
+
+def test_usp_length_threshold_per_cm_and_per_metre():
+    """Verify length packages: < 1 m (e.g. 500 mm / 50 cm) requires per-cm; >= 1 m (1 m) requires per-metre under Rule 6(11)."""
+    # 1. 500 mm (< 1 m) with per-cm USP -> PASS
+    pdf_500mm = create_synthetic_artwork_pdf(net_qty="500 mm", mrp="₹ 100.00 (incl. of all taxes)", usp="₹ 2.00 / cm")
+    res1 = client.post("/api/upload-check", files={"file": ("500mm_pass.pdf", pdf_500mm, "application/pdf")}, data={"product_name": "Ribbon 500mm", "brand": "Aura", "packaging_type": "Roll"})
+    evals1 = client.get(f"/api/inspections/{res1.json()['inspection_id']}/evaluations").json()
+    assert {e["rule_code"]: e["status"] for e in evals1}["LMPC-DECL-USP"] == "PASS"
+
+    # 2. 500 mm without USP -> ISSUE
+    pdf_500mm_fail = create_synthetic_artwork_pdf(net_qty="500 mm", mrp="₹ 100.00 (incl. of all taxes)", usp=None)
+    res2 = client.post("/api/upload-check", files={"file": ("500mm_fail.pdf", pdf_500mm_fail, "application/pdf")}, data={"product_name": "Ribbon 500mm", "brand": "Aura", "packaging_type": "Roll"})
+    evals2 = client.get(f"/api/inspections/{res2.json()['inspection_id']}/evaluations").json()
+    assert {e["rule_code"]: e["status"] for e in evals2}["LMPC-DECL-USP"] == "ISSUE"
+
+    # 3. 1 m package with per-metre USP -> PASS
+    pdf_1m = create_synthetic_artwork_pdf(net_qty="1 m", mrp="₹ 150.00 (incl. of all taxes)", usp="₹ 150.00 / m")
+    res3 = client.post("/api/upload-check", files={"file": ("1m_pass.pdf", pdf_1m, "application/pdf")}, data={"product_name": "Wire 1m", "brand": "Aura", "packaging_type": "Pack"})
+    evals3 = client.get(f"/api/inspections/{res3.json()['inspection_id']}/evaluations").json()
+    assert {e["rule_code"]: e["status"] for e in evals3}["LMPC-DECL-USP"] == "PASS"
+
+    # 4. 1 m package without separate USP -> PASS under RSP = USP proviso
+    pdf_1m_proviso = create_synthetic_artwork_pdf(net_qty="1 m", mrp="₹ 150.00 (incl. of all taxes)", usp=None)
+    res4 = client.post("/api/upload-check", files={"file": ("1m_proviso.pdf", pdf_1m_proviso, "application/pdf")}, data={"product_name": "Wire 1m", "brand": "Aura", "packaging_type": "Pack"})
+    evals4 = client.get(f"/api/inspections/{res4.json()['inspection_id']}/evaluations").json()
+    assert {e["rule_code"]: e["status"] for e in evals4}["LMPC-DECL-USP"] == "PASS"
+
 
 
 

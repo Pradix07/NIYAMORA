@@ -172,7 +172,7 @@ VERIFIED_RULES_CATALOG = [
         "title": "Net Quantity in Standard Metric Units",
         "category": "Legal Metrology",
         "severity": "CRITICAL",
-        "description": "Rule 6(1)(c), Rule 11 & Second Schedule require net quantity to be declared in terms of standard metric units (g, kg, ml, l, N) and prohibit non-standard abbreviations (e.g. gms, kgs, lts).",
+        "description": "Rule 6(1)(c), Rule 11 & Second Schedule require net quantity to be declared in terms of standard metric units (g, kg, ml, l) or count/number and prohibit non-standard abbreviations (e.g. gms, kgs, lts).",
         "versions": [
             {
                 "version_id": "RV-LMPC-NET-QTY-2011-V1",
@@ -189,7 +189,8 @@ VERIFIED_RULES_CATALOG = [
                 "parameters": {
                     "legal_weight_units": ["g", "kg", "mg"],
                     "legal_volume_units": ["ml", "l", "cl"],
-                    "legal_number_units": ["n", "u", "unit", "units", "piece", "pieces"],
+                    "legal_length_units": ["cm", "m", "mm"],
+                    "legal_number_units": ["unit", "units", "piece", "pieces", "tablet", "tablets", "capsule", "capsules", "item", "items", "count", "nos"],
                     "prohibited_abbreviations": ["gms", "gms.", "kgs", "kgs.", "lts", "lts.", "cc", "cc."]
                 },
                 "status": "ACTIVE"
@@ -262,13 +263,13 @@ VERIFIED_RULES_CATALOG = [
         "title": "Unit Sale Price (USP) Declaration",
         "category": "Legal Metrology",
         "severity": "MAJOR",
-        "description": "Rule 6(11) (inserted by G.S.R. 779(E)) requires Unit Sale Price (USP) declared on applicable statutory measure basis: per gram (< 1 kg), per kilogram (> 1 kg), per millilitre (< 1 L), per litre (> 1 L), per centimetre (< 1 m), per metre (> 1 m), or per number/unit, rounded off to two decimal places.",
+        "description": "Rule 6(11) (inserted by G.S.R. 779(E)) requires Unit Sale Price (USP) declared on applicable statutory measure basis: per gram (< 1 kg), per kilogram (>= 1 kg), per millilitre (< 1 L), per litre (>= 1 L), per centimetre (< 1 m), per metre (>= 1 m), or per number/unit, rounded off to two decimal places.",
         "versions": [
             {
                 "version_id": "RV-LMPC-USP-2021-V1",
                 "version_number": 1,
                 "title": "Unit Sale Price Representation",
-                "requirement_text": "The unit sale price in rupees rounded off to the nearest two decimal places, per gram (where net quantity < 1 kg), per kilogram (where net quantity > 1 kg), per millilitre (where net volume < 1 L), per litre (where net volume > 1 L), per centimetre (where net length < 1 m), per metre (where net length > 1 m), or per number/unit.",
+                "requirement_text": "The unit sale price in rupees rounded off to the nearest two decimal places: (i) per gram where net quantity is less than 1 kg, (ii) per kilogram where net quantity is more or equal to 1 kg, (iii) per centimetre where net length is less than 1 metre, (iv) per metre where net length is more or equal to 1 metre, (v) per number/unit where commodity is sold by number, (vi) per millilitre where net volume is less than 1 litre, (vii) per litre where net volume is more or equal to 1 litre.",
                 "source_id": "SRC-DCA-LMPC-AMEND-2021",
                 "source_reference": "Rule 6(11) as inserted by G.S.R. 779(E)",
                 "source_url": "https://consumeraffairs.gov.in/pages/legal-metrology-act",
@@ -277,10 +278,10 @@ VERIFIED_RULES_CATALOG = [
                 "applicability": "QUANTITY_TIERED_COMMODITIES",
                 "evaluation_type": "DETERMINISTIC_UNIT_SALE_PRICE",
                 "parameters": {
-                    "weight_basis": {"under_1kg": "per g", "over_1kg": "per kg"},
-                    "volume_basis": {"under_1l": "per ml", "over_1l": "per L"},
-                    "length_basis": {"under_1m": "per cm", "over_1m": "per m"},
-                    "number_basis": "per unit/number",
+                    "weight_basis": {"under_1kg": "per g", "at_or_over_1kg": "per kg"},
+                    "volume_basis": {"under_1l": "per ml", "at_or_over_1l": "per L"},
+                    "length_basis": {"under_1m": "per cm", "at_or_over_1m": "per m"},
+                    "number_basis": "per number/unit",
                     "exceptions": ["alcoholic_beverages_state_excise", "rsp_equals_usp"]
                 },
                 "status": "ACTIVE"
