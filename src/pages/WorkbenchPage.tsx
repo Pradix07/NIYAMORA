@@ -1,20 +1,68 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { ArtworkViewer } from '../components/workbench/ArtworkViewer';
+import type { CustomEvidenceBox } from '../components/workbench/ArtworkViewer';
 import { FindingPanel } from '../components/workbench/FindingPanel';
 import { SAMPLE_FINDINGS, SAMPLE_PRODUCTS } from '../data/mockData';
-import { Sparkles, FileText } from 'lucide-react';
+import { api } from '../services/api';
+import type { ApiInspection } from '../services/api';
+import { Sparkles, FileText, CheckCircle2 } from 'lucide-react';
 
 export const WorkbenchPage: React.FC = () => {
   const navigate = useNavigate();
-  const product = SAMPLE_PRODUCTS[0];
-  const findings = SAMPLE_FINDINGS;
+  const [searchParams] = useSearchParams();
+  const inspectionId = searchParams.get('inspectionId');
 
-  const [selectedFindingId, setSelectedFindingId] = useState<string | null>(findings[0].id);
+  const [inspection, setInspection] = useState<ApiInspection | null>(null);
+  const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null);
+
+  const fallbackProduct = SAMPLE_PRODUCTS[0];
+  const fallbackFindings = SAMPLE_FINDINGS;
+
+  useEffect(() => {
+    if (inspectionId) {
+      api.getInspection(inspectionId)
+        .then((data) => {
+          setInspection(data);
+          if (data.extracted_data?.fields) {
+            const firstKey = Object.keys(data.extracted_data.fields)[0];
+            setSelectedFindingId(firstKey || null);
+          }
+        })
+        .catch((err) => {
+          console.warn('Failed to load inspection from API, falling back to mock dataset:', err);
+          setSelectedFindingId(fallbackFindings[0].id);
+        });
+    } else {
+      setSelectedFindingId(fallbackFindings[0].id);
+    }
+  }, [inspectionId]);
+
+  // Build custom boxes from live extraction if available
+  let customBoxes: CustomEvidenceBox[] | undefined = undefined;
+  if (inspection?.extracted_data?.fields) {
+    customBoxes = Object.entries(inspection.extracted_data.fields)
+      .filter(([_, field]) => field.evidence_box !== null && field.evidence_box !== undefined)
+      .map(([key, field]) => ({
+        id: key,
+        x: field.evidence_box!.x,
+        y: field.evidence_box!.y,
+        width: field.evidence_box!.width,
+        height: field.evidence_box!.height,
+        label: field.field_name,
+        text: field.extracted_value || undefined,
+        status: field.status === 'EXTRACTED' ? 'GOOD' : 'REVIEW',
+      }));
+  }
+
+  const productName = inspection?.product_name || fallbackProduct.name;
+  const brandName = inspection?.brand || fallbackProduct.brand;
+  const versionLabel = inspection?.version_label || fallbackProduct.latestVersion;
+  const previewUrl = inspection?.preview_url ? api.getFileUrl(inspection.preview_url) : null;
 
   return (
-    <AppShell breadcrumbs={[{ label: 'Products', path: '/products' }, { label: product.name, path: `/products/${product.id}` }, { label: 'Results & Workbench' }]}>
+    <AppShell breadcrumbs={[{ label: 'Products', path: '/products' }, { label: productName, path: `/products/${fallbackProduct.id}` }, { label: 'Results & Workbench' }]}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: 'calc(100vh - 110px)' }}>
         
         {/* Top Product Context & Action Bar */}
@@ -35,11 +83,16 @@ export const WorkbenchPage: React.FC = () => {
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase' }}>
-                  {product.brand}
+                  {brandName}
                 </span>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>• SKU: {product.sku}</span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>• Inspection: {inspection?.id ? `${inspection.id.slice(0, 8)}...` : 'Pre-Flight Master'}</span>
+                {inspection?.quality_verdict && (
+                  <span className="badge badge-good" style={{ fontSize: '0.6875rem' }}>
+                    <CheckCircle2 size={11} /> Quality: {inspection.quality_verdict}
+                  </span>
+                )}
               </div>
-              <h1 style={{ fontSize: '1.25rem', fontWeight: 800 }}>{product.name} (V02)</h1>
+              <h1 style={{ fontSize: '1.25rem', fontWeight: 800 }}>{productName} ({versionLabel})</h1>
             </div>
           </div>
 
@@ -76,16 +129,19 @@ export const WorkbenchPage: React.FC = () => {
         >
           {/* Left: Interactive Artwork Canvas with Evidence Bounding Boxes */}
           <ArtworkViewer
-            findings={findings}
+            findings={inspection ? undefined : fallbackFindings}
+            customBoxes={customBoxes}
             selectedFindingId={selectedFindingId}
             onSelectFinding={(id) => setSelectedFindingId(id)}
-            productName={product.name}
-            versionLabel={product.latestVersion}
+            productName={productName}
+            versionLabel={versionLabel}
+            previewImageUrl={previewUrl}
           />
 
-          {/* Right: Inspection Finding Panel */}
+          {/* Right: Inspection / Extraction Finding Panel */}
           <FindingPanel
-            findings={findings}
+            findings={inspection ? undefined : fallbackFindings}
+            extractedFields={inspection?.extracted_data?.fields}
             selectedFindingId={selectedFindingId}
             onSelectFinding={(id) => setSelectedFindingId(id)}
             onOpenImprove={() => navigate('/improve')}

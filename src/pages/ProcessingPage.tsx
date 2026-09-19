@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { PackagingVisual } from '../components/common/PackagingVisual';
-import { CheckCircle2, Loader2, Sparkles, ArrowRight } from 'lucide-react';
+import { api } from '../services/api';
+import type { ApiInspection } from '../services/api';
+import { CheckCircle2, Loader2, Sparkles, ArrowRight, AlertTriangle } from 'lucide-react';
 
 interface PipelineStep {
   id: string;
@@ -13,40 +15,69 @@ interface PipelineStep {
 
 export const ProcessingPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const inspectionId = searchParams.get('inspectionId');
 
-  const initialSteps: PipelineStep[] = [
-    { id: '1', label: 'Reading artwork dieline & rasterizing layers', status: 'completed', detail: '300 DPI vector PDF extracted' },
-    { id: '2', label: 'Finding text & OCR layout segmentation', status: 'completed', detail: '14 text blocks identified' },
-    { id: '3', label: 'Understanding statutory fields & entity tagging', status: 'completed', detail: 'PDP, Net Qty, FSSAI, MRP recognized' },
-    { id: '4', label: 'Checking mandatory declarations & allergens', status: 'running', detail: 'Evaluating FSSAI Regulation 2.2' },
-    { id: '5', label: 'Checking measurements & numeral millimeter height', status: 'pending', detail: 'Measuring Legal Metrology Rule 9' },
-    { id: '6', label: 'Applying statutory rules & contrast heuristics', status: 'pending', detail: 'Evaluating background text legibility' },
-    { id: '7', label: 'Preparing inspection findings & workbench report', status: 'pending', detail: 'Generating visual evidence bounding boxes' },
-  ];
+  const [inspection, setInspection] = useState<ApiInspection | null>(null);
 
-  const [steps, setSteps] = useState<PipelineStep[]>(initialSteps);
+  const [steps, setSteps] = useState<PipelineStep[]>([
+    { id: '1', label: 'File received & saved to secure storage', status: 'completed', detail: 'Original file preserved' },
+    { id: '2', label: 'Pre-flight image quality & resolution check', status: 'running', detail: 'Checking blur, DPI & contrast' },
+    { id: '3', label: 'Text & vector layout segmentation', status: 'pending', detail: 'Extracting spatial text blocks & bounding boxes' },
+    { id: '4', label: 'Structured packaging entity tagging', status: 'pending', detail: 'Identifying Brand, Net Qty, MRP, FSSAI, Consumer Care' },
+    { id: '5', label: 'Preparing extraction workbench report', status: 'pending', detail: 'Assembling evidence coordinates' },
+  ]);
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      setSteps((prev) => {
-        const nextIndex = prev.findIndex((s) => s.status === 'running');
-        if (nextIndex === -1 || nextIndex >= prev.length - 1) {
-          return prev;
+    if (!inspectionId) {
+      // Offline fallback simulation
+      const timer = setInterval(() => {
+        setSteps((prev) => {
+          const nextIndex = prev.findIndex((s) => s.status === 'running');
+          if (nextIndex === -1 || nextIndex >= prev.length - 1) return prev;
+          const updated = [...prev];
+          updated[nextIndex] = { ...updated[nextIndex], status: 'completed' };
+          if (nextIndex + 1 < updated.length) {
+            updated[nextIndex + 1] = { ...updated[nextIndex + 1], status: 'running' };
+          }
+          return updated;
+        });
+      }, 1000);
+      return () => clearInterval(timer);
+    }
+
+    // Live backend polling
+    let interval: any;
+    const fetchStatus = async () => {
+      try {
+        const data = await api.getInspection(inspectionId);
+        setInspection(data);
+
+        if (data.status === 'COMPLETED') {
+          const blockCount = data.extracted_data?.total_blocks || 0;
+          setSteps([
+            { id: '1', label: 'File received & saved to secure storage', status: 'completed', detail: data.original_filename },
+            { id: '2', label: 'Pre-flight image quality & resolution check', status: 'completed', detail: `Verdict: ${data.quality_verdict || 'GOOD'} (${((data.quality_score || 1) * 100).toFixed(0)}% score)` },
+            { id: '3', label: 'Text & vector layout segmentation', status: 'completed', detail: `${blockCount} spatial text blocks extracted` },
+            { id: '4', label: 'Structured packaging entity tagging', status: 'completed', detail: 'Declared entities categorized' },
+            { id: '5', label: 'Preparing extraction workbench report', status: 'completed', detail: 'Evidence coordinates ready for inspection' },
+          ]);
+          clearInterval(interval);
+        } else if (data.status === 'FAILED') {
+          setSteps((prev) => prev.map((s, idx) => idx === 1 ? { ...s, status: 'running', detail: data.error_message || 'Processing failed' } : s));
+          clearInterval(interval);
         }
+      } catch (err) {
+        console.warn('Failed to poll inspection, waiting...', err);
+      }
+    };
 
-        const updated = [...prev];
-        updated[nextIndex] = { ...updated[nextIndex], status: 'completed' };
-        if (nextIndex + 1 < updated.length) {
-          updated[nextIndex + 1] = { ...updated[nextIndex + 1], status: 'running' };
-        }
-        return updated;
-      });
-    }, 1200);
+    fetchStatus();
+    interval = setInterval(fetchStatus, 1000);
+    return () => clearInterval(interval);
+  }, [inspectionId]);
 
-    return () => clearInterval(timer);
-  }, []);
-
-  const allDone = steps.every((s) => s.status === 'completed');
+  const allDone = inspection ? inspection.status === 'COMPLETED' : steps.every((s) => s.status === 'completed');
 
   return (
     <AppShell breadcrumbs={[{ label: 'Processing' }]}>
@@ -56,11 +87,13 @@ export const ProcessingPage: React.FC = () => {
         <div style={{ textAlign: 'center' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.85rem', borderRadius: 'var(--radius-full)', backgroundColor: 'var(--brand-primary-light)', color: 'var(--brand-primary)', fontSize: '0.8125rem', fontWeight: 700, marginBottom: '0.75rem' }}>
             <Sparkles size={14} />
-            <span>Pre-Print Screening Pipeline</span>
+            <span>Pre-Print Ingestion & Extraction</span>
           </div>
-          <h1 style={{ fontSize: '1.85rem', fontWeight: 800 }}>Analyzing Packaging Artwork</h1>
+          <h1 style={{ fontSize: '1.85rem', fontWeight: 800 }}>
+            {inspection ? inspection.product_name : 'Analyzing Packaging Artwork'}
+          </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', marginTop: '0.25rem' }}>
-            Organic Chia Crunch Superfood Pouch • Revision V02
+            Revision {inspection?.version_label || 'V01'} • {inspection?.original_filename || 'Vector Dieline Master'}
           </p>
         </div>
 
@@ -73,21 +106,23 @@ export const ProcessingPage: React.FC = () => {
               <PackagingVisual type="Stand-Up Pouch" variant="card" />
               
               {/* Scan Line effect */}
-              <div
-                style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  height: '2px',
-                  backgroundColor: 'var(--brand-primary)',
-                  boxShadow: '0 0 10px var(--brand-primary)',
-                  animation: 'pulseGlow 2s infinite ease-in-out',
-                }}
-              />
+              {!allDone && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: '2px',
+                    backgroundColor: 'var(--brand-primary)',
+                    boxShadow: '0 0 10px var(--brand-primary)',
+                    animation: 'pulseGlow 2s infinite ease-in-out',
+                  }}
+                />
+              )}
 
               <span style={{ fontSize: '0.75rem', fontWeight: 700, marginTop: '0.75rem', color: 'var(--text-secondary)' }}>
-                Scanning Artwork Dieline...
+                {allDone ? 'Extraction Complete' : 'Scanning Artwork Dieline...'}
               </span>
             </div>
 
@@ -117,7 +152,7 @@ export const ProcessingPage: React.FC = () => {
                   </div>
 
                   <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: step.status === 'completed' ? 'var(--status-good-text)' : 'var(--text-muted)' }}>
-                    {step.status === 'completed' ? 'Done' : step.status === 'running' ? 'Scanning...' : 'Waiting'}
+                    {step.status === 'completed' ? 'Done' : step.status === 'running' ? 'Active' : 'Waiting'}
                   </span>
                 </div>
               ))}
@@ -125,18 +160,26 @@ export const ProcessingPage: React.FC = () => {
 
           </div>
 
+          {/* Phase 3 Disclaimer Banner */}
+          <div style={{ marginTop: '1.5rem', padding: '0.75rem 1rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)', fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <AlertTriangle size={14} style={{ color: 'var(--brand-primary)', flexShrink: 0 }} />
+            <span>
+              <strong>Phase 2 Scope Note:</strong> Extraction identifies declared entities and spatial coordinates. Statutory Legal Metrology & FSSAI rule compliance decisions will be evaluated in Phase 3.
+            </span>
+          </div>
+
           {/* Action Footer */}
-          <div style={{ marginTop: '2rem', borderTop: '1px solid var(--border-default)', paddingTop: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ marginTop: '1.5rem', borderTop: '1px solid var(--border-default)', paddingTop: '1.25rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-              {allDone ? 'Screening complete. 7 findings generated.' : 'Evaluating against Legal Metrology & FSSAI rules...'}
+              {allDone ? 'Packaging content extracted successfully.' : 'Processing vector objects & quality analysis...'}
             </span>
 
             <button
-              onClick={() => navigate('/workbench')}
+              onClick={() => navigate(inspectionId ? `/workbench?inspectionId=${inspectionId}` : '/workbench')}
               className={`btn ${allDone ? 'btn-primary' : 'btn-secondary'} btn-lg`}
               style={{ gap: '0.4rem' }}
             >
-              <span>{allDone ? 'View Results in Workbench' : 'Skip to Workbench'}</span>
+              <span>{allDone ? 'Open in Results Workbench' : 'Skip to Workbench'}</span>
               <ArrowRight size={16} />
             </button>
           </div>

@@ -22,3 +22,19 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Database & Storage
+*.db
+*.sqlite3
+backend/storage/uploads/*
+!backend/storage/uploads/.gitkeep
+test_storage/

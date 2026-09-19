@@ -1,20 +1,35 @@
 import React, { useState } from 'react';
 import type { Finding } from '../../types';
-import { ZoomIn, ZoomOut, Maximize2, Ruler, Eye } from 'lucide-react';
+import { ZoomIn, ZoomOut, Maximize2, Ruler, Eye, Layers } from 'lucide-react';
+
+export interface CustomEvidenceBox {
+  id: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  label: string;
+  text?: string;
+  status?: 'GOOD' | 'REVIEW' | 'ISSUE';
+}
 
 interface ArtworkViewerProps {
-  findings: Finding[];
+  findings?: Finding[];
+  customBoxes?: CustomEvidenceBox[];
   selectedFindingId: string | null;
   onSelectFinding: (id: string) => void;
   productName?: string;
   versionLabel?: string;
+  previewImageUrl?: string | null;
 }
 
 export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
-  findings,
+  findings = [],
+  customBoxes,
   selectedFindingId,
   onSelectFinding,
-  versionLabel = 'V02',
+  versionLabel = 'V01',
+  previewImageUrl,
 }) => {
   const [zoomLevel, setZoomLevel] = useState<number>(100);
   const [showRulers, setShowRulers] = useState<boolean>(true);
@@ -24,7 +39,19 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
     setZoomLevel((prev) => Math.min(300, Math.max(50, prev + delta)));
   };
 
-  const selectedFinding = findings.find((f) => f.id === selectedFindingId);
+  // Harmonize boxes: prefer customBoxes from live extraction, fallback to findings
+  const activeBoxes: CustomEvidenceBox[] = customBoxes || findings.map((f) => ({
+    id: f.id,
+    x: f.evidenceBox.x,
+    y: f.evidenceBox.y,
+    width: f.evidenceBox.width,
+    height: f.evidenceBox.height,
+    label: f.evidenceBox.label || f.category,
+    text: f.foundValue,
+    status: f.status,
+  }));
+
+  const selectedBox = activeBoxes.find((b) => b.id === selectedFindingId);
 
   return (
     <div
@@ -55,11 +82,11 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <span style={{ fontSize: '0.875rem', fontWeight: 700 }}>Artwork Canvas</span>
           <span className="badge badge-neutral" style={{ fontFamily: 'var(--font-mono)' }}>
-            {versionLabel} • 160×240mm (300 DPI)
+            {versionLabel} • {previewImageUrl ? 'Live Ingested Vector/Scan' : '160×240mm (300 DPI)'}
           </span>
-          {selectedFinding && (
+          {selectedBox && (
             <span className="badge badge-sample" style={{ fontSize: '0.7rem' }}>
-              Active Highlight: {selectedFinding.category}
+              Active: {selectedBox.label}
             </span>
           )}
         </div>
@@ -83,7 +110,7 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
             style={{ fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
           >
             <Eye size={13} />
-            <span>Markers</span>
+            <span>Markers ({activeBoxes.length})</span>
           </button>
 
           <div style={{ height: '18px', width: '1px', backgroundColor: 'var(--border-default)', margin: '0 0.25rem' }} />
@@ -118,7 +145,7 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
           backgroundSize: '20px 20px',
         }}
       >
-        {/* Rulers Overlay Bar if active */}
+        {/* Rulers Overlay Bar */}
         {showRulers && (
           <div
             style={{
@@ -126,7 +153,7 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
               top: '8px',
               left: '50%',
               transform: 'translateX(-50%)',
-              backgroundColor: 'rgba(0,0,0,0.75)',
+              backgroundColor: 'rgba(0,0,0,0.8)',
               color: '#FFF',
               padding: '2px 10px',
               borderRadius: '4px',
@@ -142,7 +169,7 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
           </div>
         )}
 
-        {/* Artwork Graphic Frame with Dynamic Scaling */}
+        {/* Artwork Graphic Frame */}
         <div
           style={{
             transform: `scale(${zoomLevel / 100})`,
@@ -158,88 +185,97 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
             border: '2px solid rgba(255,255,255,0.4)',
           }}
         >
-          {/* Packaging Vector Mockup Base */}
-          <div style={{ position: 'absolute', inset: 0, padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: 'linear-gradient(145deg, #DFC8A8 0%, #CBB593 50%, #BFA57E 100%)' }}>
-            
-            {/* Top Seal / Crimp Mock */}
-            <div style={{ borderBottom: '2px dashed #9C815A', paddingBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.65rem', fontFamily: 'monospace', color: '#6A5333', fontWeight: 700 }}>BATCH: AB-2609-C</span>
-              <span style={{ fontSize: '0.65rem', fontFamily: 'monospace', color: '#6A5333', fontWeight: 700 }}>MFD: 09/2026</span>
-            </div>
-
-            {/* Brand Title Area */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                <div style={{ width: '10px', height: '10px', backgroundColor: '#10B981', borderRadius: '50%' }} />
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.08em', color: '#2D3748', textTransform: 'uppercase' }}>
-                  Aura Botanicals
-                </span>
-              </div>
-              <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1A202C', lineHeight: 1.1 }}>
-                ORGANIC CHIA CRUNCH
-              </h2>
-              <p style={{ fontSize: '0.75rem', color: '#4A5568', fontWeight: 600 }}>
-                Cold-Milled Raw Chia Seeds • Omega-3 & High Dietary Fiber
-              </p>
-            </div>
-
-            {/* Center Product Visual / Illustration */}
-            <div style={{ height: '130px', backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', border: '1px solid rgba(0,0,0,0.08)' }}>
-              <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: '#FEF3C7', border: '2px dashed #F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B45309', fontWeight: 800, fontSize: '0.8rem' }}>
-                100% RAW
-              </div>
-              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#4A5568', marginTop: '6px' }}>SUPERFOOD BLEND</span>
-            </div>
-
-            {/* Back panel / Regulatory Declarations Layout */}
-            <div style={{ backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: '6px', padding: '10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.65rem', color: '#1A202C' }}>
-              <div>
-                <strong style={{ display: 'block', fontSize: '0.65rem' }}>INGREDIENTS:</strong>
-                <p style={{ fontSize: '0.6rem', color: '#4A5568' }}>Roasted Organic Chia Seeds (Salvia hispanica). Himalayan Pink Salt.</p>
-                <p style={{ fontSize: '0.6rem', fontWeight: 700, color: '#000', marginTop: '2px' }}>ALLERGEN: CONTAINS CHIA SEEDS.</p>
+          {previewImageUrl ? (
+            <img
+              src={previewImageUrl}
+              alt="Uploaded Artwork Preview"
+              style={{
+                width: '100%',
+                height: '100%',
+                objectFit: 'contain',
+                backgroundColor: '#FFFFFF',
+              }}
+            />
+          ) : (
+            /* Synthetic Vector Mockup Base */
+            <div style={{ position: 'absolute', inset: 0, padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: 'linear-gradient(145deg, #DFC8A8 0%, #CBB593 50%, #BFA57E 100%)' }}>
+              <div style={{ borderBottom: '2px dashed #9C815A', paddingBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.65rem', fontFamily: 'monospace', color: '#6A5333', fontWeight: 700 }}>BATCH: AB-2609-C</span>
+                <span style={{ fontSize: '0.65rem', fontFamily: 'monospace', color: '#6A5333', fontWeight: 700 }}>MFD: 09/2026</span>
               </div>
 
               <div>
-                <strong style={{ display: 'block', fontSize: '0.65rem' }}>CONSUMER CARE:</strong>
-                <p style={{ fontSize: '0.58rem', color: '#4A5568' }}>Toll Free: 1800-425-9988</p>
-                <p style={{ fontSize: '0.58rem', color: '#4A5568' }}>care@aurabotanicals.com</p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                  <div style={{ width: '10px', height: '10px', backgroundColor: '#10B981', borderRadius: '50%' }} />
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.08em', color: '#2D3748', textTransform: 'uppercase' }}>
+                    Aura Botanicals
+                  </span>
+                </div>
+                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1A202C', lineHeight: 1.1 }}>
+                  ORGANIC CHIA CRUNCH
+                </h2>
+                <p style={{ fontSize: '0.75rem', color: '#4A5568', fontWeight: 600 }}>
+                  Cold-Milled Raw Chia Seeds • Omega-3 & High Dietary Fiber
+                </p>
               </div>
-            </div>
 
-            {/* Bottom Strip: Net Qty, FSSAI & Barcode */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.95)', padding: '8px 10px', borderRadius: '6px' }}>
-              <div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#111827', fontFamily: 'monospace' }}>Net Qty: 250 g</span>
-                <span style={{ display: 'block', fontSize: '0.58rem', color: '#4B5563', fontFamily: 'monospace' }}>MRP: ₹299.00 (₹1.20/g)</span>
+              <div style={{ height: '130px', backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', border: '1px solid rgba(0,0,0,0.08)' }}>
+                <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: '#FEF3C7', border: '2px dashed #F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B45309', fontWeight: 800, fontSize: '0.8rem' }}>
+                  100% RAW
+                </div>
+                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#4A5568', marginTop: '6px' }}>SUPERFOOD BLEND</span>
               </div>
-              <div style={{ textAlign: 'right' }}>
-                <span style={{ fontSize: '0.6rem', fontWeight: 700, color: '#065F46', display: 'block' }}>fssai 10020011002345</span>
-                <span style={{ fontSize: '0.55rem', color: '#6B7280' }}>Made in India</span>
+
+              <div style={{ backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: '6px', padding: '10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.65rem', color: '#1A202C' }}>
+                <div>
+                  <strong style={{ display: 'block', fontSize: '0.65rem' }}>INGREDIENTS:</strong>
+                  <p style={{ fontSize: '0.6rem', color: '#4A5568' }}>Roasted Organic Chia Seeds (Salvia hispanica). Himalayan Pink Salt.</p>
+                  <p style={{ fontSize: '0.6rem', fontWeight: 700, color: '#000', marginTop: '2px' }}>ALLERGEN: CONTAINS CHIA SEEDS.</p>
+                </div>
+                <div>
+                  <strong style={{ display: 'block', fontSize: '0.65rem' }}>CONSUMER CARE:</strong>
+                  <p style={{ fontSize: '0.58rem', color: '#4A5568' }}>Toll Free: 1800-425-9988</p>
+                  <p style={{ fontSize: '0.58rem', color: '#4A5568' }}>care@aurabotanicals.com</p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.95)', padding: '8px 10px', borderRadius: '6px' }}>
+                <div>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#111827', fontFamily: 'monospace' }}>Net Qty: 250 g</span>
+                  <span style={{ display: 'block', fontSize: '0.58rem', color: '#4B5563', fontFamily: 'monospace' }}>MRP: ₹299.00 (₹1.20/g)</span>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <span style={{ fontSize: '0.6rem', fontWeight: 700, color: '#065F46', display: 'block' }}>fssai 10020011002345</span>
+                  <span style={{ fontSize: '0.55rem', color: '#6B7280' }}>Made in India</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Interactive Bounding Box Overlays */}
-          {showAllMarkers && findings.map((finding) => {
-            const isSelected = finding.id === selectedFindingId;
-            const { x, y, width, height, label } = finding.evidenceBox;
+          {showAllMarkers && activeBoxes.map((box) => {
+            const isSelected = box.id === selectedFindingId;
+            const { x, y, width, height, label } = box;
 
-            let borderColor = 'var(--status-good-solid)';
-            let bgColor = 'rgba(16, 185, 129, 0.15)';
-            if (finding.status === 'REVIEW') {
+            let borderColor = 'var(--brand-primary)';
+            let bgColor = 'rgba(79, 70, 229, 0.15)';
+            if (box.status === 'GOOD') {
+              borderColor = 'var(--status-good-solid)';
+              bgColor = 'rgba(16, 185, 129, 0.18)';
+            } else if (box.status === 'REVIEW') {
               borderColor = 'var(--status-review-solid)';
-              bgColor = 'rgba(245, 158, 11, 0.18)';
-            } else if (finding.status === 'ISSUE') {
+              bgColor = 'rgba(245, 158, 11, 0.22)';
+            } else if (box.status === 'ISSUE') {
               borderColor = 'var(--status-issue-solid)';
               bgColor = 'rgba(239, 68, 68, 0.22)';
             }
 
             return (
               <div
-                key={finding.id}
+                key={box.id}
                 onClick={(e) => {
                   e.stopPropagation();
-                  onSelectFinding(finding.id);
+                  onSelectFinding(box.id);
                 }}
                 style={{
                   position: 'absolute',
@@ -248,7 +284,7 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
                   width: `${width}%`,
                   height: `${height}%`,
                   border: isSelected ? `2.5px solid ${borderColor}` : `1.5px dashed ${borderColor}`,
-                  backgroundColor: isSelected ? bgColor : 'rgba(0,0,0,0.04)',
+                  backgroundColor: isSelected ? bgColor : 'rgba(0,0,0,0.05)',
                   borderRadius: '4px',
                   cursor: 'pointer',
                   boxShadow: isSelected ? `0 0 0 3px rgba(255,255,255,0.9), 0 0 12px ${borderColor}` : 'none',
@@ -258,9 +294,8 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
                   alignItems: 'flex-start',
                   justifyContent: 'flex-start',
                 }}
-                title={`${finding.category}: ${finding.ruleName}`}
+                title={label}
               >
-                {/* Floating Tag */}
                 <div
                   style={{
                     position: 'absolute',
@@ -279,6 +314,7 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
                     gap: '3px',
                   }}
                 >
+                  <Layers size={9} />
                   <span>{label}</span>
                 </div>
               </div>
@@ -300,8 +336,10 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
           justifyContent: 'space-between',
         }}
       >
-        <span>Click any evidence box on artwork or finding row on right to inspect.</span>
-        <span style={{ fontFamily: 'var(--font-mono)' }}>Coordinates: X:55% Y:76% (PDP Lower Section)</span>
+        <span>Click any evidence box or entity row on right to inspect coordinates.</span>
+        <span style={{ fontFamily: 'var(--font-mono)' }}>
+          {selectedBox ? `Box: X:${selectedBox.x}% Y:${selectedBox.y}% (W:${selectedBox.width}% H:${selectedBox.height}%)` : 'Ready'}
+        </span>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { PackagingVisual } from '../components/common/PackagingVisual';
@@ -9,6 +9,8 @@ import {
   SAMPLE_FINDINGS, 
   SAMPLE_REPORTS 
 } from '../data/mockData';
+import { api } from '../services/api';
+import type { Product, PackagingType } from '../types';
 import { 
   Plus, 
   GitCompare, 
@@ -20,10 +22,39 @@ export const ProductDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<'overview' | 'versions' | 'checks' | 'findings' | 'reports' | 'passport'>('overview');
 
-  const product = SAMPLE_PRODUCTS.find((p) => p.id === id) || SAMPLE_PRODUCTS[0];
-  const versions = SAMPLE_VERSIONS.filter((v) => v.productId === product.id);
-  const findings = SAMPLE_FINDINGS.filter((f) => f.productId === product.id);
-  const reports = SAMPLE_REPORTS.filter((r) => r.productId === product.id);
+  const fallbackProduct = SAMPLE_PRODUCTS.find((p) => p.id === id) || SAMPLE_PRODUCTS[0];
+  const [product, setProduct] = useState<Product>(fallbackProduct);
+
+  useEffect(() => {
+    if (id) {
+      api.getProduct(id)
+        .then((p) => {
+          setProduct({
+            id: p.id,
+            name: p.name,
+            brand: p.brand,
+            sku: p.sku,
+            type: (p.packaging_type as PackagingType) || 'Stand-Up Pouch',
+            latestVersion: p.latest_version || 'V01',
+            status: 'GOOD',
+            issueCount: 0,
+            reviewCount: 0,
+            goodCount: 0,
+            lastChecked: 'Active',
+            dimensions: '150mm × 220mm',
+            netQuantity: p.net_quantity || '250 g',
+            description: p.description || 'Packaging artwork master file.',
+          });
+        })
+        .catch((err) => {
+          console.warn('Could not fetch live product detail, using fallback:', err);
+        });
+    }
+  }, [id]);
+
+  const versions = SAMPLE_VERSIONS.filter((v) => v.productId === fallbackProduct.id);
+  const findings = SAMPLE_FINDINGS.filter((f) => f.productId === fallbackProduct.id);
+  const reports = SAMPLE_REPORTS.filter((r) => r.productId === fallbackProduct.id);
 
   return (
     <AppShell breadcrumbs={[{ label: 'Products', path: '/products' }, { label: product.name }]}>
@@ -95,7 +126,7 @@ export const ProductDetailPage: React.FC = () => {
               onClick={() => setActiveTab('findings')}
               className={`tab-btn ${activeTab === 'findings' ? 'active' : ''}`}
             >
-              Findings ({findings.length})
+              Declarations & Extracted Data
             </button>
             <button
               onClick={() => setActiveTab('reports')}
@@ -118,11 +149,11 @@ export const ProductDetailPage: React.FC = () => {
             <div className="grid-3" style={{ gap: '1.5rem' }}>
               {/* Packaging Inspection Snapshot */}
               <div className="card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem' }}>Active Artwork Render (V02)</h3>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '1rem' }}>Active Artwork Render ({product.latestVersion})</h3>
                 <PackagingVisual type={product.type} variant="card" showEvidenceMarker={product.status === 'ISSUE'} />
                 <div style={{ marginTop: '1rem', width: '100%', display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', borderTop: '1px solid var(--border-default)', paddingTop: '0.75rem' }}>
                   <span style={{ color: 'var(--text-muted)' }}>Latest Version:</span>
-                  <span style={{ fontWeight: 700 }}>V02 (Pre-Print Screened)</span>
+                  <span style={{ fontWeight: 700 }}>{product.latestVersion} (Pre-Print Screened)</span>
                 </div>
               </div>
 

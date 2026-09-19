@@ -1,14 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { ProductCard } from '../components/products/ProductCard';
 import { Modal } from '../components/common/Modal';
 import { SAMPLE_PRODUCTS } from '../data/mockData';
 import type { Product, PackagingType } from '../types';
-import { Plus, Search } from 'lucide-react';
+import { api } from '../services/api';
+import { Plus, Search, Loader2 } from 'lucide-react';
 
 export const ProductsPage: React.FC = () => {
   const [products, setProducts] = useState<Product[]>(SAMPLE_PRODUCTS);
+  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
@@ -21,33 +23,101 @@ export const ProductsPage: React.FC = () => {
   const [newProductType, setNewProductType] = useState<PackagingType>('Stand-Up Pouch');
   const [newProductNetQty, setNewProductNetQty] = useState('');
   const [newProductDesc, setNewProductDesc] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
 
   const navigate = useNavigate();
 
-  const handleCreateProduct = (e: React.FormEvent) => {
+  useEffect(() => {
+    setIsLoading(true);
+    api.getProducts()
+      .then((apiProds) => {
+        if (apiProds && apiProds.length > 0) {
+          const mapped: Product[] = apiProds.map((p) => ({
+            id: p.id,
+            name: p.name,
+            brand: p.brand,
+            sku: p.sku,
+            type: (p.packaging_type as PackagingType) || 'Stand-Up Pouch',
+            latestVersion: p.latest_version || 'V01',
+            status: 'GOOD',
+            issueCount: 0,
+            reviewCount: 0,
+            goodCount: 0,
+            lastChecked: 'Active',
+            dimensions: '150mm × 220mm',
+            netQuantity: p.net_quantity || '250 g',
+            description: p.description || 'Packaging artwork master file.',
+          }));
+          setProducts(mapped);
+        }
+      })
+      .catch((err) => {
+        console.warn('Backend products endpoint not reachable, displaying local catalog:', err);
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+  }, []);
+
+  const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newProductName || !newProductSku) return;
 
-    const newProd: Product = {
-      id: 'prod_' + Math.random().toString(36).substr(2, 6),
-      name: newProductName,
-      brand: newProductBrand || 'My Brand',
-      sku: newProductSku,
-      type: newProductType,
-      latestVersion: 'V01',
-      status: 'GOOD',
-      issueCount: 0,
-      reviewCount: 0,
-      goodCount: 0,
-      lastChecked: 'Just now',
-      dimensions: '150mm × 220mm',
-      netQuantity: newProductNetQty || '250 g',
-      description: newProductDesc || 'Newly created packaging master file.',
-    };
+    setIsCreating(true);
+    try {
+      const created = await api.createProduct({
+        name: newProductName,
+        brand: newProductBrand || 'My Brand',
+        sku: newProductSku,
+        packaging_type: newProductType,
+        net_quantity: newProductNetQty || '250 g',
+        description: newProductDesc || 'Newly created packaging master file.',
+      });
 
-    setProducts([newProd, ...products]);
-    setShowNewProductModal(false);
-    navigate(`/products/${newProd.id}`);
+      const newProd: Product = {
+        id: created.id,
+        name: created.name,
+        brand: created.brand,
+        sku: created.sku,
+        type: (created.packaging_type as PackagingType) || 'Stand-Up Pouch',
+        latestVersion: created.latest_version || 'V01',
+        status: 'GOOD',
+        issueCount: 0,
+        reviewCount: 0,
+        goodCount: 0,
+        lastChecked: 'Just now',
+        dimensions: '150mm × 220mm',
+        netQuantity: created.net_quantity || '250 g',
+        description: created.description || 'Newly created packaging master file.',
+      };
+
+      setProducts([newProd, ...products]);
+      setShowNewProductModal(false);
+      navigate(`/products/${newProd.id}`);
+    } catch (err) {
+      console.warn('Creating locally due to offline server:', err);
+      const fallbackProd: Product = {
+        id: 'prod_' + Math.random().toString(36).substr(2, 6),
+        name: newProductName,
+        brand: newProductBrand || 'My Brand',
+        sku: newProductSku,
+        type: newProductType,
+        latestVersion: 'V01',
+        status: 'GOOD',
+        issueCount: 0,
+        reviewCount: 0,
+        goodCount: 0,
+        lastChecked: 'Just now',
+        dimensions: '150mm × 220mm',
+        netQuantity: newProductNetQty || '250 g',
+        description: newProductDesc || 'Newly created packaging master file.',
+      };
+      setProducts([fallbackProd, ...products]);
+      setShowNewProductModal(false);
+      navigate(`/products/${fallbackProd.id}`);
+    } finally {
+      setIsCreating(false);
+    }
   };
 
   const filteredProducts = products.filter((p) => {
@@ -134,7 +204,12 @@ export const ProductsPage: React.FC = () => {
         </div>
 
         {/* Product Cards Grid */}
-        {filteredProducts.length > 0 ? (
+        {isLoading ? (
+          <div className="card" style={{ padding: '3rem', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+            <Loader2 size={20} style={{ animation: 'spin 1s linear infinite', color: 'var(--brand-primary)' }} />
+            <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Loading product masters from backend...</span>
+          </div>
+        ) : filteredProducts.length > 0 ? (
           <div className="grid-3" style={{ gap: '1.5rem' }}>
             {filteredProducts.map((product) => (
               <ProductCard key={product.id} product={product} />
@@ -250,8 +325,8 @@ export const ProductsPage: React.FC = () => {
             <button type="button" onClick={() => setShowNewProductModal(false)} className="btn btn-secondary">
               Cancel
             </button>
-            <button type="submit" className="btn btn-primary">
-              Create Product Master
+            <button type="submit" className="btn btn-primary" disabled={isCreating}>
+              {isCreating ? 'Creating Product...' : 'Create Product Master'}
             </button>
           </div>
         </form>
