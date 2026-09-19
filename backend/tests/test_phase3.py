@@ -36,7 +36,7 @@ def create_synthetic_artwork_pdf(
     mfg_address="Manufactured by: Aura Botanicals Pvt Ltd, Plot 42 Industrial Area, Bengaluru, Karnataka 560100",
     consumer_care="For complaints contact Consumer Care at care@aurabotanicals.com | Toll Free 1800-425-9988",
     origin=None,
-    usp=None
+    usp="DEFAULT"
 ) -> io.BytesIO:
     doc = fitz.open()
     page = doc.new_page(width=400, height=600)
@@ -50,7 +50,10 @@ def create_synthetic_artwork_pdf(
     page.insert_text((40, 500), consumer_care, fontsize=8)
     if origin:
         page.insert_text((40, 530), f"Country of Origin: {origin}", fontsize=9)
-    if usp:
+    
+    if usp == "DEFAULT":
+        page.insert_text((40, 550), "USP: Rs. 1.20 / g", fontsize=9)
+    elif usp is not None:
         page.insert_text((40, 550), f"USP: {usp}", fontsize=9)
 
     pdf_bytes = io.BytesIO()
@@ -177,7 +180,7 @@ def test_missing_tax_inclusive_phrase_causes_issue():
     assert any(f["rule_code"] == "LMPC-DECL-MRP" and "inclusive of all taxes" in f["summary"].lower() for f in findings)
 
 def test_unit_sale_price_applicability_for_large_packs():
-    """Test package exceeding 1 kg requires Unit Sale Price (USP) under Rule 6(1)(ea)."""
+    """Test package exceeding 1 kg requires Unit Sale Price (USP) on per-kg basis under Rule 6(11)."""
     # 1. Pack with 2 kg and no USP -> ISSUE
     pdf_large = create_synthetic_artwork_pdf(
         net_qty="2 kg",
@@ -196,11 +199,11 @@ def test_unit_sale_price_applicability_for_large_packs():
     status_map1 = {e["rule_code"]: e["status"] for e in res_eval1.json()}
     assert status_map1["LMPC-DECL-USP"] == "ISSUE"
 
-    # 2. Pack with 2 kg with valid USP -> PASS
+    # 2. Pack with 2 kg with valid USP per kg -> PASS
     pdf_large_usp = create_synthetic_artwork_pdf(
         net_qty="2 kg",
         mrp="Rs. 800.00 (inclusive of all taxes)",
-        usp="Rs. 0.40 / g"
+        usp="Rs. 400.00 / kg"
     )
     res2 = client.post(
         "/api/upload-check",
@@ -215,7 +218,7 @@ def test_unit_sale_price_applicability_for_large_packs():
     assert status_map2["LMPC-DECL-USP"] == "PASS"
 
 def test_imported_product_country_of_origin_check():
-    """Test imported product requires country of origin under Rule 6(1)(g)."""
+    """Test imported product requires country of origin under Rule 6(1)(aa)."""
     # Domestic pack -> N/A
     pdf_domestic = create_synthetic_artwork_pdf()
     res_dom = client.post(
@@ -425,15 +428,19 @@ def test_statutory_gazette_citations_and_rule_references():
     # 2. 2023 Amendment must reference G.S.R. 722(E) dated 06.10.2023
     assert "722(E)" in sources["SRC-DCA-LMPC-AMEND-2023"]["title"]
 
-    # 3. 2026 April Amendment must reference G.S.R. 312(E) dated 27.04.2026
+    # 3. 2026 February Amendment must reference G.S.R. 128(E) dated 13.02.2026 (not 118(E))
+    assert "128(E)" in sources["SRC-DCA-LMPC-AMEND-2026-FEB"]["title"]
+    assert "118(E)" not in sources["SRC-DCA-LMPC-AMEND-2026-FEB"]["title"]
+
+    # 4. 2026 April Amendment must reference G.S.R. 312(E) dated 27.04.2026
     assert "312(E)" in sources["SRC-DCA-LMPC-AMEND-2026-APR"]["title"]
     assert "290(E)" not in sources["SRC-DCA-LMPC-AMEND-2026-APR"]["title"]
 
-    # 4. 2026 May Third Amendment must reference G.S.R. 418(E) dated 29.05.2026
+    # 5. 2026 May Third Amendment must reference G.S.R. 418(E) dated 29.05.2026
     assert "418(E)" in sources["SRC-DCA-LMPC-AMEND-2026-MAY"]["title"]
     assert "350(E)" not in sources["SRC-DCA-LMPC-AMEND-2026-MAY"]["title"]
 
-    # 5. Verify Rule 6 provisions across catalog
+    # 6. Verify Rule 6 provisions across catalog
     res_rules = client.get("/api/rules")
     assert res_rules.status_code == 200
     rules_map = {r["rule_code"]: r for r in res_rules.json()}
@@ -445,6 +452,76 @@ def test_statutory_gazette_citations_and_rule_references():
     # Country of Origin must reference Rule 6(1)(aa)
     assert "6(1)(aa)" in rules_map["LMPC-DECL-COUNTRY-ORIGIN"]["description"]
 
+    # Consumer Care must reference Rule 6(2)
+    assert "6(2)" in rules_map["LMPC-DECL-CONSUMER-CARE"]["description"]
+    assert "6(1)(g)" not in rules_map["LMPC-DECL-CONSUMER-CARE"]["description"]
+
     # USP must reference Rule 6(11)
     assert "6(11)" in rules_map["LMPC-DECL-USP"]["description"]
+
+def test_usp_500g_per_gram_applicability():
+    """Verify 500 g package requires per-gram USP under Rule 6(11)."""
+    # 1. With per-gram USP -> PASS
+    pdf_pass = create_synthetic_artwork_pdf(net_qty="500 g", mrp="₹ 250.00 (incl. of all taxes)", usp="₹ 0.50 / g")
+    res1 = client.post("/api/upload-check", files={"file": ("500g_pass.pdf", pdf_pass, "application/pdf")}, data={"product_name": "Chia 500g", "brand": "Aura", "packaging_type": "Pouch"})
+    evals1 = client.get(f"/api/inspections/{res1.json()['inspection_id']}/evaluations").json()
+    status_map1 = {e["rule_code"]: e["status"] for e in evals1}
+    assert status_map1["LMPC-DECL-USP"] == "PASS"
+
+    # 2. Missing USP -> ISSUE
+    pdf_fail = create_synthetic_artwork_pdf(net_qty="500 g", mrp="₹ 250.00 (incl. of all taxes)", usp=None)
+    res2 = client.post("/api/upload-check", files={"file": ("500g_fail.pdf", pdf_fail, "application/pdf")}, data={"product_name": "Chia 500g", "brand": "Aura", "packaging_type": "Pouch"})
+    evals2 = client.get(f"/api/inspections/{res2.json()['inspection_id']}/evaluations").json()
+    status_map2 = {e["rule_code"]: e["status"] for e in evals2}
+    assert status_map2["LMPC-DECL-USP"] == "ISSUE"
+
+def test_usp_500ml_per_millilitre_applicability():
+    """Verify 500 ml package requires per-millilitre USP under Rule 6(11)."""
+    # 1. With per-ml USP -> PASS
+    pdf_pass = create_synthetic_artwork_pdf(net_qty="500 ml", mrp="₹ 150.00 (incl. of all taxes)", usp="₹ 0.30 / ml")
+    res1 = client.post("/api/upload-check", files={"file": ("500ml_pass.pdf", pdf_pass, "application/pdf")}, data={"product_name": "Juice 500ml", "brand": "Aura", "packaging_type": "Bottle"})
+    evals1 = client.get(f"/api/inspections/{res1.json()['inspection_id']}/evaluations").json()
+    status_map1 = {e["rule_code"]: e["status"] for e in evals1}
+    assert status_map1["LMPC-DECL-USP"] == "PASS"
+
+    # 2. Missing USP -> ISSUE
+    pdf_fail = create_synthetic_artwork_pdf(net_qty="500 ml", mrp="₹ 150.00 (incl. of all taxes)", usp=None)
+    res2 = client.post("/api/upload-check", files={"file": ("500ml_fail.pdf", pdf_fail, "application/pdf")}, data={"product_name": "Juice 500ml", "brand": "Aura", "packaging_type": "Bottle"})
+    evals2 = client.get(f"/api/inspections/{res2.json()['inspection_id']}/evaluations").json()
+    status_map2 = {e["rule_code"]: e["status"] for e in evals2}
+    assert status_map2["LMPC-DECL-USP"] == "ISSUE"
+
+def test_usp_2l_per_litre_applicability():
+    """Verify 2 L package requires per-litre USP under Rule 6(11)."""
+    # 1. With per-litre USP -> PASS
+    pdf_pass = create_synthetic_artwork_pdf(net_qty="2 l", mrp="₹ 400.00 (incl. of all taxes)", usp="₹ 200.00 / L")
+    res1 = client.post("/api/upload-check", files={"file": ("2L_pass.pdf", pdf_pass, "application/pdf")}, data={"product_name": "Oil 2L", "brand": "Aura", "packaging_type": "Can"})
+    evals1 = client.get(f"/api/inspections/{res1.json()['inspection_id']}/evaluations").json()
+    status_map1 = {e["rule_code"]: e["status"] for e in evals1}
+    assert status_map1["LMPC-DECL-USP"] == "PASS"
+
+def test_usp_number_based_package_applicability():
+    """Verify 10 N package requires per-unit/number USP under Rule 6(11)."""
+    pdf_pass = create_synthetic_artwork_pdf(net_qty="10 N", mrp="₹ 50.00 (incl. of all taxes)", usp="₹ 5.00 / unit")
+    res1 = client.post("/api/upload-check", files={"file": ("10N_pass.pdf", pdf_pass, "application/pdf")}, data={"product_name": "Soap 10N", "brand": "Aura", "packaging_type": "Box"})
+    evals1 = client.get(f"/api/inspections/{res1.json()['inspection_id']}/evaluations").json()
+    status_map1 = {e["rule_code"]: e["status"] for e in evals1}
+    assert status_map1["LMPC-DECL-USP"] == "PASS"
+
+def test_usp_state_excise_liquor_exemption_na():
+    """Verify alcoholic beverages subject to State Excise laws are exempt (N/A) from USP under Rule 6(11)."""
+    pdf = create_synthetic_artwork_pdf(net_qty="750 ml", mrp="₹ 1200.00 (incl. of all taxes)", usp=None)
+    res = client.post("/api/upload-check", files={"file": ("Whisky.pdf", pdf, "application/pdf")}, data={"product_name": "Single Malt Whisky", "brand": "Aura", "packaging_type": "Bottle", "category": "Alcoholic Beverages"})
+    evals = client.get(f"/api/inspections/{res.json()['inspection_id']}/evaluations").json()
+    status_map = {e["rule_code"]: e["status"] for e in evals}
+    assert status_map["LMPC-DECL-USP"] == "N/A"
+
+def test_usp_1kg_unit_pack_rsp_equals_usp_proviso():
+    """Verify exactly 1 kg package where RSP = USP satisfies Rule 6(11) proviso without separate declaration."""
+    pdf = create_synthetic_artwork_pdf(net_qty="1 kg", mrp="₹ 450.00 (incl. of all taxes)", usp=None)
+    res = client.post("/api/upload-check", files={"file": ("1kg_pack.pdf", pdf, "application/pdf")}, data={"product_name": "Organic Flour 1kg", "brand": "Aura", "packaging_type": "Bag"})
+    evals = client.get(f"/api/inspections/{res.json()['inspection_id']}/evaluations").json()
+    status_map = {e["rule_code"]: e["status"] for e in evals}
+    assert status_map["LMPC-DECL-USP"] == "PASS"
+
 

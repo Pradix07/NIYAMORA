@@ -9,7 +9,7 @@ Ministry of Consumer Affairs, Food and Public Distribution, Government of India:
 - Legal Metrology (Packaged Commodities) Amendment Rules, 2023 (G.S.R. 722(E), dated 06.10.2023, w.e.f. 01.01.2024)
 - Legal Metrology (Packaged Commodities) Amendment Rules, 2025 (Gazette notification dated 24.10.2025)
 - Legal Metrology (Packaged Commodities) Second Amendment Rules, 2025 (Gazette notification dated 02.12.2025)
-- Legal Metrology (Packaged Commodities) Amendment Rules, 2026 (G.S.R. 118(E), dated 13.02.2026 - Initial Rule 6(10A) e-commerce origin filter)
+- Legal Metrology (Packaged Commodities) Amendment Rules, 2026 (G.S.R. 128(E), dated 13.02.2026 - Initial Rule 6(10A) e-commerce origin filter)
 - Legal Metrology (Packaged Commodities) Second Amendment Rules, 2026 (G.S.R. 312(E), dated 27.04.2026 - Rule 6(10A) substituted, w.e.f. 01.07.2027)
 - Legal Metrology (Packaged Commodities) Third Amendment Rules, 2026 (G.S.R. 418(E), dated 29.05.2026)
 """
@@ -77,7 +77,7 @@ VERIFIED_RULE_SOURCES = [
     },
     {
         "id": "SRC-DCA-LMPC-AMEND-2026-FEB",
-        "title": "Legal Metrology (Packaged Commodities) Amendment Rules, 2026 (G.S.R. 118(E), dated 13.02.2026, Initial Rule 6(10A))",
+        "title": "Legal Metrology (Packaged Commodities) Amendment Rules, 2026 (G.S.R. 128(E), dated 13.02.2026, Initial Rule 6(10A))",
         "issuing_authority": "Department of Consumer Affairs, Government of India",
         "source_url": "https://consumeraffairs.gov.in/pages/legal-metrology-act",
         "document_type": "GAZETTE_AMENDMENT",
@@ -262,13 +262,13 @@ VERIFIED_RULES_CATALOG = [
         "title": "Unit Sale Price (USP) Declaration",
         "category": "Legal Metrology",
         "severity": "MAJOR",
-        "description": "Rule 6(11) (inserted by G.S.R. 779(E)) requires the Unit Sale Price (USP) to be declared on pre-packaged commodities where the package contains more than 1 kg or 1 L (or length/volume equivalents), rounded off to two decimal places (e.g. ₹ X / g or ₹ X / kg).",
+        "description": "Rule 6(11) (inserted by G.S.R. 779(E)) requires Unit Sale Price (USP) declared on applicable statutory measure basis: per gram (< 1 kg), per kilogram (> 1 kg), per millilitre (< 1 L), per litre (> 1 L), per centimetre (< 1 m), per metre (> 1 m), or per number/unit, rounded off to two decimal places.",
         "versions": [
             {
                 "version_id": "RV-LMPC-USP-2021-V1",
                 "version_number": 1,
                 "title": "Unit Sale Price Representation",
-                "requirement_text": "The unit sale price in rupees rounded off to the nearest two decimal places, per gram, per kilogram, per millilitre, per litre, or per item.",
+                "requirement_text": "The unit sale price in rupees rounded off to the nearest two decimal places, per gram (where net quantity < 1 kg), per kilogram (where net quantity > 1 kg), per millilitre (where net volume < 1 L), per litre (where net volume > 1 L), per centimetre (where net length < 1 m), per metre (where net length > 1 m), or per number/unit.",
                 "source_id": "SRC-DCA-LMPC-AMEND-2021",
                 "source_reference": "Rule 6(11) as inserted by G.S.R. 779(E)",
                 "source_url": "https://consumeraffairs.gov.in/pages/legal-metrology-act",
@@ -277,9 +277,11 @@ VERIFIED_RULES_CATALOG = [
                 "applicability": "QUANTITY_TIERED_COMMODITIES",
                 "evaluation_type": "DETERMINISTIC_UNIT_SALE_PRICE",
                 "parameters": {
-                    "mandatory_net_weight_threshold_grams": 1000.0,
-                    "mandatory_net_volume_threshold_ml": 1000.0,
-                    "usp_indicators": ["usp", "unit sale price", "/g", "/kg", "/ml", "/l", "per g", "per kg"]
+                    "weight_basis": {"under_1kg": "per g", "over_1kg": "per kg"},
+                    "volume_basis": {"under_1l": "per ml", "over_1l": "per L"},
+                    "length_basis": {"under_1m": "per cm", "over_1m": "per m"},
+                    "number_basis": "per unit/number",
+                    "exceptions": ["alcoholic_beverages_state_excise", "rsp_equals_usp"]
                 },
                 "status": "ACTIVE"
             }
@@ -292,15 +294,15 @@ VERIFIED_RULES_CATALOG = [
         "title": "Consumer Care & Complaint Contact Details",
         "category": "Legal Metrology",
         "severity": "CRITICAL",
-        "description": "Rule 6(1)(g) / Rule 6(1) Consumer Care details mandate the name, address, telephone number, and e-mail address of the person or office which may be contacted in case of consumer complaints.",
+        "description": "Rule 6(2) mandates the name, address, telephone number, and e-mail address, if available, of the person who can be or the office which can be contacted in case of consumer complaints.",
         "versions": [
             {
                 "version_id": "RV-LMPC-CONSUMER-CARE-2011-V1",
                 "version_number": 1,
                 "title": "Consumer Care Contact Information",
-                "requirement_text": "The name, address, telephone number, and e-mail address of the person or office which may be contacted in case of consumer complaints shall be explicitly mentioned.",
+                "requirement_text": "Every package shall bear the name, address, telephone number, and e-mail address, if available, of the person who can be or the office which can be contacted in case of consumer complaints.",
                 "source_id": "SRC-DCA-LMPC-2011",
-                "source_reference": "Rule 6(1)(g) / Rule 6(1) Consumer Care Details",
+                "source_reference": "Rule 6(2)",
                 "source_url": "https://consumeraffairs.gov.in/pages/legal-metrology-act",
                 "effective_from": "2011-04-01",
                 "effective_to": None,
@@ -357,7 +359,7 @@ VERIFIED_RULES_CATALOG = [
                 "title": "E-Commerce Origin Filter (Initial February 2026 Notification)",
                 "requirement_text": "E-commerce marketplace entities shall display country of origin filter on catalog pages.",
                 "source_id": "SRC-DCA-LMPC-AMEND-2026-FEB",
-                "source_reference": "Rule 6(10A) as inserted by G.S.R. 118(E) (13.02.2026)",
+                "source_reference": "Rule 6(10A) as inserted by G.S.R. 128(E) (13.02.2026)",
                 "source_url": "https://consumeraffairs.gov.in/pages/legal-metrology-act",
                 "effective_from": "2026-02-13",
                 "effective_to": "2026-04-27",
