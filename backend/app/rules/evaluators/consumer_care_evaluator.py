@@ -4,7 +4,8 @@ from backend.app.rules.evaluators.base import BaseRuleEvaluator
 
 class ConsumerCareEvaluator(BaseRuleEvaluator):
     """
-    Evaluates Rule 6(1)(f): Name, address, telephone number, and e-mail address of consumer care cell.
+    Evaluates Rule 6(1)(g) / Rule 6(1) Consumer Care Details:
+    Name, address, telephone number, and e-mail address of consumer care cell / complaints contact.
     """
 
     def evaluate(
@@ -15,7 +16,7 @@ class ConsumerCareEvaluator(BaseRuleEvaluator):
         blocks: list,
         product_context: Dict[str, Any]
     ) -> Tuple[str, Optional[str], str, str, Optional[Dict[str, Any]], Optional[str]]:
-        expected_cond = "Must declare contact details (telephone/toll-free number and/or e-mail address, contact person/address) for consumer grievances (Rule 6(1)(f))."
+        expected_cond = "Must declare contact details (telephone/toll-free number and/or e-mail address, contact person/address) for consumer grievances (Rule 6(1)(g))."
 
         care_field = extracted_fields.get("consumer_care") or {}
         extracted_val = care_field.get("extracted_value")

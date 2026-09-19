@@ -4,7 +4,7 @@ from backend.app.rules.evaluators.base import BaseRuleEvaluator
 
 class CountryOfOriginEvaluator(BaseRuleEvaluator):
     """
-    Evaluates Rule 6(1)(g) & Rule 6(10): Country of Origin declaration.
+    Evaluates Rule 6(1)(aa): Country of Origin declaration.
     Mandatory for imported pre-packaged commodities.
     """
 
@@ -16,7 +16,7 @@ class CountryOfOriginEvaluator(BaseRuleEvaluator):
         blocks: list,
         product_context: Dict[str, Any]
     ) -> Tuple[str, Optional[str], str, str, Optional[Dict[str, Any]], Optional[str]]:
-        expected_cond = "Must declare Country of Origin for imported commodities ('Country of Origin: [Country]' or 'Made in [Country]') (Rule 6(1)(g))."
+        expected_cond = "Must declare Country of Origin for imported commodities ('Country of Origin: [Country]' or 'Made in [Country]') (Rule 6(1)(aa))."
 
         is_imported = product_context.get("is_imported", False) or "import" in (product_context.get("description") or "").lower()
 
@@ -54,7 +54,7 @@ class CountryOfOriginEvaluator(BaseRuleEvaluator):
                 "ISSUE",
                 None,
                 expected_cond,
-                "Commodity is designated as imported, but mandatory Country of Origin declaration was not located under Rule 6(1)(g).",
+                "Commodity is designated as imported, but mandatory Country of Origin declaration was not located under Rule 6(1)(aa).",
                 None,
                 "Print explicit 'Country of Origin: [Name of Country]' on the packaging label."
             )

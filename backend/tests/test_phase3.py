@@ -412,3 +412,39 @@ def test_missing_net_quantity_usp_returns_review():
     status_map = {e["rule_code"]: e["status"] for e in evals}
     assert status_map["LMPC-DECL-USP"] == "REVIEW"
 
+def test_statutory_gazette_citations_and_rule_references():
+    """Verify that all source citations and rule provisions strictly match official Gazette publications."""
+    res_src = client.get("/api/rules/sources")
+    assert res_src.status_code == 200
+    sources = {s["id"]: s for s in res_src.json()}
+
+    # 1. Principal Rules 2011 must reference G.S.R. 202(E) dated 07.03.2011
+    assert "202(E)" in sources["SRC-DCA-LMPC-2011"]["title"]
+    assert "427(E)" not in sources["SRC-DCA-LMPC-2011"]["title"]
+
+    # 2. 2023 Amendment must reference G.S.R. 722(E) dated 06.10.2023
+    assert "722(E)" in sources["SRC-DCA-LMPC-AMEND-2023"]["title"]
+
+    # 3. 2026 April Amendment must reference G.S.R. 312(E) dated 27.04.2026
+    assert "312(E)" in sources["SRC-DCA-LMPC-AMEND-2026-APR"]["title"]
+    assert "290(E)" not in sources["SRC-DCA-LMPC-AMEND-2026-APR"]["title"]
+
+    # 4. 2026 May Third Amendment must reference G.S.R. 418(E) dated 29.05.2026
+    assert "418(E)" in sources["SRC-DCA-LMPC-AMEND-2026-MAY"]["title"]
+    assert "350(E)" not in sources["SRC-DCA-LMPC-AMEND-2026-MAY"]["title"]
+
+    # 5. Verify Rule 6 provisions across catalog
+    res_rules = client.get("/api/rules")
+    assert res_rules.status_code == 200
+    rules_map = {r["rule_code"]: r for r in res_rules.json()}
+
+    # MRP must reference Rule 6(1)(e)
+    assert "6(1)(e)" in rules_map["LMPC-DECL-MRP"]["description"]
+    assert "6(1)(da)" not in rules_map["LMPC-DECL-MRP"]["description"]
+
+    # Country of Origin must reference Rule 6(1)(aa)
+    assert "6(1)(aa)" in rules_map["LMPC-DECL-COUNTRY-ORIGIN"]["description"]
+
+    # USP must reference Rule 6(11)
+    assert "6(11)" in rules_map["LMPC-DECL-USP"]["description"]
+

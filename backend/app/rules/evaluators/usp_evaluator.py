@@ -4,8 +4,8 @@ from backend.app.rules.evaluators.base import BaseRuleEvaluator
 
 class UnitSalePriceEvaluator(BaseRuleEvaluator):
     """
-    Evaluates Rule 6(1)(ea): Unit Sale Price (USP) declaration on pre-packaged commodities.
-    Applicable when package net quantity exceeds 1 kg or 1 L.
+    Evaluates Rule 6(11) (inserted by G.S.R. 779(E)): Unit Sale Price (USP) declaration on pre-packaged commodities.
+    Applicable when package net quantity exceeds 1 kg or 1 L (or relevant length/volume measures).
     """
 
     def evaluate(
@@ -16,7 +16,7 @@ class UnitSalePriceEvaluator(BaseRuleEvaluator):
         blocks: list,
         product_context: Dict[str, Any]
     ) -> Tuple[str, Optional[str], str, str, Optional[Dict[str, Any]], Optional[str]]:
-        expected_cond = "Must declare Unit Sale Price (USP) in Rupees rounded to 2 decimal places per g/kg/ml/l when net quantity exceeds 1 kg or 1 L (Rule 6(1)(ea))."
+        expected_cond = "Must declare Unit Sale Price (USP) in Rupees rounded to 2 decimal places per g/kg/ml/l when net quantity exceeds 1 kg or 1 L (Rule 6(11))."
 
         # 1. Determine Net Quantity threshold
         net_qty_str = (extracted_fields.get("net_quantity") or {}).get("extracted_value") or product_context.get("net_quantity") or ""
@@ -27,7 +27,7 @@ class UnitSalePriceEvaluator(BaseRuleEvaluator):
                 "REVIEW",
                 None,
                 expected_cond,
-                "Package net quantity could not be determined to verify Unit Sale Price (USP) threshold applicability under Rule 6(1)(ea).",
+                "Package net quantity could not be determined to verify Unit Sale Price (USP) threshold applicability under Rule 6(11).",
                 None,
                 "Verify packaging net quantity to determine whether Unit Sale Price declaration is required (> 1 kg / > 1 L)."
             )
@@ -79,7 +79,7 @@ class UnitSalePriceEvaluator(BaseRuleEvaluator):
                 "ISSUE",
                 None,
                 expected_cond,
-                f"Package net quantity '{net_qty_str}' exceeds 1 kg / 1 L, but mandatory Unit Sale Price (USP) was not declared under Rule 6(1)(ea).",
+                f"Package net quantity '{net_qty_str}' exceeds 1 kg / 1 L, but mandatory Unit Sale Price (USP) was not declared under Rule 6(11).",
                 None,
                 "Declare Unit Sale Price rounded off to two decimal places (e.g. 'USP: ₹ 0.85 / g' or 'USP: ₹ 850.00 / kg')."
             )

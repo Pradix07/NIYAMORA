@@ -66,6 +66,11 @@ class ComplianceEngine:
                 db.add(rule)
                 db.commit()
                 db.refresh(rule)
+            else:
+                rule.title = r_entry["title"]
+                rule.description = r_entry["description"]
+                rule.category = r_entry["category"]
+                rule.severity = r_entry["severity"]
 
             versions_list = r_entry.get("versions") or [r_entry.get("version")]
             for ver_data in versions_list:

@@ -226,7 +226,7 @@ export const SAMPLE_FINDINGS: Finding[] = [
     evidenceBox: { x: 55, y: 48, width: 38, height: 16, label: 'Consumer Care Details' },
     confidence: 0.99,
     suggestedAction: 'No changes required.',
-    officialSource: 'Legal Metrology (Packaged Commodities) Rules, Rule 6(1)(da)',
+    officialSource: 'Legal Metrology (Packaged Commodities) Rules, Rule 6(1)(g)',
     severity: 'MAJOR',
   },
   {
@@ -301,7 +301,7 @@ export const COMPLIANCE_RULES: ComplianceRule[] = [
     code: 'LM-CARE-02',
     name: 'Consumer Care Contact Matrix',
     category: 'Legal Metrology',
-    officialSource: 'Legal Metrology (Packaged Commodities) Rules, Rule 6(1)(da)',
+    officialSource: 'Legal Metrology (Packaged Commodities) Rules, Rule 6(1)(g)',
     sourceDate: '2022 Amendment',
     applicability: 'All pre-packaged consumer goods.',
     howWeCheck: 'NLP entity extraction scans for phone/helpline, valid email regex pattern, postal address, and designation of consumer care manager.',

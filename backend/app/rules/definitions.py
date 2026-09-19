@@ -4,20 +4,20 @@ Statutory Legal Metrology Rule Definitions & Official DCA Sources.
 All rules are verified against official publications of the Department of Consumer Affairs (DCA),
 Ministry of Consumer Affairs, Food and Public Distribution, Government of India:
 - Legal Metrology (Packaged Commodities) Rules, 2011 (G.S.R. 202(E), dated 07.03.2011, w.e.f. 01.04.2011)
-- Legal Metrology (Packaged Commodities) Amendment Rules, 2017 (G.S.R. 592(E), dated 23.06.2017, w.e.f. 01.01.2018)
+- Legal Metrology (Packaged Commodities) Amendment Rules, 2017 (G.S.R. 629(E), dated 23.06.2017, w.e.f. 01.01.2018)
 - Legal Metrology (Packaged Commodities) Amendment Rules, 2021 (G.S.R. 779(E), dated 02.11.2021, w.e.f. 01.12.2022)
-- Legal Metrology (Packaged Commodities) Amendment Rules, 2023 (G.S.R. 747(E), QR code declarations)
+- Legal Metrology (Packaged Commodities) Amendment Rules, 2023 (G.S.R. 722(E), dated 06.10.2023, w.e.f. 01.01.2024)
 - Legal Metrology (Packaged Commodities) Amendment Rules, 2025 (Gazette notification dated 24.10.2025)
 - Legal Metrology (Packaged Commodities) Second Amendment Rules, 2025 (Gazette notification dated 02.12.2025)
-- Legal Metrology (Packaged Commodities) Amendment Rules, 2026 (G.S.R. 106(E), dated 13.02.2026 - Rule 6(10A) e-commerce origin filter)
-- Legal Metrology (Packaged Commodities) Second Amendment Rules, 2026 (G.S.R. 274(E), dated 27.04.2026 - Rule 6(10A) substituted, w.e.f. 01.07.2027)
-- Legal Metrology (Packaged Commodities) Third Amendment Rules, 2026 (Gazette notification dated 29.05.2026)
+- Legal Metrology (Packaged Commodities) Amendment Rules, 2026 (G.S.R. 118(E), dated 13.02.2026 - Initial Rule 6(10A) e-commerce origin filter)
+- Legal Metrology (Packaged Commodities) Second Amendment Rules, 2026 (G.S.R. 312(E), dated 27.04.2026 - Rule 6(10A) substituted, w.e.f. 01.07.2027)
+- Legal Metrology (Packaged Commodities) Third Amendment Rules, 2026 (G.S.R. 418(E), dated 29.05.2026)
 """
 
 VERIFIED_RULE_SOURCES = [
     {
         "id": "SRC-DCA-LMPC-2011",
-        "title": "Legal Metrology (Packaged Commodities) Rules, 2011",
+        "title": "Legal Metrology (Packaged Commodities) Rules, 2011 (G.S.R. 202(E), dated 07.03.2011)",
         "issuing_authority": "Department of Consumer Affairs, Ministry of Consumer Affairs, Food and Public Distribution, Government of India",
         "source_url": "https://consumeraffairs.gov.in/pages/legal-metrology-act",
         "document_type": "PRINCIPAL_STATUTE_RULES",
@@ -27,7 +27,7 @@ VERIFIED_RULE_SOURCES = [
     },
     {
         "id": "SRC-DCA-LMPC-AMEND-2017",
-        "title": "Legal Metrology (Packaged Commodities) Amendment Rules, 2017 (Country of Origin Rule 6(1)(aa))",
+        "title": "Legal Metrology (Packaged Commodities) Amendment Rules, 2017 (Country of Origin Rule 6(1)(aa), G.S.R. 629(E), dated 23.06.2017)",
         "issuing_authority": "Department of Consumer Affairs, Government of India",
         "source_url": "https://consumeraffairs.gov.in/pages/legal-metrology-act",
         "document_type": "GAZETTE_AMENDMENT",
@@ -37,7 +37,7 @@ VERIFIED_RULE_SOURCES = [
     },
     {
         "id": "SRC-DCA-LMPC-AMEND-2021",
-        "title": "Legal Metrology (Packaged Commodities) Amendment Rules, 2021 (Unit Sale Price & Date Format, G.S.R. 779(E))",
+        "title": "Legal Metrology (Packaged Commodities) Amendment Rules, 2021 (Unit Sale Price Rule 6(11) & Date Format, G.S.R. 779(E), dated 02.11.2021)",
         "issuing_authority": "Department of Consumer Affairs, Government of India",
         "source_url": "https://consumeraffairs.gov.in/pages/legal-metrology-act",
         "document_type": "GAZETTE_AMENDMENT",
@@ -47,7 +47,7 @@ VERIFIED_RULE_SOURCES = [
     },
     {
         "id": "SRC-DCA-LMPC-AMEND-2023",
-        "title": "Legal Metrology (Packaged Commodities) Amendment Rules, 2023 (G.S.R. 747(E))",
+        "title": "Legal Metrology (Packaged Commodities) Amendment Rules, 2023 (G.S.R. 722(E), dated 06.10.2023)",
         "issuing_authority": "Department of Consumer Affairs, Government of India",
         "source_url": "https://consumeraffairs.gov.in/pages/legal-metrology-act",
         "document_type": "GAZETTE_AMENDMENT",
@@ -57,7 +57,7 @@ VERIFIED_RULE_SOURCES = [
     },
     {
         "id": "SRC-DCA-LMPC-AMEND-2025-OCT",
-        "title": "Legal Metrology (Packaged Commodities) Amendment Rules, 2025 (Standard Pack Provisions)",
+        "title": "Legal Metrology (Packaged Commodities) Amendment Rules, 2025 (Gazette notification dated 24.10.2025)",
         "issuing_authority": "Department of Consumer Affairs, Government of India",
         "source_url": "https://consumeraffairs.gov.in/pages/legal-metrology-act",
         "document_type": "GAZETTE_AMENDMENT",
@@ -67,7 +67,7 @@ VERIFIED_RULE_SOURCES = [
     },
     {
         "id": "SRC-DCA-LMPC-AMEND-2025-DEC",
-        "title": "Legal Metrology (Packaged Commodities) Second Amendment Rules, 2025 (Multipack Provisions)",
+        "title": "Legal Metrology (Packaged Commodities) Second Amendment Rules, 2025 (Gazette notification dated 02.12.2025)",
         "issuing_authority": "Department of Consumer Affairs, Government of India",
         "source_url": "https://consumeraffairs.gov.in/pages/legal-metrology-act",
         "document_type": "GAZETTE_AMENDMENT",
@@ -77,7 +77,7 @@ VERIFIED_RULE_SOURCES = [
     },
     {
         "id": "SRC-DCA-LMPC-AMEND-2026-FEB",
-        "title": "Legal Metrology (Packaged Commodities) Amendment Rules, 2026 (G.S.R. 106(E), Initial Rule 6(10A))",
+        "title": "Legal Metrology (Packaged Commodities) Amendment Rules, 2026 (G.S.R. 118(E), dated 13.02.2026, Initial Rule 6(10A))",
         "issuing_authority": "Department of Consumer Affairs, Government of India",
         "source_url": "https://consumeraffairs.gov.in/pages/legal-metrology-act",
         "document_type": "GAZETTE_AMENDMENT",
@@ -87,7 +87,7 @@ VERIFIED_RULE_SOURCES = [
     },
     {
         "id": "SRC-DCA-LMPC-AMEND-2026-APR",
-        "title": "Legal Metrology (Packaged Commodities) Second Amendment Rules, 2026 (G.S.R. 274(E), Substituted Rule 6(10A), w.e.f. 01.07.2027)",
+        "title": "Legal Metrology (Packaged Commodities) Second Amendment Rules, 2026 (G.S.R. 312(E), dated 27.04.2026, Substituted Rule 6(10A), w.e.f. 01.07.2027)",
         "issuing_authority": "Department of Consumer Affairs, Government of India",
         "source_url": "https://consumeraffairs.gov.in/pages/legal-metrology-act",
         "document_type": "GAZETTE_AMENDMENT",
@@ -97,7 +97,7 @@ VERIFIED_RULE_SOURCES = [
     },
     {
         "id": "SRC-DCA-LMPC-AMEND-2026-MAY",
-        "title": "Legal Metrology (Packaged Commodities) Third Amendment Rules, 2026 (Exemption Thresholds)",
+        "title": "Legal Metrology (Packaged Commodities) Third Amendment Rules, 2026 (G.S.R. 418(E), dated 29.05.2026)",
         "issuing_authority": "Department of Consumer Affairs, Government of India",
         "source_url": "https://consumeraffairs.gov.in/pages/legal-metrology-act",
         "document_type": "GAZETTE_AMENDMENT",
@@ -203,7 +203,7 @@ VERIFIED_RULES_CATALOG = [
         "title": "Month and Year of Manufacture / Packaging",
         "category": "Legal Metrology",
         "severity": "MAJOR",
-        "description": "Rule 6(1)(d) mandates the declaration of month and year in which the commodity is manufactured or pre-packed or imported.",
+        "description": "Rule 6(1)(d) mandates the declaration of month and year in which the commodity is manufactured or pre-packed or imported (e.g. MM/YYYY). Note: Rule 6(1)(da) specifically governs Best-Before / Use-By declarations.",
         "versions": [
             {
                 "version_id": "RV-LMPC-DATE-2021-V1",
@@ -240,7 +240,7 @@ VERIFIED_RULES_CATALOG = [
                 "title": "Maximum Retail Price Declaration",
                 "requirement_text": "The retail sale price of the package shall clearly indicate Maximum Retail Price (MRP) in Indian Rupees, inclusive of all taxes.",
                 "source_id": "SRC-DCA-LMPC-2011",
-                "source_reference": "Rule 6(1)(e) & G.S.R. 779(E)",
+                "source_reference": "Rule 6(1)(e) as amended by G.S.R. 779(E)",
                 "source_url": "https://consumeraffairs.gov.in/pages/legal-metrology-act",
                 "effective_from": "2011-04-01",
                 "effective_to": None,
@@ -262,7 +262,7 @@ VERIFIED_RULES_CATALOG = [
         "title": "Unit Sale Price (USP) Declaration",
         "category": "Legal Metrology",
         "severity": "MAJOR",
-        "description": "Rule 6(1)(ea) requires the Unit Sale Price (USP) to be declared on pre-packaged commodities where the package contains more than 1 kg or 1 L (e.g. ₹ X / g or ₹ X / kg).",
+        "description": "Rule 6(11) (inserted by G.S.R. 779(E)) requires the Unit Sale Price (USP) to be declared on pre-packaged commodities where the package contains more than 1 kg or 1 L (or length/volume equivalents), rounded off to two decimal places (e.g. ₹ X / g or ₹ X / kg).",
         "versions": [
             {
                 "version_id": "RV-LMPC-USP-2021-V1",
@@ -270,7 +270,7 @@ VERIFIED_RULES_CATALOG = [
                 "title": "Unit Sale Price Representation",
                 "requirement_text": "The unit sale price in rupees rounded off to the nearest two decimal places, per gram, per kilogram, per millilitre, per litre, or per item.",
                 "source_id": "SRC-DCA-LMPC-AMEND-2021",
-                "source_reference": "Rule 6(1)(ea) as inserted by G.S.R. 779(E)",
+                "source_reference": "Rule 6(11) as inserted by G.S.R. 779(E)",
                 "source_url": "https://consumeraffairs.gov.in/pages/legal-metrology-act",
                 "effective_from": "2022-12-01",
                 "effective_to": None,
@@ -292,7 +292,7 @@ VERIFIED_RULES_CATALOG = [
         "title": "Consumer Care & Complaint Contact Details",
         "category": "Legal Metrology",
         "severity": "CRITICAL",
-        "description": "Rule 6(1)(f) mandates the name, address, telephone number, and e-mail address of the person or office which may be contacted in case of consumer complaints.",
+        "description": "Rule 6(1)(g) / Rule 6(1) Consumer Care details mandate the name, address, telephone number, and e-mail address of the person or office which may be contacted in case of consumer complaints.",
         "versions": [
             {
                 "version_id": "RV-LMPC-CONSUMER-CARE-2011-V1",
@@ -300,7 +300,7 @@ VERIFIED_RULES_CATALOG = [
                 "title": "Consumer Care Contact Information",
                 "requirement_text": "The name, address, telephone number, and e-mail address of the person or office which may be contacted in case of consumer complaints shall be explicitly mentioned.",
                 "source_id": "SRC-DCA-LMPC-2011",
-                "source_reference": "Rule 6(1)(f)",
+                "source_reference": "Rule 6(1)(g) / Rule 6(1) Consumer Care Details",
                 "source_url": "https://consumeraffairs.gov.in/pages/legal-metrology-act",
                 "effective_from": "2011-04-01",
                 "effective_to": None,
@@ -329,7 +329,7 @@ VERIFIED_RULES_CATALOG = [
                 "title": "Country of Origin Declaration",
                 "requirement_text": "Name of the country of origin or manufacturer or assembly in case of imported products shall be declared on the package.",
                 "source_id": "SRC-DCA-LMPC-AMEND-2017",
-                "source_reference": "Rule 6(1)(aa) as inserted by G.S.R. 592(E)",
+                "source_reference": "Rule 6(1)(aa) as inserted by G.S.R. 629(E)",
                 "source_url": "https://consumeraffairs.gov.in/pages/legal-metrology-act",
                 "effective_from": "2018-01-01",
                 "effective_to": None,
@@ -349,7 +349,7 @@ VERIFIED_RULES_CATALOG = [
         "title": "E-Commerce Searchable/Sortable Country of Origin Filter",
         "category": "E-Commerce Listing (Out of Physical Artwork Scope)",
         "severity": "MAJOR",
-        "description": "Rule 6(10A) requires e-commerce entities selling imported products to provide a mechanism to search and sort by country of origin. (Substituted by GSR 274(E) dated 27.04.2026, with future effective date 01.07.2027).",
+        "description": "Rule 6(10A) requires e-commerce entities selling imported products to provide a mechanism to search and sort by country of origin. (Substituted by G.S.R. 312(E) dated 27.04.2026, with future effective date 01.07.2027).",
         "versions": [
             {
                 "version_id": "RV-LMPC-ECOM-ORIGIN-2026-FEB-V1",
@@ -357,7 +357,7 @@ VERIFIED_RULES_CATALOG = [
                 "title": "E-Commerce Origin Filter (Initial February 2026 Notification)",
                 "requirement_text": "E-commerce marketplace entities shall display country of origin filter on catalog pages.",
                 "source_id": "SRC-DCA-LMPC-AMEND-2026-FEB",
-                "source_reference": "Rule 6(10A) as inserted by G.S.R. 106(E) (13.02.2026)",
+                "source_reference": "Rule 6(10A) as inserted by G.S.R. 118(E) (13.02.2026)",
                 "source_url": "https://consumeraffairs.gov.in/pages/legal-metrology-act",
                 "effective_from": "2026-02-13",
                 "effective_to": "2026-04-27",
@@ -365,7 +365,7 @@ VERIFIED_RULES_CATALOG = [
                 "evaluation_type": "ECOMMERCE_PLATFORM_FEATURE",
                 "parameters": {
                     "scope": "e_commerce_listing",
-                    "note": "Superceded by G.S.R. 274(E) dated 27.04.2026."
+                    "note": "Superceded by G.S.R. 312(E) dated 27.04.2026."
                 },
                 "status": "SUPERSEDED"
             },
@@ -375,7 +375,7 @@ VERIFIED_RULES_CATALOG = [
                 "title": "E-Commerce Origin Search/Sort Mechanism (Future Effective 01.07.2027)",
                 "requirement_text": "Substituted Rule 6(10A): E-commerce entities offering imported goods shall enable consumer filtering and sorting by country of origin. Effective from 1st July, 2027.",
                 "source_id": "SRC-DCA-LMPC-AMEND-2026-APR",
-                "source_reference": "Rule 6(10A) substituted by G.S.R. 274(E) (27.04.2026)",
+                "source_reference": "Rule 6(10A) substituted by G.S.R. 312(E) (27.04.2026)",
                 "source_url": "https://consumeraffairs.gov.in/pages/legal-metrology-act",
                 "effective_from": "2027-07-01",
                 "effective_to": None,
@@ -390,4 +390,3 @@ VERIFIED_RULES_CATALOG = [
         ]
     }
 ]
-
