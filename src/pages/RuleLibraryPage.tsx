@@ -95,11 +95,12 @@ export const RuleLibraryPage: React.FC = () => {
             /* Live Verified Rules from Database Catalog */
             filteredLiveRules.map((rule) => {
               const activeVer = rule.versions && rule.versions.length > 0 ? rule.versions[0] : null;
+              const isImplementedPackagingCheck = rule.domain === 'LEGAL_METROLOGY_PACKAGED_COMMODITIES';
               return (
                 <div key={rule.id} className="card-tactile" style={{ padding: '1.5rem', backgroundColor: 'var(--bg-surface)' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
                     <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.35rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.35rem', flexWrap: 'wrap' }}>
                         <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', fontWeight: 800, color: 'var(--brand-primary)', backgroundColor: 'var(--brand-primary-light)', padding: '2px 8px', borderRadius: '4px' }}>
                           {rule.rule_code}
                         </span>
@@ -109,6 +110,15 @@ export const RuleLibraryPage: React.FC = () => {
                         <span className="badge badge-neutral" style={{ fontSize: '0.6875rem' }}>
                           Severity: {rule.severity}
                         </span>
+                        {isImplementedPackagingCheck ? (
+                          <span className="badge badge-good" style={{ fontSize: '0.6875rem' }}>
+                            <CheckCircle2 size={11} /> Verified Packaging Check
+                          </span>
+                        ) : (
+                          <span className="badge badge-review" style={{ fontSize: '0.6875rem' }}>
+                            <AlertTriangle size={11} /> Future / E-Commerce Listing Scope
+                          </span>
+                        )}
                       </div>
                       <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>{rule.title}</h3>
                     </div>
@@ -125,25 +135,38 @@ export const RuleLibraryPage: React.FC = () => {
                     {rule.description}
                   </p>
 
-                  {activeVer && (
-                    <div className="grid-2" style={{ gap: '1rem', marginBottom: '1rem' }}>
-                      <div style={{ padding: '0.875rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-sm)' }}>
-                        <strong style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
-                          Statutory Requirement:
-                        </strong>
-                        <p style={{ fontSize: '0.8125rem', color: 'var(--text-primary)' }}>
-                          {activeVer.requirement_text}
-                        </p>
-                      </div>
+                  {/* Render Versions List for this rule */}
+                  {rule.versions && rule.versions.length > 0 && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
+                      {rule.versions.map((ver) => (
+                        <div key={ver.id} className="grid-2" style={{ gap: '1rem', padding: '0.875rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '4px' }}>
+                              <strong style={{ fontSize: '0.75rem', color: 'var(--text-primary)', textTransform: 'uppercase' }}>
+                                Version {ver.version_number}: {ver.title}
+                              </strong>
+                              <span className={`badge ${ver.status === 'ACTIVE' ? 'badge-good' : ver.status === 'FUTURE_EFFECTIVE' ? 'badge-review' : 'badge-neutral'}`} style={{ fontSize: '0.65rem' }}>
+                                {ver.status}
+                              </span>
+                            </div>
+                            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                              {ver.requirement_text}
+                            </p>
+                          </div>
 
-                      <div style={{ padding: '0.875rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-sm)' }}>
-                        <strong style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
-                          Applicability & Effective Period:
-                        </strong>
-                        <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-                          {activeVer.applicability} (Effective from: {activeVer.effective_from})
-                        </p>
-                      </div>
+                          <div>
+                            <strong style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
+                              Source & Effective Timeline:
+                            </strong>
+                            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>
+                              <strong>Source:</strong> {ver.source_reference}
+                            </p>
+                            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                              <strong>Effective:</strong> {ver.effective_from}{ver.effective_to ? ` to ${ver.effective_to}` : ' (Current)'}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
 

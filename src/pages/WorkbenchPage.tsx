@@ -88,7 +88,6 @@ export const WorkbenchPage: React.FC = () => {
   const versionLabel = inspection?.version_label || fallbackProduct.latestVersion;
   const previewUrl = inspection?.preview_url ? api.getFileUrl(inspection.preview_url) : null;
   const complianceVerdict = inspection?.compliance_verdict;
-  const complianceScore = inspection?.compliance_score;
 
   return (
     <AppShell breadcrumbs={[{ label: 'Products', path: '/products' }, { label: productName, path: `/products/${fallbackProduct.id}` }, { label: 'Results & Workbench' }]}>
@@ -120,7 +119,7 @@ export const WorkbenchPage: React.FC = () => {
                     className={`badge ${complianceVerdict === 'PASS' ? 'badge-good' : complianceVerdict === 'ISSUE' ? 'badge-issue' : 'badge-review'}`}
                     style={{ fontSize: '0.6875rem' }}
                   >
-                    {complianceVerdict === 'PASS' ? <ShieldCheck size={11} /> : <AlertTriangle size={11} />} Compliance: {complianceVerdict} ({complianceScore ?? 100}%)
+                    {complianceVerdict === 'PASS' ? <ShieldCheck size={11} /> : <AlertTriangle size={11} />} Verdict: {complianceVerdict} ({evaluations.filter(e => e.status === 'PASS').length}/{evaluations.length || 8} Checks Passed)
                   </span>
                 )}
                 {inspection?.quality_verdict && (
@@ -184,7 +183,6 @@ export const WorkbenchPage: React.FC = () => {
             onSelectFinding={(id) => setSelectedFindingId(id)}
             onOpenImprove={() => navigate('/improve')}
             complianceVerdict={complianceVerdict}
-            complianceScore={complianceScore}
           />
         </div>
 

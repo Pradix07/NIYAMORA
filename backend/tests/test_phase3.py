@@ -8,6 +8,7 @@ from PIL import Image, ImageDraw
 os.environ["DATABASE_URL"] = "sqlite:///./test_niyamora_phase3.db"
 os.environ["STORAGE_DIR"] = "./test_storage/uploads_phase3"
 
+import backend.app.models
 from backend.app.main import app
 from backend.app.db.session import Base, engine, SessionLocal
 from backend.app.models.company import Company
@@ -333,3 +334,81 @@ def test_cross_company_compliance_isolation():
     # Company B tries to view Company A's findings -> 403 Forbidden
     res_find_b = client.get(f"/api/inspections/{insp_a_id}/findings", headers={"X-Company-ID": comp_b_id})
     assert res_find_b.status_code == 403
+
+def test_future_effective_ecommerce_rule_not_active_today():
+    """Verify that Rule 6(10A) (effective 2027-07-01 for e-commerce listings) is not evaluated as a packaging artwork violation today."""
+    # Check rule catalog contains the version
+    res_rules = client.get("/api/rules")
+    assert res_rules.status_code == 200
+    rules = res_rules.json()
+    ecom_rule = next((r for r in rules if r["rule_code"] == "LMPC-ECOM-COUNTRY-ORIGIN-FILTER"), None)
+    assert ecom_rule is not None
+    assert any(v["status"] == "FUTURE_EFFECTIVE" for v in ecom_rule["versions"])
+
+    # On a normal physical package check, this rule should NOT be evaluated as a failure
+    pdf = create_synthetic_artwork_pdf()
+    res = client.post(
+        "/api/upload-check",
+        files={"file": ("PhysicalPack.pdf", pdf, "application/pdf")},
+        data={"product_name": "Physical Oatmeal", "brand": "Aura", "packaging_type": "Pouch"}
+    )
+    assert res.status_code == 201
+    insp_id = res.json()["inspection_id"]
+
+    evals = client.get(f"/api/inspections/{insp_id}/evaluations").json()
+    # Ensure no failure is generated for future e-commerce rule
+    assert not any(e["rule_code"] == "LMPC-ECOM-COUNTRY-ORIGIN-FILTER" and e["status"] == "ISSUE" for e in evals)
+
+def test_no_evidence_no_pass_generic_name():
+    """Verify that omitting generic product name from artwork returns REVIEW and never PASS."""
+    # Create PDF with NO generic product name
+    doc = fitz.open()
+    page = doc.new_page(width=400, height=600)
+    page.insert_text((40, 50), "AURA", fontsize=12) # Only brand
+    page.insert_text((40, 380), "Net Qty: 250 g", fontsize=12)
+    page.insert_text((40, 410), "MRP: Rs. 299.00 (incl. of all taxes)", fontsize=10)
+    page.insert_text((40, 440), "MFG: 09/2026", fontsize=10)
+    page.insert_text((40, 470), "Manufactured by: Aura, Plot 1, Bengaluru 560100", fontsize=8)
+    page.insert_text((40, 500), "Helpline: 1800-425-9988", fontsize=8)
+    pdf_bytes = io.BytesIO()
+    doc.save(pdf_bytes)
+    doc.close()
+    pdf_bytes.seek(0)
+
+    res = client.post(
+        "/api/upload-check",
+        files={"file": ("NoGenericName.pdf", pdf_bytes, "application/pdf")},
+        data={"product_name": "Unknown Product", "brand": "Aura", "packaging_type": "Pouch"}
+    )
+    insp_id = res.json()["inspection_id"]
+    evals = client.get(f"/api/inspections/{insp_id}/evaluations").json()
+    status_map = {e["rule_code"]: e["status"] for e in evals}
+    assert status_map["LMPC-DECL-COMMODITY-NAME"] != "PASS"
+
+def test_missing_net_quantity_usp_returns_review():
+    """Verify that when net quantity is missing, USP evaluation returns REVIEW to prevent assuming N/A."""
+    # Create PDF with no net quantity
+    doc = fitz.open()
+    page = doc.new_page(width=400, height=600)
+    page.insert_text((40, 50), "AURA BOTANICALS", fontsize=12)
+    page.insert_text((40, 80), "Organic Superfood", fontsize=16)
+    page.insert_text((40, 410), "MRP: Rs. 299.00 (incl. of all taxes)", fontsize=10)
+    page.insert_text((40, 440), "MFG: 09/2026", fontsize=10)
+    page.insert_text((40, 470), "Manufactured by: Aura, Plot 1, Bengaluru 560100", fontsize=8)
+    page.insert_text((40, 500), "Helpline: 1800-425-9988", fontsize=8)
+    pdf_bytes = io.BytesIO()
+    doc.save(pdf_bytes)
+    doc.close()
+    pdf_bytes.seek(0)
+
+    res = client.post(
+        "/api/upload-check",
+        files={"file": ("No_NetQty.pdf", pdf_bytes, "application/pdf")},
+        data={"product_name": "Superfood", "brand": "Aura", "packaging_type": "Pouch"}
+    )
+    insp_id = res.json()["inspection_id"]
+    evals = client.get(f"/api/inspections/{insp_id}/evaluations").json()
+    print("\nDEBUG EVALS:", [{e["rule_code"]: e["status"], "obs": e.get("observed_value"), "expl": e.get("explanation")} for e in evals])
+    status_map = {e["rule_code"]: e["status"] for e in evals}
+    assert status_map["LMPC-DECL-USP"] == "REVIEW"
+

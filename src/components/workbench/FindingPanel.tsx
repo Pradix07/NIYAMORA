@@ -10,7 +10,6 @@ interface FindingPanelProps {
   onSelectFinding: (id: string) => void;
   onOpenImprove?: () => void;
   complianceVerdict?: string;
-  complianceScore?: number;
 }
 
 export const FindingPanel: React.FC<FindingPanelProps> = ({
@@ -21,7 +20,6 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
   onSelectFinding,
   onOpenImprove,
   complianceVerdict,
-  complianceScore,
 }) => {
   const [filter, setFilter] = useState<'ALL' | 'ISSUE' | 'REVIEW' | 'PASS' | 'N/A'>('ALL');
   const [activeTab, setActiveTab] = useState<'RULES' | 'EXTRACTION'>('RULES');
@@ -86,9 +84,9 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
       <div style={{ padding: '1.25rem 1.25rem 1rem', borderBottom: '1px solid var(--border-default)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.875rem' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '2px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
               <h3 style={{ fontSize: '1.125rem', fontWeight: 700 }}>
-                {activeTab === 'RULES' ? 'Compliance Evaluations' : 'Extracted Declarations'}
+                {activeTab === 'RULES' ? 'Statutory Rule Checks' : 'Extracted Declarations'}
               </h3>
               {complianceVerdict && (
                 <span
@@ -101,7 +99,7 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
             </div>
             <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
               {hasEvaluations
-                ? `${evaluations.length} statutory checks evaluated (${complianceScore ?? 100}% compliance score)`
+                ? `${passCount} of ${evaluations.length} verified checks passed (${issueCount > 0 ? `${issueCount} Issues require attention` : reviewCount > 0 ? `${reviewCount} Awaiting review` : 'All Implemented Checks Passed'})`
                 : `${fieldList.length} packaging fields parsed`}
             </p>
           </div>

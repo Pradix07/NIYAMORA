@@ -43,6 +43,10 @@ class ComplianceEngine:
             if not src:
                 src = RuleSource(**src_data)
                 db.add(src)
+            else:
+                src.title = src_data["title"]
+                src.status = src_data["status"]
+                src.source_url = src_data["source_url"]
         db.commit()
 
         # 2. Seed Rules & Rule Versions
@@ -63,27 +67,36 @@ class ComplianceEngine:
                 db.commit()
                 db.refresh(rule)
 
-            ver_data = r_entry["version"]
-            rv = db.query(RuleVersion).filter(RuleVersion.id == ver_data["version_id"]).first()
-            if not rv:
-                rv = RuleVersion(
-                    id=ver_data["version_id"],
-                    rule_id=rule.id,
-                    rule_code=rule.rule_code,
-                    version_number=ver_data["version_number"],
-                    title=ver_data["title"],
-                    requirement_text=ver_data["requirement_text"],
-                    source_id=ver_data["source_id"],
-                    source_reference=ver_data["source_reference"],
-                    source_url=ver_data["source_url"],
-                    effective_from=ver_data["effective_from"],
-                    effective_to=ver_data["effective_to"],
-                    applicability=ver_data["applicability"],
-                    evaluation_type=ver_data["evaluation_type"],
-                    parameters=ver_data["parameters"],
-                    status="ACTIVE"
-                )
-                db.add(rv)
+            versions_list = r_entry.get("versions") or [r_entry.get("version")]
+            for ver_data in versions_list:
+                if not ver_data:
+                    continue
+                rv = db.query(RuleVersion).filter(RuleVersion.id == ver_data["version_id"]).first()
+                if not rv:
+                    rv = RuleVersion(
+                        id=ver_data["version_id"],
+                        rule_id=rule.id,
+                        rule_code=rule.rule_code,
+                        version_number=ver_data["version_number"],
+                        title=ver_data["title"],
+                        requirement_text=ver_data["requirement_text"],
+                        source_id=ver_data["source_id"],
+                        source_reference=ver_data["source_reference"],
+                        source_url=ver_data["source_url"],
+                        effective_from=ver_data["effective_from"],
+                        effective_to=ver_data["effective_to"],
+                        applicability=ver_data["applicability"],
+                        evaluation_type=ver_data["evaluation_type"],
+                        parameters=ver_data["parameters"],
+                        status=ver_data.get("status", "ACTIVE")
+                    )
+                    db.add(rv)
+                else:
+                    rv.status = ver_data.get("status", rv.status)
+                    rv.effective_from = ver_data["effective_from"]
+                    rv.effective_to = ver_data.get("effective_to")
+                    rv.requirement_text = ver_data["requirement_text"]
+                    rv.source_reference = ver_data["source_reference"]
         db.commit()
 
     @classmethod
@@ -92,10 +105,11 @@ class ComplianceEngine:
         db: Session,
         inspection: Inspection,
         version: ArtworkVersion,
-        product: Optional[Product]
+        product: Optional[Product],
+        inspection_date: Optional[str] = None
     ) -> Dict[str, Any]:
         """
-        Executes deterministic evaluation across all active verified rule versions for the inspection.
+        Executes deterministic evaluation across active verified rule versions effective as of inspection date.
         Creates Evidence, Evaluation, and Finding records.
         """
         cls.ensure_rules_seeded(db)
@@ -111,6 +125,9 @@ class ComplianceEngine:
         raw_text = extracted_data.get("raw_text", "")
         blocks = extracted_data.get("blocks", [])
 
+        # Default inspection date to today (YYYY-MM-DD) if not specified
+        effective_date_filter = inspection_date or (inspection.created_at.strftime("%Y-%m-%d") if inspection.created_at else "2026-09-19")
+
         product_context = {
             "name": product.name if product else "",
             "brand": product.brand if product else "",
@@ -118,11 +135,26 @@ class ComplianceEngine:
             "packaging_type": product.packaging_type if product else "",
             "net_quantity": product.net_quantity if product else "",
             "description": product.description if product else "",
-            "is_imported": False
+            "is_imported": False,
+            "inspection_date": effective_date_filter
         }
 
-        # Query all active rule versions
-        rule_versions = db.query(RuleVersion).filter(RuleVersion.status == "ACTIVE").all()
+        # Query all active rule versions applicable to physical packaging
+        all_active_versions = db.query(RuleVersion).filter(RuleVersion.status == "ACTIVE").all()
+
+        # Filter by effective date and packaging scope
+        evaluable_rule_versions = []
+        for rv in all_active_versions:
+            if rv.applicability == "ECOMMERCE_LISTINGS_ONLY":
+                # E-commerce listing features (e.g. Rule 6(10A)) are out of physical artwork scope
+                continue
+            if rv.effective_from and rv.effective_from > effective_date_filter:
+                # Future effective rule
+                continue
+            if rv.effective_to and rv.effective_to < effective_date_filter:
+                # Superseded rule
+                continue
+            evaluable_rule_versions.append(rv)
 
         pass_count = 0
         issue_count = 0
@@ -131,7 +163,7 @@ class ComplianceEngine:
 
         evaluations_list = []
 
-        for rv in rule_versions:
+        for rv in evaluable_rule_versions:
             evaluator = EVALUATOR_REGISTRY.get(rv.rule_code)
             if not evaluator:
                 logger.warning(f"No evaluator registered for rule_code {rv.rule_code}")
@@ -229,23 +261,24 @@ class ComplianceEngine:
             overall_verdict = "N/A"
 
         evaluable_rules = pass_count + issue_count + review_count
-        compliance_score = round((pass_count / max(1, evaluable_rules)) * 100.0, 1)
+        pass_ratio_pct = round((pass_count / max(1, evaluable_rules)) * 100.0, 1)
 
         findings_summary = {
-            "total_rules": len(rule_versions),
+            "total_rules": len(evaluable_rule_versions),
             "evaluable_rules": evaluable_rules,
             "pass_count": pass_count,
             "issue_count": issue_count,
             "review_count": review_count,
             "na_count": na_count,
             "verdict": overall_verdict,
-            "score": compliance_score,
-            "disclaimer": "Statutory pre-print compliance check under verified Legal Metrology (Packaged Commodities) Rules, 2011. Not a substitute for official government certification."
+            "score": pass_ratio_pct,
+            "pass_ratio": f"{pass_count} of {evaluable_rules} verified checks passed",
+            "disclaimer": "Verified statutory pre-print assessment under Legal Metrology (Packaged Commodities) Rules, 2011. Assisted pre-print verification tool — not a substitute for statutory authority certification."
         }
 
         # Update inspection record
         inspection.compliance_verdict = overall_verdict
-        inspection.compliance_score = compliance_score
+        inspection.compliance_score = pass_ratio_pct
         inspection.findings_summary = findings_summary
         db.commit()
         db.refresh(inspection)

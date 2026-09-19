@@ -21,6 +21,17 @@ class UnitSalePriceEvaluator(BaseRuleEvaluator):
         # 1. Determine Net Quantity threshold
         net_qty_str = (extracted_fields.get("net_quantity") or {}).get("extracted_value") or product_context.get("net_quantity") or ""
         
+        if not net_qty_str or len(net_qty_str.strip()) == 0:
+            # If net quantity cannot be determined, we cannot assume <= 1kg. Request human review.
+            return (
+                "REVIEW",
+                None,
+                expected_cond,
+                "Package net quantity could not be determined to verify Unit Sale Price (USP) threshold applicability under Rule 6(1)(ea).",
+                None,
+                "Verify packaging net quantity to determine whether Unit Sale Price declaration is required (> 1 kg / > 1 L)."
+            )
+
         is_large_pack = False
         qty_match = re.search(r"(\d+(?:\.\d+)?)\s*(kg|g|l|ml)", net_qty_str.lower())
         if qty_match:

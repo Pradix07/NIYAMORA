@@ -14,7 +14,7 @@ class Product(Base):
     category = Column(String(100), default="Food & Beverage", nullable=False)
     packaging_type = Column(String(100), default="Stand-Up Pouch", nullable=False)
     sku = Column(String(100), nullable=False, index=True)
-    net_quantity = Column(String(50), default="250 g", nullable=False)
+    net_quantity = Column(String(50), nullable=True, default=None)
     description = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)

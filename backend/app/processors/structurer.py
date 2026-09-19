@@ -136,42 +136,62 @@ class PackagingFieldStructurer:
         )
 
         # 10. Product Name & Brand from Hints or Top Text Blocks
-        if brand_hint:
+        if brand_hint and brand_hint.lower() in raw_text.lower():
+            matching_box = next((b.normalized_box for b in blocks if brand_hint.lower() in b.text.lower()), None)
             fields["brand"] = ExtractedField(
                 field_key="brand",
                 field_name="Brand Identity",
                 extracted_value=brand_hint,
                 status="EXTRACTED",
                 confidence=0.99,
-                evidence_box=blocks[0].normalized_box if blocks else None
+                evidence_box=matching_box or (blocks[0].normalized_box if blocks else None)
+            )
+        elif blocks:
+            fields["brand"] = ExtractedField(
+                field_key="brand",
+                field_name="Brand Identity",
+                extracted_value=blocks[0].text,
+                status="EXTRACTED",
+                confidence=0.85,
+                evidence_box=blocks[0].normalized_box
             )
         else:
             fields["brand"] = ExtractedField(
                 field_key="brand",
                 field_name="Brand Identity",
-                extracted_value=blocks[0].text if blocks else None,
-                status="EXTRACTED" if blocks else "NOT_FOUND",
-                confidence=0.85 if blocks else 0.0,
-                evidence_box=blocks[0].normalized_box if blocks else None
+                extracted_value=None,
+                status="NOT_FOUND",
+                confidence=0.0,
+                evidence_box=None
             )
 
-        if product_name_hint:
+        if product_name_hint and product_name_hint.lower() in raw_text.lower():
+            matching_box = next((b.normalized_box for b in blocks if product_name_hint.lower() in b.text.lower()), None)
             fields["product_name"] = ExtractedField(
                 field_key="product_name",
                 field_name="Product Name / Commercial Descriptor",
                 extracted_value=product_name_hint,
                 status="EXTRACTED",
                 confidence=0.99,
-                evidence_box=blocks[1].normalized_box if len(blocks) > 1 else None
+                evidence_box=matching_box or (blocks[1].normalized_box if len(blocks) > 1 else None)
+            )
+        elif len(blocks) > 1 and not any(k in blocks[1].text.lower() for k in ["net", "mrp", "mfg", "pkd", "care", "helpline", "price", "taxes", "lot", "batch"]):
+            fields["product_name"] = ExtractedField(
+                field_key="product_name",
+                field_name="Product Name / Commercial Descriptor",
+                extracted_value=blocks[1].text,
+                status="EXTRACTED",
+                confidence=0.80,
+                evidence_box=blocks[1].normalized_box
             )
         else:
             fields["product_name"] = ExtractedField(
                 field_key="product_name",
                 field_name="Product Name / Commercial Descriptor",
-                extracted_value=blocks[1].text if len(blocks) > 1 else None,
-                status="EXTRACTED" if len(blocks) > 1 else "NOT_FOUND",
-                confidence=0.85 if len(blocks) > 1 else 0.0,
-                evidence_box=blocks[1].normalized_box if len(blocks) > 1 else None
+                extracted_value=None,
+                status="NOT_FOUND",
+                confidence=0.0,
+                evidence_box=None
             )
 
         return fields

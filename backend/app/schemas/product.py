@@ -8,7 +8,7 @@ class ProductBase(BaseModel):
     category: str = "Food & Beverage"
     packaging_type: str = "Stand-Up Pouch"
     sku: str
-    net_quantity: str = "250 g"
+    net_quantity: Optional[str] = None
     description: Optional[str] = None
 
 class ProductCreate(ProductBase):
