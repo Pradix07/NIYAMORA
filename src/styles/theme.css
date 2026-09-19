@@ -1,0 +1,133 @@
+/* NIYAMORA Design System - Theme Tokens & Variables */
+
+:root {
+  /* Typography */
+  --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s ease;
+  --transition-slow: 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Radius */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Brand Accents */
+  --brand-primary: #4F46E5;
+  --brand-primary-hover: #4338CA;
+  --brand-primary-light: #EEF2FF;
+  --brand-secondary: #0EA5E9;
+  --brand-accent: #6366F1;
+
+  /* Compliance Status Colors */
+  --status-good-bg: #ECFDF5;
+  --status-good-text: #065F46;
+  --status-good-border: #A7F3D0;
+  --status-good-solid: #10B981;
+
+  --status-review-bg: #FFFBEB;
+  --status-review-text: #92400E;
+  --status-review-border: #FDE68A;
+  --status-review-solid: #F59E0B;
+
+  --status-issue-bg: #FEF2F2;
+  --status-issue-text: #991B1B;
+  --status-issue-border: #FECACA;
+  --status-issue-solid: #EF4444;
+
+  --status-fixed-bg: #F0FDF4;
+  --status-fixed-text: #166534;
+  --status-fixed-border: #BBF7D0;
+  --status-fixed-solid: #22C55E;
+}
+
+/* Light Theme (Default / Editorial clean packaging feel) */
+:root, [data-theme="light"] {
+  --bg-app: #F8FAFC;
+  --bg-surface: #FFFFFF;
+  --bg-surface-subtle: #F1F5F9;
+  --bg-surface-hover: #F8FAFC;
+  --bg-surface-active: #E2E8F0;
+  --bg-inset: #EDF2F7;
+
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --text-inverted: #FFFFFF;
+
+  --border-subtle: #F1F5F9;
+  --border-default: #E2E8F0;
+  --border-strong: #CBD5E1;
+  --border-focus: #6366F1;
+
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  --shadow-xl: 0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  --shadow-3d: 0 2px 0 #CBD5E1, 0 8px 16px -4px rgba(15, 23, 42, 0.08);
+
+  --sidebar-bg: #FFFFFF;
+  --sidebar-border: #E2E8F0;
+  --topbar-bg: rgba(255, 255, 255, 0.92);
+  --card-bg: #FFFFFF;
+  --modal-overlay: rgba(15, 23, 42, 0.5);
+}
+
+/* Dark Theme (Deep charcoal / navy, controlled highlights, strong hierarchy) */
+[data-theme="dark"] {
+  --bg-app: #0B0F19;
+  --bg-surface: #111827;
+  --bg-surface-subtle: #1E293B;
+  --bg-surface-hover: #1F2937;
+  --bg-surface-active: #334155;
+  --bg-inset: #0F172A;
+
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --text-inverted: #0F172A;
+
+  --border-subtle: #1E293B;
+  --border-default: #334155;
+  --border-strong: #475569;
+  --border-focus: #818CF8;
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4), 0 1px 2px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.4), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5), 0 4px 6px -4px rgba(0, 0, 0, 0.3);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 8px 10px -6px rgba(0, 0, 0, 0.4);
+  --shadow-3d: 0 2px 0 #1E293B, 0 10px 20px -4px rgba(0, 0, 0, 0.5);
+
+  --sidebar-bg: #0E1320;
+  --sidebar-border: #1E293B;
+  --topbar-bg: rgba(14, 19, 32, 0.88);
+  --card-bg: #111827;
+  --modal-overlay: rgba(0, 0, 0, 0.75);
+
+  --brand-primary-light: rgba(79, 70, 229, 0.15);
+
+  --status-good-bg: rgba(16, 185, 129, 0.12);
+  --status-good-text: #34D399;
+  --status-good-border: rgba(16, 185, 129, 0.25);
+
+  --status-review-bg: rgba(245, 158, 11, 0.12);
+  --status-review-text: #FBBF24;
+  --status-review-border: rgba(245, 158, 11, 0.25);
+
+  --status-issue-bg: rgba(239, 68, 68, 0.12);
+  --status-issue-text: #F87171;
+  --status-issue-border: rgba(239, 68, 68, 0.25);
+
+  --status-fixed-bg: rgba(34, 197, 94, 0.12);
+  --status-fixed-text: #4ADE80;
+  --status-fixed-border: rgba(34, 197, 94, 0.25);
+}
