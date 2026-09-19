@@ -88,11 +88,16 @@ export const ReportsPage: React.FC = () => {
                 </span>
                 <button onClick={() => handleDownload(report.title)} className="btn btn-primary btn-sm" style={{ gap: '0.35rem' }}>
                   <Download size={14} />
-                  <span>Download</span>
+                  <span>Download Sample</span>
                 </button>
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Reports Disclaimer */}
+        <div style={{ padding: '0.875rem 1.25rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+          <strong>Reporting Engine Status:</strong> Sample compliance reports demonstrate the structured Phase 1 output templates. Full vector PDF report generation with cryptographic proof will be linked in Phase 5.
         </div>
 
       </div>

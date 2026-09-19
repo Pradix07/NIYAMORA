@@ -137,6 +137,11 @@ export const RuleLibraryPage: React.FC = () => {
           ))}
         </div>
 
+        {/* Rule Library Disclaimer */}
+        <div style={{ padding: '0.875rem 1.25rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+          <strong>Statutory Knowledge Base Notice:</strong> Displayed rule parameters are based on standard published provisions of the Legal Metrology (Packaged Commodities) Rules and FSSAI Packaging Regulations. Versioned deterministic evaluation models will be fully compiled in Phase 3.
+        </div>
+
       </div>
     </AppShell>
   );

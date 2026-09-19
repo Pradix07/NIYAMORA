@@ -300,6 +300,11 @@ export const DiffVisualizer: React.FC<DiffVisualizerProps> = ({
           ))}
         </div>
       </div>
+
+      {/* Statutory Transparency Disclaimer */}
+      <div style={{ padding: '0.875rem 1.25rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+        <strong>Pre-Press Advisory Note:</strong> Suggested adjustments are automated visual recommendations to assist pre-press dieline preparation. NIYAMORA does not issue statutory approvals or legal certifications; final legal packaging compliance remains the responsibility of the brand manufacturer.
+      </div>
     </div>
   );
 };

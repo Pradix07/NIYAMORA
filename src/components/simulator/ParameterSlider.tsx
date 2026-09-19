@@ -178,10 +178,15 @@ export const ParameterSlider: React.FC = () => {
           </div>
 
           <div style={{ marginTop: '1rem', paddingTop: '0.75rem', borderTop: '1px solid rgba(0,0,0,0.08)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-            <span>Real-time pre-flight calculation</span>
+            <span>Phase 1 Interactive Matrix Calculation</span>
           </div>
         </div>
 
+      </div>
+
+      {/* Simulator Disclaimer */}
+      <div style={{ marginTop: '1.25rem', padding: '0.75rem 1rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+        <strong>Note:</strong> What-If calculations demonstrate the Phase 1 UI/interaction model. Deterministic multi-tier rule evaluation will connect to the core rule engine in Phase 3.
       </div>
     </div>
   );
