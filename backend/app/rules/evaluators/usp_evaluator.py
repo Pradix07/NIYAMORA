@@ -12,10 +12,10 @@ class UnitSalePriceEvaluator(BaseRuleEvaluator):
     - per litre (₹/l) where net volume is more than 1 litre
     - per centimetre (₹/cm) where net length is less than 1 metre
     - per metre (₹/m) where net length is more than 1 metre
-    - per number / unit (₹/N, ₹/U, ₹/unit, ₹/piece) for commodities sold by number
+    - per number / per unit (₹/unit, ₹/piece, ₹/item, ₹/tablet, ₹/capsule) for commodities sold by number/count
     
-    Statutory Exceptions:
-    - Alcoholic beverages / spirituous liquor governed by State Excise laws
+    Statutory Exceptions & Scope Notes:
+    - Central Rule 6(11) USP evaluation is not applied where State Excise laws/rules govern; N/A with State Excise scope note.
     - Retail sale price equals unit sale price (e.g. package quantity is exactly 1 kg, 1 L, 1 m, 1 unit)
     - Combination / multipack packages where individual unit sale prices are declared
     """
@@ -28,9 +28,9 @@ class UnitSalePriceEvaluator(BaseRuleEvaluator):
         blocks: list,
         product_context: Dict[str, Any]
     ) -> Tuple[str, Optional[str], str, str, Optional[Dict[str, Any]], Optional[str]]:
-        expected_cond = "Must declare Unit Sale Price (USP) rounded to 2 decimal places on applicable statutory unit basis (per g, kg, ml, l, cm, m, or number) under Rule 6(11)."
+        expected_cond = "Must declare Unit Sale Price (USP) rounded to 2 decimal places on applicable statutory unit basis (per g, kg, ml, l, cm, m, or number/unit) under Rule 6(11)."
 
-        # 1. Check statutory exemptions
+        # 1. Check State Excise Scope (Alcoholic Beverages / Spirituous Liquor)
         category = (product_context.get("category") or "").lower()
         desc = (product_context.get("description") or "").lower()
         name = (product_context.get("name") or "").lower()
@@ -40,7 +40,7 @@ class UnitSalePriceEvaluator(BaseRuleEvaluator):
                 "N/A",
                 None,
                 expected_cond,
-                "Unit Sale Price (USP) declaration under Rule 6(11) is exempt for alcoholic beverages / spirituous liquor governed by State Excise laws.",
+                "Central Rule 6(11) USP evaluation is not applied where State Excise laws/rules govern; N/A with State Excise scope note.",
                 None,
                 None
             )
@@ -55,7 +55,7 @@ class UnitSalePriceEvaluator(BaseRuleEvaluator):
                 expected_cond,
                 "Package net quantity / measure could not be determined to verify statutory Unit Sale Price (USP) unit basis under Rule 6(11).",
                 None,
-                "Verify packaging net quantity / measure to determine statutory USP unit basis (per g/kg/ml/l/cm/m/number)."
+                "Verify packaging net quantity / measure to determine statutory USP unit basis (per g/kg/ml/l/cm/m/unit)."
             )
 
         # Parse numeric value and unit
@@ -99,7 +99,7 @@ class UnitSalePriceEvaluator(BaseRuleEvaluator):
                     "PASS",
                     None,
                     expected_cond,
-                    f"Retail Sale Price equals Unit Sale Price for package measure '{net_qty_str}' (1 {normalized_unit}); separate USP declaration is not mandatory (Rule 6(11) proviso).",
+                    f"Retail Sale Price equals Unit Sale Price for package measure '{net_qty_str}' (1 {normalized_unit}); separate USP declaration is not required (Rule 6(11) proviso).",
                     None,
                     None
                 )
@@ -170,9 +170,9 @@ class UnitSalePriceEvaluator(BaseRuleEvaluator):
         elif unit in ["mm", "mms", "millimetre", "millimetres"]:
             return (num / 10.0, "length", "cm")
             
-        # Number / Unit
-        elif unit in ["n", "u", "unit", "units", "piece", "pieces", "count", "ct", "nos", "no"]:
-            return (num, "number", "N")
+        # Count / Number (Explicit count words only; 'N' is Newton in SI and excluded from count)
+        elif unit in ["unit", "units", "piece", "pieces", "item", "items", "tablet", "tablets", "capsule", "capsules", "count", "ct", "nos", "no", "packet", "packets", "pouch", "pouches", "pair", "pairs"]:
+            return (num, "count", "unit")
             
         return None
 
@@ -206,11 +206,11 @@ class UnitSalePriceEvaluator(BaseRuleEvaluator):
             else:
                 return ("per-metre", "/ m", r"(?:/|\bper\s*)(?:m|metre|meter)\b", False)
                 
-        elif unit_type == "number":
+        elif unit_type == "count":
             if abs(val - 1.0) < 1e-3:
-                return ("per-unit", "/ unit", r"(?:/|\bper\s*)(?:n|u|unit|piece|item)\b", True)
+                return ("per-unit", "/ unit", r"(?:/|\bper\s*)(?:unit|piece|item|tablet|capsule|count)\b", True)
             else:
-                return ("per-unit", "/ unit", r"(?:/|\bper\s*)(?:n|u|unit|piece|item|number)\b", False)
+                return ("per-unit", "/ unit", r"(?:/|\bper\s*)(?:unit|piece|item|tablet|capsule|count|number)\b", False)
                 
         return ("applicable unit", "", r"", False)
 

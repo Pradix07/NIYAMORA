@@ -501,27 +501,45 @@ def test_usp_2l_per_litre_applicability():
     assert status_map1["LMPC-DECL-USP"] == "PASS"
 
 def test_usp_number_based_package_applicability():
-    """Verify 10 N package requires per-unit/number USP under Rule 6(11)."""
-    pdf_pass = create_synthetic_artwork_pdf(net_qty="10 N", mrp="₹ 50.00 (incl. of all taxes)", usp="₹ 5.00 / unit")
-    res1 = client.post("/api/upload-check", files={"file": ("10N_pass.pdf", pdf_pass, "application/pdf")}, data={"product_name": "Soap 10N", "brand": "Aura", "packaging_type": "Box"})
+    """Verify commodities sold by number/count (units, tablets, pieces) require per-number/unit USP under Rule 6(11)."""
+    # 1. '10 units' with per-unit USP -> PASS
+    pdf_units = create_synthetic_artwork_pdf(net_qty="10 units", mrp="₹ 50.00 (incl. of all taxes)", usp="₹ 5.00 / unit")
+    res1 = client.post("/api/upload-check", files={"file": ("10units_pass.pdf", pdf_units, "application/pdf")}, data={"product_name": "Soap 10 Units", "brand": "Aura", "packaging_type": "Box"})
     evals1 = client.get(f"/api/inspections/{res1.json()['inspection_id']}/evaluations").json()
     status_map1 = {e["rule_code"]: e["status"] for e in evals1}
     assert status_map1["LMPC-DECL-USP"] == "PASS"
 
+    # 2. '10 tablets' with per-tablet USP -> PASS
+    pdf_tabs = create_synthetic_artwork_pdf(net_qty="10 tablets", mrp="₹ 25.00 (incl. of all taxes)", usp="₹ 2.50 per tablet")
+    res2 = client.post("/api/upload-check", files={"file": ("10tabs_pass.pdf", pdf_tabs, "application/pdf")}, data={"product_name": "Vitamin C 10 Tablets", "brand": "Aura", "packaging_type": "Blister"})
+    evals2 = client.get(f"/api/inspections/{res2.json()['inspection_id']}/evaluations").json()
+    status_map2 = {e["rule_code"]: e["status"] for e in evals2}
+    assert status_map2["LMPC-DECL-USP"] == "PASS"
+
+    # 3. '10 N' (Newton SI notation) is not interpreted as count for USP -> REVIEW
+    pdf_newton = create_synthetic_artwork_pdf(net_qty="10 N", mrp="₹ 50.00 (incl. of all taxes)", usp=None)
+    res3 = client.post("/api/upload-check", files={"file": ("10Newton.pdf", pdf_newton, "application/pdf")}, data={"product_name": "Tension Spring", "brand": "Aura", "packaging_type": "Box"})
+    evals3 = client.get(f"/api/inspections/{res3.json()['inspection_id']}/evaluations").json()
+    status_map3 = {e["rule_code"]: e["status"] for e in evals3}
+    assert status_map3["LMPC-DECL-USP"] == "REVIEW"
+
 def test_usp_state_excise_liquor_exemption_na():
-    """Verify alcoholic beverages subject to State Excise laws are exempt (N/A) from USP under Rule 6(11)."""
+    """Verify alcoholic beverages subject to State Excise laws are marked N/A with State Excise scope note under Rule 6(11)."""
     pdf = create_synthetic_artwork_pdf(net_qty="750 ml", mrp="₹ 1200.00 (incl. of all taxes)", usp=None)
     res = client.post("/api/upload-check", files={"file": ("Whisky.pdf", pdf, "application/pdf")}, data={"product_name": "Single Malt Whisky", "brand": "Aura", "packaging_type": "Bottle", "category": "Alcoholic Beverages"})
     evals = client.get(f"/api/inspections/{res.json()['inspection_id']}/evaluations").json()
     status_map = {e["rule_code"]: e["status"] for e in evals}
+    expl_map = {e["rule_code"]: e.get("explanation", "") for e in evals}
     assert status_map["LMPC-DECL-USP"] == "N/A"
+    assert "State Excise" in expl_map["LMPC-DECL-USP"]
 
 def test_usp_1kg_unit_pack_rsp_equals_usp_proviso():
-    """Verify exactly 1 kg package where RSP = USP satisfies Rule 6(11) proviso without separate declaration."""
+    """Verify exactly 1 kg package where RSP = USP satisfies Rule 6(11) proviso without separate duplicate declaration."""
     pdf = create_synthetic_artwork_pdf(net_qty="1 kg", mrp="₹ 450.00 (incl. of all taxes)", usp=None)
     res = client.post("/api/upload-check", files={"file": ("1kg_pack.pdf", pdf, "application/pdf")}, data={"product_name": "Organic Flour 1kg", "brand": "Aura", "packaging_type": "Bag"})
     evals = client.get(f"/api/inspections/{res.json()['inspection_id']}/evaluations").json()
     status_map = {e["rule_code"]: e["status"] for e in evals}
     assert status_map["LMPC-DECL-USP"] == "PASS"
+
 
 

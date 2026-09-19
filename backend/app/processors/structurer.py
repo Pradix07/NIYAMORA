@@ -12,8 +12,8 @@ class PackagingFieldStructurer:
 
     PATTERNS = {
         "net_quantity": [
-            r"(?:Net\s*(?:Qty|Quantity|Weight|Wt|Volume|Vol)\.?\s*[:\-]?\s*)([0-9]+(?:\.[0-9]+)?\s*(?:gms?|kgs?|ml|lts?|litres?|grams?|kg|g|mg|cl|N|units?|pieces?|l|L))\b",
-            r"\b([0-9]+(?:\.[0-9]+)?\s*(?:gms?|kgs?|ml|lts?|litres?|grams?|kg|g|mg|cl|N|units?|l|L)\b(?!\s*fat|\s*protein|\s*carb))",
+            r"(?:Net\s*(?:Qty|Quantity|Weight|Wt|Volume|Vol)\.?\s*[:\-]?\s*)([0-9]+(?:\.[0-9]+)?\s*(?:gms?|kgs?|ml|lts?|litres?|grams?|kg|g|mg|cl|N|units?|pieces?|tablets?|capsules?|items?|nos?|count|ct|l|L))\b",
+            r"\b([0-9]+(?:\.[0-9]+)?\s*(?:gms?|kgs?|ml|lts?|litres?|grams?|kg|g|mg|cl|N|units?|pieces?|tablets?|capsules?|items?|l|L)\b(?!\s*fat|\s*protein|\s*carb))",
         ],
         "mrp": [
             r"(?:MRP|M\.R\.P\.?|Maximum\s*Retail\s*Price)\s*(?:[\(:]?[^\n0-9]*\s*)?(?:Rs\.?|₹|INR|\?)?\s*([0-9]+(?:\.[0-9]{2})?)",
