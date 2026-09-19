@@ -8,27 +8,20 @@ from backend.app.models.artwork import Artwork
 from backend.app.models.artwork_version import ArtworkVersion
 from backend.app.models.inspection import Inspection
 from backend.app.schemas.product import ProductCreate, ProductRead, ProductUpdate
+from backend.app.api.deps import get_current_company, verify_product_ownership
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
-def get_or_create_default_company(db: Session) -> Company:
-    company = db.query(Company).first()
-    if not company:
-        company = Company(name="NIYAMORA Brand Workspace")
-        db.add(company)
-        db.commit()
-        db.refresh(company)
-    return company
-
 @router.post("", response_model=ProductRead, status_code=201)
-def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
-    company_id = payload.company_id
-    if not company_id:
-        company = get_or_create_default_company(db)
-        company_id = company.id
+def create_product(
+    payload: ProductCreate,
+    current_company: Company = Depends(get_current_company),
+    db: Session = Depends(get_db)
+):
+    target_company_id = payload.company_id or current_company.id
 
     product = Product(
-        company_id=company_id,
+        company_id=target_company_id,
         name=payload.name,
         brand=payload.brand,
         category=payload.category,
@@ -41,7 +34,6 @@ def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(product)
 
-    # Automatically create default master artwork record
     default_artwork = Artwork(
         product_id=product.id,
         name=f"{product.name} Master Dieline",
@@ -71,9 +63,10 @@ def create_product(payload: ProductCreate, db: Session = Depends(get_db)):
 def list_products(
     search: Optional[str] = None,
     packaging_type: Optional[str] = None,
+    current_company: Company = Depends(get_current_company),
     db: Session = Depends(get_db)
 ):
-    query = db.query(Product)
+    query = db.query(Product).filter(Product.company_id == current_company.id)
     if search:
         query = query.filter(
             (Product.name.ilike(f"%{search}%")) |
@@ -86,7 +79,6 @@ def list_products(
     products = query.order_by(Product.created_at.desc()).all()
     results = []
     for p in products:
-        # Calculate version and inspection counts
         v_count = db.query(ArtworkVersion).join(Artwork).filter(Artwork.product_id == p.id).count()
         latest_v = db.query(ArtworkVersion).join(Artwork).filter(Artwork.product_id == p.id).order_by(ArtworkVersion.version_number.desc()).first()
         ins_count = db.query(Inspection).filter(Inspection.product_id == p.id).count()
@@ -110,10 +102,16 @@ def list_products(
     return results
 
 @router.get("/{product_id}", response_model=ProductRead)
-def get_product(product_id: str, db: Session = Depends(get_db)):
+def get_product(
+    product_id: str,
+    current_company: Company = Depends(get_current_company),
+    db: Session = Depends(get_db)
+):
     product = db.query(Product).filter(Product.id == product_id).first()
     if not product:
         raise HTTPException(status_code=404, detail="Product not found.")
+
+    verify_product_ownership(product, current_company)
 
     v_count = db.query(ArtworkVersion).join(Artwork).filter(Artwork.product_id == product.id).count()
     latest_v = db.query(ArtworkVersion).join(Artwork).filter(Artwork.product_id == product.id).order_by(ArtworkVersion.version_number.desc()).first()

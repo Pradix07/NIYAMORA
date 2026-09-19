@@ -4,13 +4,24 @@ from backend.app.db.session import get_db
 from backend.app.models.inspection import Inspection
 from backend.app.models.artwork_version import ArtworkVersion
 from backend.app.models.product import Product
+from backend.app.models.company import Company
 from backend.app.schemas.inspection import InspectionRead, InspectionCreate
 from backend.app.services.pipeline import InspectionPipelineService
+from backend.app.api.deps import get_current_company, verify_product_ownership, verify_inspection_ownership
 
 router = APIRouter(prefix="/inspections", tags=["Inspections"])
 
 @router.post("", response_model=InspectionRead, status_code=201)
-def trigger_inspection(payload: InspectionCreate, db: Session = Depends(get_db)):
+def trigger_inspection(
+    payload: InspectionCreate,
+    company: Company = Depends(get_current_company),
+    db: Session = Depends(get_db)
+):
+    product = db.query(Product).filter(Product.id == payload.product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found.")
+    verify_product_ownership(product, company)
+
     version = db.query(ArtworkVersion).filter(ArtworkVersion.id == payload.artwork_version_id).first()
     if not version:
         raise HTTPException(status_code=404, detail="Artwork version not found.")
@@ -30,10 +41,16 @@ def trigger_inspection(payload: InspectionCreate, db: Session = Depends(get_db))
     return inspection
 
 @router.get("/{inspection_id}")
-def get_inspection(inspection_id: str, db: Session = Depends(get_db)):
+def get_inspection(
+    inspection_id: str,
+    company: Company = Depends(get_current_company),
+    db: Session = Depends(get_db)
+):
     inspection = db.query(Inspection).filter(Inspection.id == inspection_id).first()
     if not inspection:
         raise HTTPException(status_code=404, detail="Inspection not found.")
+
+    verify_inspection_ownership(inspection, company, db)
 
     version = db.query(ArtworkVersion).filter(ArtworkVersion.id == inspection.artwork_version_id).first()
     product = db.query(Product).filter(Product.id == inspection.product_id).first()

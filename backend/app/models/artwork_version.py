@@ -23,6 +23,7 @@ class ArtworkVersion(Base):
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     artwork = relationship("Artwork", back_populates="versions")
+    panels = relationship("ArtworkPanel", back_populates="artwork_version", cascade="all, delete-orphan")
     inspections = relationship("Inspection", back_populates="artwork_version", cascade="all, delete-orphan")
 
     @property

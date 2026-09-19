@@ -174,3 +174,143 @@ def test_version_auto_incrementation():
     assert len(v_list) == 2
     assert v_list[0]["version_label"] == "V02"
     assert v_list[1]["version_label"] == "V01"
+
+def test_raster_image_ocr():
+    """
+    Verification Area 1: Real raster image OCR (PNG/JPG).
+    Verifies that an image without digital font objects undergoes genuine raster OCR.
+    """
+    img_file = create_sample_image_bytes()
+    files = {"file": ("packaging_front_panel.png", img_file, "image/png")}
+    data = {
+        "product_name": "Organic Chia Crunch",
+        "brand": "Aura Botanicals",
+        "packaging_type": "Stand-Up Pouch",
+        "net_quantity": "250 g"
+    }
+    res = client.post("/api/upload-check", files=files, data=data)
+    assert res.status_code == 201
+    resp_data = res.json()
+    assert resp_data["inspection_status"] == "COMPLETED"
+
+    inspection_id = resp_data["inspection_id"]
+    res_insp = client.get(f"/api/inspections/{inspection_id}")
+    assert res_insp.status_code == 200
+    extracted = res_insp.json()["extracted_data"]
+    
+    # Raster OCR should have extracted text blocks and structured fields
+    assert extracted["total_blocks"] > 0
+    assert len(extracted["raw_text"]) > 0
+    # Net quantity or brand should be detected in extracted text
+    assert any("250" in b["text"] or "Aura" in b["text"] or "Chia" in b["text"] for b in extracted["blocks"])
+
+def test_cross_company_ownership_isolation():
+    """
+    Verification Area 3: Company Ownership Isolation.
+    Verifies that Company A's products, artworks, inspections, and files cannot be accessed by Company B.
+    """
+    # 1. Create Company A and Company B
+    from backend.app.db.session import SessionLocal
+    from backend.app.models.company import Company
+    db = SessionLocal()
+    comp_a = Company(name="Company A - Alpha Naturals")
+    comp_b = Company(name="Company B - Beta Foods")
+    db.add_all([comp_a, comp_b])
+    db.commit()
+    db.refresh(comp_a)
+    db.refresh(comp_b)
+    comp_a_id = comp_a.id
+    comp_b_id = comp_b.id
+    db.close()
+
+    # 2. Company A creates a product
+    prod_a_res = client.post(
+        "/api/products",
+        json={"name": "Alpha Omega Tea", "brand": "Alpha", "packaging_type": "Box", "sku": "ALPHA-01"},
+        headers={"X-Company-ID": comp_a_id}
+    )
+    assert prod_a_res.status_code == 201
+    prod_a_id = prod_a_res.json()["id"]
+
+    # 3. Company A uploads an artwork
+    pdf_file = create_sample_pdf_bytes(brand="Alpha Naturals", product_name="Alpha Omega Tea")
+    upload_res = client.post(
+        "/api/upload-check",
+        files={"file": ("alpha_tea.pdf", pdf_file, "application/pdf")},
+        data={"product_name": "Alpha Omega Tea", "brand": "Alpha", "product_id": prod_a_id},
+        headers={"X-Company-ID": comp_a_id}
+    )
+    assert upload_res.status_code == 201
+    art_a_id = upload_res.json()["artwork_id"]
+    ver_a_id = upload_res.json()["version_id"]
+    insp_a_id = upload_res.json()["inspection_id"]
+
+    # 4. Company B attempts to access Company A's product -> 403 Forbidden
+    cross_prod = client.get(f"/api/products/{prod_a_id}", headers={"X-Company-ID": comp_b_id})
+    assert cross_prod.status_code == 403
+
+    # 5. Company B attempts to access Company A's artwork versions -> 403 Forbidden
+    cross_ver = client.get(f"/api/artworks/{art_a_id}/versions", headers={"X-Company-ID": comp_b_id})
+    assert cross_ver.status_code == 403
+
+    # 6. Company B attempts to access Company A's inspection -> 403 Forbidden
+    cross_insp = client.get(f"/api/inspections/{insp_a_id}", headers={"X-Company-ID": comp_b_id})
+    assert cross_insp.status_code == 403
+
+    # 7. Company B attempts to access Company A's preview file -> 403 Forbidden
+    cross_file = client.get(f"/api/files/preview/{ver_a_id}", headers={"X-Company-ID": comp_b_id})
+    assert cross_file.status_code == 403
+
+def test_multi_panel_artwork_support():
+    """
+    Verification Area 4: True multi-image / multi-panel support.
+    Verifies that one logical ArtworkVersion can contain multiple panels (FRONT, BACK, SIDE).
+    """
+    # 1. Upload initial FRONT panel for product
+    front_img = create_sample_image_bytes()
+    res1 = client.post(
+        "/api/upload-check",
+        files={"file": ("front_panel.png", front_img, "image/png")},
+        data={
+            "product_name": "Multi Panel Protein Bar",
+            "brand": "ProBrand",
+            "packaging_type": "Wrapper / Flow Wrap",
+            "panel_type": "FRONT"
+        }
+    )
+    assert res1.status_code == 201
+    art_id = res1.json()["artwork_id"]
+    ver_id = res1.json()["version_id"]
+
+    # 2. Attach BACK panel to the same ArtworkVersion
+    back_img = create_sample_image_bytes()
+    res_back = client.post(
+        f"/api/artworks/versions/{ver_id}/panels",
+        files={"file": ("back_panel.png", back_img, "image/png")},
+        data={"panel_type": "BACK"}
+    )
+    assert res_back.status_code == 201
+    assert res_back.json()["panel_type"] == "BACK"
+
+    # 3. Attach SIDE panel to the same ArtworkVersion
+    side_img = create_sample_image_bytes()
+    res_side = client.post(
+        f"/api/artworks/versions/{ver_id}/panels",
+        files={"file": ("side_panel.png", side_img, "image/png")},
+        data={"panel_type": "SIDE_LEFT"}
+    )
+    assert res_side.status_code == 201
+    assert res_side.json()["panel_type"] == "SIDE_LEFT"
+
+    # 4. Fetch artwork versions and verify panels list
+    res_ver = client.get(f"/api/artworks/{art_id}/versions")
+    assert res_ver.status_code == 200
+    versions = res_ver.json()
+    assert len(versions) == 1
+    panels = versions[0]["panels"]
+    assert len(panels) == 3
+    panel_types = [p["panel_type"] for p in panels]
+    assert "FRONT" in panel_types
+    assert "BACK" in panel_types
+    assert "SIDE_LEFT" in panel_types
+
