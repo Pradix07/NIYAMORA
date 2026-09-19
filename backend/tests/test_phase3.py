@@ -1,0 +1,335 @@
+import os
+import io
+import pytest
+from fastapi.testclient import TestClient
+import fitz  # PyMuPDF
+from PIL import Image, ImageDraw
+
+os.environ["DATABASE_URL"] = "sqlite:///./test_niyamora_phase3.db"
+os.environ["STORAGE_DIR"] = "./test_storage/uploads_phase3"
+
+from backend.app.main import app
+from backend.app.db.session import Base, engine, SessionLocal
+from backend.app.models.company import Company
+from backend.app.models.product import Product
+from backend.app.models.compliance import RuleSource, Rule, RuleVersion, Evaluation, Finding, Evidence, HumanReview
+from backend.app.rules.engine import ComplianceEngine
+
+client = TestClient(app)
+
+@pytest.fixture(autouse=True)
+def setup_teardown_db():
+    Base.metadata.create_all(bind=engine)
+    db = SessionLocal()
+    ComplianceEngine.ensure_rules_seeded(db)
+    db.close()
+    yield
+    Base.metadata.drop_all(bind=engine)
+
+def create_synthetic_artwork_pdf(
+    brand="Aura Botanicals",
+    product_name="Organic Chia Crunch Superfood Pouch",
+    net_qty="250 g",
+    mrp="Rs. 299.00 (inclusive of all taxes)",
+    mfg_date="MFG: 09/2026",
+    mfg_address="Manufactured by: Aura Botanicals Pvt Ltd, Plot 42 Industrial Area, Bengaluru, Karnataka 560100",
+    consumer_care="For complaints contact Consumer Care at care@aurabotanicals.com | Toll Free 1800-425-9988",
+    origin=None,
+    usp=None
+) -> io.BytesIO:
+    doc = fitz.open()
+    page = doc.new_page(width=400, height=600)
+
+    page.insert_text((40, 50), brand.upper(), fontsize=12)
+    page.insert_text((40, 80), product_name, fontsize=16)
+    page.insert_text((40, 380), f"Net Qty: {net_qty}", fontsize=12)
+    page.insert_text((40, 410), f"MRP: {mrp}", fontsize=10)
+    page.insert_text((40, 440), mfg_date, fontsize=10)
+    page.insert_text((40, 470), mfg_address, fontsize=8)
+    page.insert_text((40, 500), consumer_care, fontsize=8)
+    if origin:
+        page.insert_text((40, 530), f"Country of Origin: {origin}", fontsize=9)
+    if usp:
+        page.insert_text((40, 550), f"USP: {usp}", fontsize=9)
+
+    pdf_bytes = io.BytesIO()
+    doc.save(pdf_bytes)
+    doc.close()
+    pdf_bytes.seek(0)
+    return pdf_bytes
+
+def test_statutory_rule_catalog_and_sources_seeded():
+    """Verify official DCA source catalog and 8 versioned Legal Metrology rules."""
+    res = client.get("/api/rules")
+    assert res.status_code == 200
+    rules = res.json()
+    assert len(rules) >= 8
+    
+    rule_codes = [r["rule_code"] for r in rules]
+    assert "LMPC-DECL-MFG-ADDR" in rule_codes
+    assert "LMPC-DECL-COMMODITY-NAME" in rule_codes
+    assert "LMPC-DECL-NET-QTY" in rule_codes
+    assert "LMPC-DECL-DATE" in rule_codes
+    assert "LMPC-DECL-MRP" in rule_codes
+    assert "LMPC-DECL-USP" in rule_codes
+    assert "LMPC-DECL-CONSUMER-CARE" in rule_codes
+    assert "LMPC-DECL-COUNTRY-ORIGIN" in rule_codes
+
+    res_src = client.get("/api/rules/sources")
+    assert res_src.status_code == 200
+    sources = res_src.json()
+    assert any("2011" in s["title"] for s in sources)
+
+def test_compliant_package_evaluation_flow():
+    """Test fully compliant domestic package evaluates to PASS with all declarations detected."""
+    pdf = create_synthetic_artwork_pdf(
+        brand="Aura Botanicals",
+        product_name="Organic Chia Crunch",
+        net_qty="250 g",
+        mrp="₹299.00 (inclusive of all taxes)",
+        mfg_date="MFG: 09/2026",
+        mfg_address="Manufactured by: Aura Botanicals, Plot 42 Ind Area, Bengaluru 560100",
+        consumer_care="Consumer Care: care@aurabotanicals.com | Helpline 1800-425-9988"
+    )
+
+    res = client.post(
+        "/api/upload-check",
+        files={"file": ("Chia_Compliant.pdf", pdf, "application/pdf")},
+        data={"product_name": "Organic Chia Crunch", "brand": "Aura Botanicals", "packaging_type": "Stand-Up Pouch"}
+    )
+    assert res.status_code == 201
+    insp_id = res.json()["inspection_id"]
+
+    res_insp = client.get(f"/api/inspections/{insp_id}")
+    assert res_insp.status_code == 200
+    data = res_insp.json()
+    assert data["compliance_verdict"] == "PASS"
+    assert data["compliance_score"] >= 85.0
+
+    # Check evaluations
+    res_eval = client.get(f"/api/inspections/{insp_id}/evaluations")
+    assert res_eval.status_code == 200
+    evals = res_eval.json()
+    assert len(evals) >= 8
+    
+    # Net quantity, MRP, Manufacturer, Date, Consumer Care should all be PASS
+    status_map = {e["rule_code"]: e["status"] for e in evals}
+    assert status_map["LMPC-DECL-NET-QTY"] == "PASS"
+    assert status_map["LMPC-DECL-MRP"] == "PASS"
+    assert status_map["LMPC-DECL-MFG-ADDR"] == "PASS"
+    assert status_map["LMPC-DECL-DATE"] == "PASS"
+    assert status_map["LMPC-DECL-CONSUMER-CARE"] == "PASS"
+    assert status_map["LMPC-DECL-COUNTRY-ORIGIN"] == "N/A"  # Domestic pack -> N/A
+
+def test_prohibited_unit_abbreviation_causes_issue():
+    """Test using prohibited abbreviation 'gms' instead of statutory 'g' triggers ISSUE under Rule 11 & Sch II."""
+    pdf = create_synthetic_artwork_pdf(
+        net_qty="500 gms",  # Prohibited abbreviation
+        mrp="₹450.00 (incl. of all taxes)"
+    )
+
+    res = client.post(
+        "/api/upload-check",
+        files={"file": ("Illegal_Unit.pdf", pdf, "application/pdf")},
+        data={"product_name": "Almond Flour", "brand": "Aura", "packaging_type": "Pouch"}
+    )
+    assert res.status_code == 201
+    insp_id = res.json()["inspection_id"]
+
+    res_insp = client.get(f"/api/inspections/{insp_id}")
+    assert res_insp.status_code == 200
+    assert res_insp.json()["compliance_verdict"] == "ISSUE"
+
+    res_findings = client.get(f"/api/inspections/{insp_id}/findings")
+    assert res_findings.status_code == 200
+    findings = res_findings.json()
+    assert any(f["rule_code"] == "LMPC-DECL-NET-QTY" and "prohibited abbreviation" in f["summary"].lower() for f in findings)
+
+def test_missing_tax_inclusive_phrase_causes_issue():
+    """Test MRP declared without mandatory '(inclusive of all taxes)' triggers ISSUE under Rule 6(1)(e)."""
+    # Create PDF with MRP 299 without any tax clause in the entire document
+    doc = fitz.open()
+    page = doc.new_page(width=400, height=600)
+    page.insert_text((40, 50), "AURA BOTANICALS", fontsize=12)
+    page.insert_text((40, 80), "Organic Chia Crunch", fontsize=16)
+    page.insert_text((40, 380), "Net Qty: 250 g", fontsize=12)
+    page.insert_text((40, 410), "MRP: Rs. 299.00", fontsize=10) # Missing inclusive of all taxes
+    page.insert_text((40, 440), "MFG: 09/2026", fontsize=10)
+    page.insert_text((40, 470), "Manufactured by: Aura, Plot 1, Bengaluru 560100", fontsize=8)
+    page.insert_text((40, 500), "Helpline: 1800-425-9988", fontsize=8)
+    pdf_bytes = io.BytesIO()
+    doc.save(pdf_bytes)
+    doc.close()
+    pdf_bytes.seek(0)
+
+    res = client.post(
+        "/api/upload-check",
+        files={"file": ("MRP_Missing_Tax.pdf", pdf_bytes, "application/pdf")},
+        data={"product_name": "Chia Crunch", "brand": "Aura", "packaging_type": "Pouch"}
+    )
+    assert res.status_code == 201
+    insp_id = res.json()["inspection_id"]
+
+    res_findings = client.get(f"/api/inspections/{insp_id}/findings")
+    assert res_findings.status_code == 200
+    findings = res_findings.json()
+    assert any(f["rule_code"] == "LMPC-DECL-MRP" and "inclusive of all taxes" in f["summary"].lower() for f in findings)
+
+def test_unit_sale_price_applicability_for_large_packs():
+    """Test package exceeding 1 kg requires Unit Sale Price (USP) under Rule 6(1)(ea)."""
+    # 1. Pack with 2 kg and no USP -> ISSUE
+    pdf_large = create_synthetic_artwork_pdf(
+        net_qty="2 kg",
+        mrp="₹800.00 (inclusive of all taxes)",
+        usp=None
+    )
+    res1 = client.post(
+        "/api/upload-check",
+        files={"file": ("Chia_2kg_No_USP.pdf", pdf_large, "application/pdf")},
+        data={"product_name": "Bulk Chia 2kg", "brand": "Aura", "packaging_type": "Bag"}
+    )
+    assert res1.status_code == 201
+    insp1_id = res1.json()["inspection_id"]
+
+    res_eval1 = client.get(f"/api/inspections/{insp1_id}/evaluations")
+    status_map1 = {e["rule_code"]: e["status"] for e in res_eval1.json()}
+    assert status_map1["LMPC-DECL-USP"] == "ISSUE"
+
+    # 2. Pack with 2 kg with valid USP -> PASS
+    pdf_large_usp = create_synthetic_artwork_pdf(
+        net_qty="2 kg",
+        mrp="Rs. 800.00 (inclusive of all taxes)",
+        usp="Rs. 0.40 / g"
+    )
+    res2 = client.post(
+        "/api/upload-check",
+        files={"file": ("Chia_2kg_With_USP.pdf", pdf_large_usp, "application/pdf")},
+        data={"product_name": "Bulk Chia 2kg", "brand": "Aura", "packaging_type": "Bag"}
+    )
+    assert res2.status_code == 201
+    insp2_id = res2.json()["inspection_id"]
+
+    res_eval2 = client.get(f"/api/inspections/{insp2_id}/evaluations")
+    status_map2 = {e["rule_code"]: e["status"] for e in res_eval2.json()}
+    assert status_map2["LMPC-DECL-USP"] == "PASS"
+
+def test_imported_product_country_of_origin_check():
+    """Test imported product requires country of origin under Rule 6(1)(g)."""
+    # Domestic pack -> N/A
+    pdf_domestic = create_synthetic_artwork_pdf()
+    res_dom = client.post(
+        "/api/upload-check",
+        files={"file": ("Domestic.pdf", pdf_domestic, "application/pdf")},
+        data={"product_name": "Domestic Jam", "brand": "Aura", "packaging_type": "Jar"}
+    )
+    insp_dom_id = res_dom.json()["inspection_id"]
+    eval_dom = client.get(f"/api/inspections/{insp_dom_id}/evaluations").json()
+    status_dom = {e["rule_code"]: e["status"] for e in eval_dom}
+    assert status_dom["LMPC-DECL-COUNTRY-ORIGIN"] == "N/A"
+
+    # Imported pack with origin -> PASS
+    pdf_imp = create_synthetic_artwork_pdf(origin="Switzerland")
+    res_imp = client.post(
+        "/api/upload-check",
+        files={"file": ("Imported_With_Origin.pdf", pdf_imp, "application/pdf")},
+        data={"product_name": "Imported Chocolate", "brand": "Aura", "packaging_type": "Carton"}
+    )
+    insp_imp_id = res_imp.json()["inspection_id"]
+    eval_imp = client.get(f"/api/inspections/{insp_imp_id}/evaluations").json()
+    status_imp = {e["rule_code"]: e["status"] for e in eval_imp}
+    assert status_imp["LMPC-DECL-COUNTRY-ORIGIN"] == "PASS"
+
+def test_deterministic_reproducibility():
+    """Verify that evaluating the exact same package twice yields identical evaluations and scores."""
+    pdf = create_synthetic_artwork_pdf()
+    
+    # Run 1
+    res1 = client.post(
+        "/api/upload-check",
+        files={"file": ("Repro_Test.pdf", pdf, "application/pdf")},
+        data={"product_name": "Chia Seeds", "brand": "Aura", "packaging_type": "Pouch"}
+    )
+    insp1_id = res1.json()["inspection_id"]
+    evals1 = client.get(f"/api/inspections/{insp1_id}/evaluations").json()
+    score1 = client.get(f"/api/inspections/{insp1_id}").json()["compliance_score"]
+
+    # Re-evaluating inspection directly
+    from backend.app.services.pipeline import InspectionPipelineService
+    db = SessionLocal()
+    InspectionPipelineService.execute_inspection(db, insp1_id)
+    db.close()
+
+    evals2 = client.get(f"/api/inspections/{insp1_id}/evaluations").json()
+    score2 = client.get(f"/api/inspections/{insp1_id}").json()["compliance_score"]
+
+    assert score1 == score2
+    assert len(evals1) == len(evals2)
+    for e1, e2 in zip(evals1, evals2):
+        assert e1["rule_code"] == e2["rule_code"]
+        assert e1["status"] == e2["status"]
+
+def test_human_review_workflow_and_audit_log():
+    """Verify human review submission records specialist audit log without corrupting machine evaluation."""
+    pdf = create_synthetic_artwork_pdf(
+        mfg_address="Manufactured by Aura"  # Incomplete address -> REVIEW
+    )
+    res = client.post(
+        "/api/upload-check",
+        files={"file": ("Review_Candidate.pdf", pdf, "application/pdf")},
+        data={"product_name": "Chia Review", "brand": "Aura", "packaging_type": "Pouch"}
+    )
+    insp_id = res.json()["inspection_id"]
+
+    # Get findings
+    findings = client.get(f"/api/inspections/{insp_id}/findings").json()
+    assert len(findings) > 0
+    target_finding = findings[0]
+
+    # Submit human review decision
+    review_payload = {
+        "inspection_id": insp_id,
+        "finding_id": target_finding["id"],
+        "reviewer_name": "Devin Vance (Senior Legal Metrology Auditor)",
+        "decision": "APPROVED_PASS",
+        "notes": "Verified plant registration certificate and verified address on dieline back flap."
+    }
+    res_review = client.post("/api/reviews", json=review_payload)
+    assert res_review.status_code == 201
+    review_record = res_review.json()
+    assert review_record["decision"] == "APPROVED_PASS"
+    assert "registration certificate" in review_record["notes"]
+
+    # Machine evaluation remains intact
+    evals = client.get(f"/api/inspections/{insp_id}/evaluations").json()
+    assert len(evals) >= 8
+
+def test_cross_company_compliance_isolation():
+    """Verify Company B cannot access Company A's evaluations, findings, or reviews."""
+    db = SessionLocal()
+    comp_a = Company(name="Comp A Enterprise")
+    comp_b = Company(name="Comp B Competitor")
+    db.add_all([comp_a, comp_b])
+    db.commit()
+    db.refresh(comp_a)
+    db.refresh(comp_b)
+    comp_a_id = comp_a.id
+    comp_b_id = comp_b.id
+    db.close()
+
+    # Company A uploads artwork
+    pdf = create_synthetic_artwork_pdf()
+    res_a = client.post(
+        "/api/upload-check",
+        files={"file": ("CompA_Pack.pdf", pdf, "application/pdf")},
+        data={"product_name": "Secret Recipe", "brand": "CompA", "packaging_type": "Box"},
+        headers={"X-Company-ID": comp_a_id}
+    )
+    insp_a_id = res_a.json()["inspection_id"]
+
+    # Company B tries to view Company A's evaluations -> 403 Forbidden
+    res_eval_b = client.get(f"/api/inspections/{insp_a_id}/evaluations", headers={"X-Company-ID": comp_b_id})
+    assert res_eval_b.status_code == 403
+
+    # Company B tries to view Company A's findings -> 403 Forbidden
+    res_find_b = client.get(f"/api/inspections/{insp_a_id}/findings", headers={"X-Company-ID": comp_b_id})
+    assert res_find_b.status_code == 403

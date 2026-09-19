@@ -97,6 +97,11 @@ def init_db_and_seed():
                 db.commit()
 
             logger.info("Default seed records initialized.")
+            
+        # Ensure statutory compliance rules and sources are seeded
+        from backend.app.rules.engine import ComplianceEngine
+        ComplianceEngine.ensure_rules_seeded(db)
+        logger.info("Statutory compliance rule catalog verified & seeded.")
     finally:
         db.close()
 

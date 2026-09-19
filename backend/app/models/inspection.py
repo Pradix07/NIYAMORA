@@ -20,8 +20,13 @@ class Inspection(Base):
     quality_score = Column(Float, nullable=True)
     quality_details = Column(JSON, nullable=True)
     
-    # Structured Extraction (Extraction only - NO legal compliance PASS/ISSUE decisions in Phase 2)
+    # Structured Extraction
     extracted_data = Column(JSON, nullable=True)
+    
+    # Phase 3 Deterministic Compliance Output
+    compliance_verdict = Column(String(50), nullable=True) # PASS, ISSUE, REVIEW, N/A
+    compliance_score = Column(Float, nullable=True)
+    findings_summary = Column(JSON, nullable=True)
     
     # Lifecycle Timestamps & Errors
     error_message = Column(Text, nullable=True)
@@ -30,3 +35,7 @@ class Inspection(Base):
 
     product = relationship("Product", back_populates="inspections")
     artwork_version = relationship("ArtworkVersion", back_populates="inspections")
+    evidences = relationship("Evidence", back_populates="inspection", cascade="all, delete-orphan")
+    evaluations = relationship("Evaluation", back_populates="inspection", cascade="all, delete-orphan")
+    findings = relationship("Finding", back_populates="inspection", cascade="all, delete-orphan")
+    reviews = relationship("HumanReview", back_populates="inspection", cascade="all, delete-orphan")

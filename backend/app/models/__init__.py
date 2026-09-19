@@ -5,6 +5,15 @@ from backend.app.models.artwork import Artwork
 from backend.app.models.artwork_version import ArtworkVersion
 from backend.app.models.artwork_panel import ArtworkPanel
 from backend.app.models.inspection import Inspection
+from backend.app.models.compliance import (
+    RuleSource,
+    Rule,
+    RuleVersion,
+    Evidence,
+    Evaluation,
+    Finding,
+    HumanReview,
+)
 
 __all__ = [
     "Company",
@@ -14,4 +23,11 @@ __all__ = [
     "ArtworkVersion",
     "ArtworkPanel",
     "Inspection",
+    "RuleSource",
+    "Rule",
+    "RuleVersion",
+    "Evidence",
+    "Evaluation",
+    "Finding",
+    "HumanReview",
 ]

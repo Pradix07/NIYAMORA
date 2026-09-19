@@ -8,17 +8,19 @@ from backend.app.processors.quality import ImageQualityAnalyzer
 from backend.app.processors.extractor import ContentExtractor
 from backend.app.processors.structurer import PackagingFieldStructurer
 from backend.app.schemas.inspection import ExtractionResult
+from backend.app.rules.engine import ComplianceEngine
 
 logger = logging.getLogger("niyamora.pipeline")
 
 class InspectionPipelineService:
     """
-    Orchestrates the Phase 2 Processing Pipeline:
-    1. Validation
+    Orchestrates the End-to-End Processing Pipeline:
+    1. Validation & Storage
     2. Quality Precheck
     3. Text & Layout Extraction
     4. Structured Field Parsing
-    5. Inspection Record Completion
+    5. Deterministic Compliance Evaluation Engine (Phase 3)
+    6. Inspection Completion
     """
 
     @classmethod
@@ -80,12 +82,23 @@ class InspectionPipelineService:
                 total_blocks=len(blocks),
                 blocks=blocks,
                 fields=fields,
-                phase_note="Phase 2 Structured Extraction Complete. Legal Metrology & FSSAI rule compliance evaluation pending in Phase 3."
+                phase_note="Extraction and parsing completed. Verified compliance rules evaluated."
             )
 
             inspection.extracted_data = extraction_result.model_dump()
-            
-            # Stage 5: Finalize
+            inspection.current_stage = "COMPLIANCE_EVALUATION"
+            db.commit()
+
+            # Stage 5: Deterministic Compliance Engine Execution (Phase 3)
+            logger.info(f"Executing Deterministic Statutory Compliance Engine for inspection {inspection_id}")
+            findings_summary = ComplianceEngine.run_compliance_evaluation(
+                db=db,
+                inspection=inspection,
+                version=version,
+                product=product
+            )
+
+            # Stage 6: Finalize Inspection
             inspection.status = "COMPLETED"
             inspection.current_stage = "DONE"
             inspection.completed_at = datetime.utcnow()
@@ -93,7 +106,7 @@ class InspectionPipelineService:
             
             db.commit()
             db.refresh(inspection)
-            logger.info(f"Inspection {inspection_id} successfully completed.")
+            logger.info(f"Inspection {inspection_id} completed: verdict={inspection.compliance_verdict}, score={inspection.compliance_score}%")
             return inspection
 
         except Exception as e:

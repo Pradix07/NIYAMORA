@@ -6,8 +6,8 @@ import type { CustomEvidenceBox } from '../components/workbench/ArtworkViewer';
 import { FindingPanel } from '../components/workbench/FindingPanel';
 import { SAMPLE_FINDINGS, SAMPLE_PRODUCTS } from '../data/mockData';
 import { api } from '../services/api';
-import type { ApiInspection } from '../services/api';
-import { Sparkles, FileText, CheckCircle2 } from 'lucide-react';
+import type { ApiInspection, ApiEvaluation, ApiFinding } from '../services/api';
+import { Sparkles, FileText, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
 
 export const WorkbenchPage: React.FC = () => {
   const navigate = useNavigate();
@@ -15,6 +15,8 @@ export const WorkbenchPage: React.FC = () => {
   const inspectionId = searchParams.get('inspectionId');
 
   const [inspection, setInspection] = useState<ApiInspection | null>(null);
+  const [evaluations, setEvaluations] = useState<ApiEvaluation[]>([]);
+  const [findings, setFindings] = useState<ApiFinding[]>([]);
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null);
 
   const fallbackProduct = SAMPLE_PRODUCTS[0];
@@ -25,9 +27,18 @@ export const WorkbenchPage: React.FC = () => {
       api.getInspection(inspectionId)
         .then((data) => {
           setInspection(data);
-          if (data.extracted_data?.fields) {
-            const firstKey = Object.keys(data.extracted_data.fields)[0];
-            setSelectedFindingId(firstKey || null);
+          return Promise.all([
+            api.getEvaluations(inspectionId).catch(() => []),
+            api.getFindings(inspectionId).catch(() => []),
+          ]);
+        })
+        .then(([evals, fnds]) => {
+          setEvaluations(evals);
+          setFindings(fnds);
+          if (evals.length > 0) {
+            setSelectedFindingId(evals[0].id);
+          } else if (fnds.length > 0) {
+            setSelectedFindingId(fnds[0].id);
           }
         })
         .catch((err) => {
@@ -39,9 +50,25 @@ export const WorkbenchPage: React.FC = () => {
     }
   }, [inspectionId]);
 
-  // Build custom boxes from live extraction if available
+  // Build custom boxes from live extraction & evaluation evidence
   let customBoxes: CustomEvidenceBox[] | undefined = undefined;
-  if (inspection?.extracted_data?.fields) {
+  if (evaluations.length > 0) {
+    customBoxes = evaluations
+      .filter((ev) => ev.evidence?.bbox)
+      .map((ev) => {
+        const bbox = ev.evidence!.bbox!;
+        return {
+          id: ev.id,
+          x: typeof bbox.x === 'number' ? bbox.x : 10,
+          y: typeof bbox.y === 'number' ? bbox.y : 10,
+          width: typeof bbox.width === 'number' ? bbox.width : 20,
+          height: typeof bbox.height === 'number' ? bbox.height : 10,
+          label: ev.rule_title,
+          text: ev.observed_value || undefined,
+          status: ev.status === 'PASS' ? 'GOOD' : ev.status === 'ISSUE' ? 'ISSUE' : 'REVIEW',
+        };
+      });
+  } else if (inspection?.extracted_data?.fields) {
     customBoxes = Object.entries(inspection.extracted_data.fields)
       .filter(([_, field]) => field.evidence_box !== null && field.evidence_box !== undefined)
       .map(([key, field]) => ({
@@ -60,6 +87,8 @@ export const WorkbenchPage: React.FC = () => {
   const brandName = inspection?.brand || fallbackProduct.brand;
   const versionLabel = inspection?.version_label || fallbackProduct.latestVersion;
   const previewUrl = inspection?.preview_url ? api.getFileUrl(inspection.preview_url) : null;
+  const complianceVerdict = inspection?.compliance_verdict;
+  const complianceScore = inspection?.compliance_score;
 
   return (
     <AppShell breadcrumbs={[{ label: 'Products', path: '/products' }, { label: productName, path: `/products/${fallbackProduct.id}` }, { label: 'Results & Workbench' }]}>
@@ -86,9 +115,17 @@ export const WorkbenchPage: React.FC = () => {
                   {brandName}
                 </span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>• Inspection: {inspection?.id ? `${inspection.id.slice(0, 8)}...` : 'Pre-Flight Master'}</span>
+                {complianceVerdict && (
+                  <span
+                    className={`badge ${complianceVerdict === 'PASS' ? 'badge-good' : complianceVerdict === 'ISSUE' ? 'badge-issue' : 'badge-review'}`}
+                    style={{ fontSize: '0.6875rem' }}
+                  >
+                    {complianceVerdict === 'PASS' ? <ShieldCheck size={11} /> : <AlertTriangle size={11} />} Compliance: {complianceVerdict} ({complianceScore ?? 100}%)
+                  </span>
+                )}
                 {inspection?.quality_verdict && (
-                  <span className="badge badge-good" style={{ fontSize: '0.6875rem' }}>
-                    <CheckCircle2 size={11} /> Quality: {inspection.quality_verdict}
+                  <span className="badge badge-neutral" style={{ fontSize: '0.6875rem' }}>
+                    <CheckCircle2 size={11} /> DPI Precheck: {inspection.quality_verdict}
                   </span>
                 )}
               </div>
@@ -140,11 +177,14 @@ export const WorkbenchPage: React.FC = () => {
 
           {/* Right: Inspection / Extraction Finding Panel */}
           <FindingPanel
-            findings={inspection ? undefined : fallbackFindings}
+            evaluations={evaluations}
+            findings={findings}
             extractedFields={inspection?.extracted_data?.fields}
             selectedFindingId={selectedFindingId}
             onSelectFinding={(id) => setSelectedFindingId(id)}
             onOpenImprove={() => navigate('/improve')}
+            complianceVerdict={complianceVerdict}
+            complianceScore={complianceScore}
           />
         </div>
 
