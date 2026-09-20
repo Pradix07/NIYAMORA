@@ -4,7 +4,7 @@ import { AppShell } from '../components/layout/AppShell';
 import { PackagingVisual } from '../components/common/PackagingVisual';
 import { api } from '../services/api';
 import type { ApiInspection } from '../services/api';
-import { CheckCircle2, Loader2, Sparkles, ArrowRight, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, Loader2, ShieldCheck, ArrowRight, AlertTriangle } from 'lucide-react';
 
 interface PipelineStep {
   id: string;
@@ -86,7 +86,7 @@ export const ProcessingPage: React.FC = () => {
         {/* Header */}
         <div style={{ textAlign: 'center' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.85rem', borderRadius: 'var(--radius-full)', backgroundColor: 'var(--brand-primary-light)', color: 'var(--brand-primary)', fontSize: '0.8125rem', fontWeight: 700, marginBottom: '0.75rem' }}>
-            <Sparkles size={14} />
+            <ShieldCheck size={14} />
             <span>Pre-Print Ingestion & Extraction</span>
           </div>
           <h1 style={{ fontSize: '1.85rem', fontWeight: 800 }}>

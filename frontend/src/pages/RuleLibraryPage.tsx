@@ -1,11 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { AppShell } from '../components/layout/AppShell';
+import { Link, useNavigate } from 'react-router-dom';
 import { COMPLIANCE_RULES } from '../data/mockData';
 import { api } from '../services/api';
 import type { ApiRule } from '../services/api';
-import { Search, CheckCircle2, AlertTriangle, XCircle, BookOpen, ShieldCheck } from 'lucide-react';
+import {
+  Search,
+  CheckCircle2,
+  AlertTriangle,
+  XCircle,
+  BookOpen,
+  ShieldCheck,
+  ArrowRight
+} from 'lucide-react';
+import { NiyamuraLogo } from '../components/common/NiyamuraLogo';
+import { ThemeSwitch } from '../components/common/ThemeSwitch';
+import { useAuth } from '../context/AuthContext';
 
 export const RuleLibraryPage: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('ALL');
   const [liveRules, setLiveRules] = useState<ApiRule[]>([]);
@@ -27,7 +40,8 @@ export const RuleLibraryPage: React.FC = () => {
   const hasLiveRules = liveRules.length > 0;
 
   const filteredMockRules = COMPLIANCE_RULES.filter((r) => {
-    const matchesSearch = r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch =
+      r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.code.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.officialSource.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === 'ALL' || r.category.includes(categoryFilter);
@@ -35,7 +49,8 @@ export const RuleLibraryPage: React.FC = () => {
   });
 
   const filteredLiveRules = liveRules.filter((r) => {
-    const matchesSearch = r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    const matchesSearch =
+      r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.rule_code.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (r.description || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === 'ALL' || r.category.includes(categoryFilter);
@@ -43,8 +58,55 @@ export const RuleLibraryPage: React.FC = () => {
   });
 
   return (
-    <AppShell breadcrumbs={[{ label: 'Rule Library' }]}>
-      <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+    <div style={{ minHeight: '100vh', backgroundColor: 'var(--bg-app)', display: 'flex', flexDirection: 'column' }}>
+      {/* Top Header */}
+      <header
+        style={{
+          height: '64px',
+          backgroundColor: 'var(--bg-surface)',
+          borderBottom: '1px solid var(--border-default)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 50,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '0 2rem',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '2rem' }}>
+          <NiyamuraLogo variant="full" size="md" to="/" />
+          <nav style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            <Link to="/rules" style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+              <BookOpen size={15} /> Rule Library
+            </Link>
+            <Link to="/resources" style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text-secondary)' }}>
+              Resources
+            </Link>
+          </nav>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <ThemeSwitch size="sm" />
+          {user ? (
+            <Link to="/dashboard" className="btn btn-primary btn-sm">
+              Dashboard
+            </Link>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Link to="/login" className="btn btn-ghost btn-sm">
+                Sign In
+              </Link>
+              <Link to="/signup" className="btn btn-primary btn-sm">
+                Create Account
+              </Link>
+            </div>
+          )}
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main style={{ flex: 1, maxWidth: '1200px', width: '100%', margin: '0 auto', padding: '2rem 1.5rem', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
         
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
@@ -85,6 +147,7 @@ export const RuleLibraryPage: React.FC = () => {
             >
               <option value="ALL">All Statutory Categories</option>
               <option value="Legal Metrology">Legal Metrology Act, 2009 & Rules</option>
+              <option value="Food Safety">Food Safety & Standards (FSSAI)</option>
             </select>
           </div>
         </div>
@@ -96,6 +159,8 @@ export const RuleLibraryPage: React.FC = () => {
             filteredLiveRules.map((rule) => {
               const activeVer = rule.versions && rule.versions.length > 0 ? rule.versions[0] : null;
               const isImplementedPackagingCheck = rule.domain === 'LEGAL_METROLOGY_PACKAGED_COMMODITIES';
+              const ruleTarget = `/rules/${rule.rule_code || rule.id}`;
+
               return (
                 <div key={rule.id} className="card-tactile" style={{ padding: '1.5rem', backgroundColor: 'var(--bg-surface)' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
@@ -108,7 +173,7 @@ export const RuleLibraryPage: React.FC = () => {
                           {rule.category}
                         </span>
                         <span className="badge badge-neutral" style={{ fontSize: '0.6875rem' }}>
-                          Severity: {rule.severity}
+                          Rule Requirement
                         </span>
                         {isImplementedPackagingCheck ? (
                           <span className="badge badge-good" style={{ fontSize: '0.6875rem' }}>
@@ -120,7 +185,11 @@ export const RuleLibraryPage: React.FC = () => {
                           </span>
                         )}
                       </div>
-                      <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>{rule.title}</h3>
+                      <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>
+                        <Link to={ruleTarget} style={{ color: 'var(--text-primary)', textDecoration: 'none' }}>
+                          {rule.title}
+                        </Link>
+                      </h3>
                     </div>
 
                     <div style={{ textAlign: 'right' }}>
@@ -170,87 +239,115 @@ export const RuleLibraryPage: React.FC = () => {
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-default)', paddingTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-default)', paddingTop: '0.75rem', fontSize: '0.75rem', color: 'var(--text-muted)', flexWrap: 'wrap', gap: '0.5rem' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                       <BookOpen size={12} /> {activeVer?.source_url || 'https://consumeraffairs.gov.in/pages/legal-metrology-act'}
                     </span>
-                    <span style={{ fontFamily: 'var(--font-mono)' }}>Evaluation Engine: {activeVer?.evaluation_type || 'DETERMINISTIC_FIELD'}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <span style={{ fontFamily: 'var(--font-mono)' }}>Evaluation Engine: {activeVer?.evaluation_type || 'DETERMINISTIC_FIELD'}</span>
+                      <button
+                        onClick={() => navigate(ruleTarget)}
+                        className="btn btn-outline btn-sm"
+                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', padding: '0.25rem 0.6rem' }}
+                      >
+                        <span>View Rule Details</span>
+                        <ArrowRight size={12} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               );
             })
           ) : (
             /* Mock Catalog Fallback */
-            filteredMockRules.map((rule) => (
-              <div key={rule.id} className="card-tactile" style={{ padding: '1.5rem', backgroundColor: 'var(--bg-surface)' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
-                  <div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.35rem' }}>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', fontWeight: 800, color: 'var(--brand-primary)', backgroundColor: 'var(--brand-primary-light)', padding: '2px 8px', borderRadius: '4px' }}>
-                        {rule.code}
-                      </span>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-                        {rule.category}
-                      </span>
-                      <span className="badge badge-neutral" style={{ fontSize: '0.6875rem' }}>
-                        {rule.severity}
+            filteredMockRules.map((rule) => {
+              const ruleTarget = `/rules/${rule.code || rule.id}`;
+              return (
+                <div key={rule.id} className="card-tactile" style={{ padding: '1.5rem', backgroundColor: 'var(--bg-surface)' }}>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.35rem' }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', fontWeight: 800, color: 'var(--brand-primary)', backgroundColor: 'var(--brand-primary-light)', padding: '2px 8px', borderRadius: '4px' }}>
+                          {rule.code}
+                        </span>
+                        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
+                          {rule.category}
+                        </span>
+                        <span className="badge badge-neutral" style={{ fontSize: '0.6875rem' }}>
+                          Rule Requirement
+                        </span>
+                      </div>
+                      <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>
+                        <Link to={ruleTarget} style={{ color: 'var(--text-primary)', textDecoration: 'none' }}>
+                          {rule.name}
+                        </Link>
+                      </h3>
+                    </div>
+
+                    <div style={{ textAlign: 'right' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Official Source:</span>
+                      <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                        {rule.officialSource} ({rule.sourceDate})
                       </span>
                     </div>
-                    <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>{rule.name}</h3>
                   </div>
 
-                  <div style={{ textAlign: 'right' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Official Source:</span>
-                    <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                      {rule.officialSource} ({rule.sourceDate})
-                    </span>
+                  <div className="grid-2" style={{ gap: '1rem', marginBottom: '1.25rem' }}>
+                    <div style={{ padding: '0.875rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-sm)' }}>
+                      <strong style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
+                        Applicability:
+                      </strong>
+                      <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                        {rule.applicability}
+                      </p>
+                    </div>
+
+                    <div style={{ padding: '0.875rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-sm)' }}>
+                      <strong style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
+                        How NIYAMURA Checks It:
+                      </strong>
+                      <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                        {rule.howWeCheck}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="grid-3" style={{ gap: '0.75rem', fontSize: '0.8125rem', marginBottom: '1rem' }}>
+                    <div style={{ padding: '0.75rem', backgroundColor: 'var(--status-good-bg)', border: '1px solid var(--status-good-border)', borderRadius: 'var(--radius-sm)' }}>
+                      <span style={{ fontWeight: 700, color: 'var(--status-good-text)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+                        <CheckCircle2 size={13} /> PASS CONDITION
+                      </span>
+                      <p style={{ color: 'var(--text-primary)', fontSize: '0.75rem' }}>{rule.passCondition}</p>
+                    </div>
+
+                    <div style={{ padding: '0.75rem', backgroundColor: 'var(--status-review-bg)', border: '1px solid var(--status-review-border)', borderRadius: 'var(--radius-sm)' }}>
+                      <span style={{ fontWeight: 700, color: 'var(--status-review-text)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+                        <AlertTriangle size={13} /> REVIEW CONDITION
+                      </span>
+                      <p style={{ color: 'var(--text-primary)', fontSize: '0.75rem' }}>{rule.reviewCondition}</p>
+                    </div>
+
+                    <div style={{ padding: '0.75rem', backgroundColor: 'var(--status-issue-bg)', border: '1px solid var(--status-issue-border)', borderRadius: 'var(--radius-sm)' }}>
+                      <span style={{ fontWeight: 700, color: 'var(--status-issue-text)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
+                        <XCircle size={13} /> ISSUE CONDITION
+                      </span>
+                      <p style={{ color: 'var(--text-primary)', fontSize: '0.75rem' }}>{rule.issueCondition}</p>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-default)', paddingTop: '0.75rem' }}>
+                    <button
+                      onClick={() => navigate(ruleTarget)}
+                      className="btn btn-outline btn-sm"
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem' }}
+                    >
+                      <span>View Rule Details</span>
+                      <ArrowRight size={12} />
+                    </button>
                   </div>
                 </div>
-
-                <div className="grid-2" style={{ gap: '1rem', marginBottom: '1.25rem' }}>
-                  <div style={{ padding: '0.875rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-sm)' }}>
-                    <strong style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
-                      Applicability:
-                    </strong>
-                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-                      {rule.applicability}
-                    </p>
-                  </div>
-
-                  <div style={{ padding: '0.875rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-sm)' }}>
-                    <strong style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
-                      How NIYAMURA Checks It:
-                    </strong>
-                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-                      {rule.howWeCheck}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid-3" style={{ gap: '0.75rem', fontSize: '0.8125rem' }}>
-                  <div style={{ padding: '0.75rem', backgroundColor: 'var(--status-good-bg)', border: '1px solid var(--status-good-border)', borderRadius: 'var(--radius-sm)' }}>
-                    <span style={{ fontWeight: 700, color: 'var(--status-good-text)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
-                      <CheckCircle2 size={13} /> PASS CONDITION
-                    </span>
-                    <p style={{ color: 'var(--text-primary)', fontSize: '0.75rem' }}>{rule.passCondition}</p>
-                  </div>
-
-                  <div style={{ padding: '0.75rem', backgroundColor: 'var(--status-review-bg)', border: '1px solid var(--status-review-border)', borderRadius: 'var(--radius-sm)' }}>
-                    <span style={{ fontWeight: 700, color: 'var(--status-review-text)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
-                      <AlertTriangle size={13} /> REVIEW CONDITION
-                    </span>
-                    <p style={{ color: 'var(--text-primary)', fontSize: '0.75rem' }}>{rule.reviewCondition}</p>
-                  </div>
-
-                  <div style={{ padding: '0.75rem', backgroundColor: 'var(--status-issue-bg)', border: '1px solid var(--status-issue-border)', borderRadius: 'var(--radius-sm)' }}>
-                    <span style={{ fontWeight: 700, color: 'var(--status-issue-text)', display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '4px' }}>
-                      <XCircle size={13} /> ISSUE CONDITION
-                    </span>
-                    <p style={{ color: 'var(--text-primary)', fontSize: '0.75rem' }}>{rule.issueCondition}</p>
-                  </div>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
 
@@ -259,7 +356,9 @@ export const RuleLibraryPage: React.FC = () => {
           <strong>Statutory Knowledge Base Notice:</strong> Displayed rule parameters are based on standard published provisions of the Legal Metrology (Packaged Commodities) Rules, 2011 and Gazette Amendments from the Department of Consumer Affairs, Government of India.
         </div>
 
-      </div>
-    </AppShell>
+      </main>
+    </div>
   );
 };
+
+export default RuleLibraryPage;

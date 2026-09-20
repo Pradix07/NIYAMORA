@@ -6,7 +6,7 @@ import type { CustomEvidenceBox } from '../components/workbench/ArtworkViewer';
 import { FindingPanel } from '../components/workbench/FindingPanel';
 import { api } from '../services/api';
 import type { ApiInspection, ApiEvaluation, ApiFinding, ApiRiskMapResponse, ApiRiskMapItem } from '../services/api';
-import { Sparkles, FileText, CheckCircle2, AlertTriangle, ShieldCheck, GitCompare, Map, TrendingDown, Loader2, AlertCircle, Plus, RefreshCw } from 'lucide-react';
+import { Wand2, FileText, CheckCircle2, AlertTriangle, ShieldCheck, GitCompare, Map, TrendingDown, Loader2, AlertCircle, Plus, RefreshCw } from 'lucide-react';
 
 export const WorkbenchPage: React.FC = () => {
   const navigate = useNavigate();
@@ -223,7 +223,7 @@ export const WorkbenchPage: React.FC = () => {
               className="btn btn-primary btn-sm"
               style={{ gap: '0.35rem', boxShadow: '0 2px 8px rgba(79, 70, 229, 0.3)' }}
             >
-              <Sparkles size={14} />
+              <Wand2 size={14} />
               <span>Improve Design</span>
             </button>
 

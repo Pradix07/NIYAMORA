@@ -23,16 +23,12 @@ export const NewCheckPage: React.FC = () => {
 
   const [uploadMode, setUploadMode] = useState<'artwork' | 'photo' | 'multi' | 'ecom'>('artwork');
   const [actualFile, setActualFile] = useState<File | null>(null);
-  const [selectedFileMeta, setSelectedFileMeta] = useState<{ name: string; size: string; type: string } | null>({
-    name: 'Aura_Chia_Crunch_V02_Master.pdf',
-    size: '14.8 MB',
-    type: 'PDF Vector Artwork',
-  });
+  const [selectedFileMeta, setSelectedFileMeta] = useState<{ name: string; size: string; type: string } | null>(null);
   
-  const [productName, setProductName] = useState('Organic Chia Crunch Superfood Pouch');
+  const [productName, setProductName] = useState('');
   const [productType, setProductType] = useState<PackagingType>('Stand-Up Pouch');
-  const [brandName, setBrandName] = useState('Aura Botanicals');
-  const [netQuantity, setNetQuantity] = useState('250 g');
+  const [brandName, setBrandName] = useState('');
+  const [netQuantity, setNetQuantity] = useState('');
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -46,10 +42,24 @@ export const NewCheckPage: React.FC = () => {
       type: file.type || 'Artwork File',
     });
     setErrorMessage(null);
+    if (!productName) {
+      // derive clean product name from filename
+      const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+      setProductName(cleanName.charAt(0).toUpperCase() + cleanName.slice(1));
+    }
   };
 
   const handleStartCheck = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!actualFile && !selectedFileMeta) {
+      setErrorMessage('Please select or drag-and-drop a packaging artwork file (PDF, PNG, JPG).');
+      return;
+    }
+    if (!productName.trim()) {
+      setErrorMessage('Please provide a Product Master Name.');
+      return;
+    }
+
     setIsSubmitting(true);
     setErrorMessage(null);
 
@@ -58,10 +68,9 @@ export const NewCheckPage: React.FC = () => {
       if (actualFile) {
         formData.append('file', actualFile);
       } else {
-        // Create realistic synthetic sample PDF if user clicked submit on the default preview
-        const dummyContent = `%PDF-1.4\n1 0 obj\n<< /Title (${productName}) /Author (${brandName}) >>\nendobj\n%%EOF`;
+        const dummyContent = `%PDF-1.4\n1 0 obj\n<< /Title (${productName}) /Author (${brandName || 'Company'}) >>\nendobj\n%%EOF`;
         const blob = new Blob([dummyContent], { type: 'application/pdf' });
-        const dummyFile = new File([blob], selectedFileMeta?.name || 'Aura_Chia_Crunch_V02_Master.pdf', { type: 'application/pdf' });
+        const dummyFile = new File([blob], selectedFileMeta?.name || 'packaging_artwork.pdf', { type: 'application/pdf' });
         formData.append('file', dummyFile);
       }
 
@@ -298,6 +307,7 @@ export const NewCheckPage: React.FC = () => {
                 <input
                   type="text"
                   required
+                  placeholder="e.g. Organic Chia Crunch Pouch"
                   value={productName}
                   onChange={(e) => setProductName(e.target.value)}
                   style={{ width: '100%' }}
@@ -310,6 +320,7 @@ export const NewCheckPage: React.FC = () => {
                 </label>
                 <input
                   type="text"
+                  placeholder="e.g. Aura Botanicals"
                   value={brandName}
                   onChange={(e) => setBrandName(e.target.value)}
                   style={{ width: '100%' }}

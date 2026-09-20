@@ -43,13 +43,13 @@ export const ProfilePage: React.FC = () => {
 
             <div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', marginBottom: '0.25rem' }}>
-                <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>{user?.name || 'Devin Vance'}</h2>
+                <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>{user?.name || 'Compliance User'}</h2>
                 <span className="badge badge-neutral" style={{ fontWeight: 700 }}>
                   <ShieldCheck size={12} /> {user?.role || 'COMPANY_USER'}
                 </span>
               </div>
               <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                {user?.email || 'devin@aurapackaging.com'} • {user?.company || 'Aura Packaging Labs'}
+                {user?.email || 'user@company.com'} • {user?.company || 'Company Workspace'}
               </p>
             </div>
           </div>
@@ -61,7 +61,7 @@ export const ProfilePage: React.FC = () => {
                 Company Affiliation
               </span>
               <p style={{ fontWeight: 700, fontSize: '0.95rem', marginTop: '4px' }}>
-                {user?.company || 'Aura Packaging Labs'}
+                {user?.company || 'Company Workspace'}
               </p>
             </div>
 

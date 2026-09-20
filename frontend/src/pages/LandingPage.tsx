@@ -13,7 +13,7 @@ import {
   CheckCircle2,
   ShieldCheck,
   BarChart3,
-  Cpu,
+  SearchCheck,
   Wand2,
   GitCompare,
   Sliders,
@@ -22,13 +22,17 @@ import {
   FileCheck,
   Package,
   BookOpen,
-  Sparkles,
 } from 'lucide-react';
 
 export const LandingPage: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [authModalConfig, setAuthModalConfig] = useState({
+    title: 'SIGN IN REQUIRED TO START A CHECK',
+    description: 'Create an account or sign in to check your packaging artwork and manage your inspection history.',
+    targetWorkflow: '/new-check',
+  });
   const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
   const [activeNav, setActiveNav] = useState('home');
 
@@ -63,6 +67,38 @@ export const LandingPage: React.FC = () => {
     if (user) {
       navigate('/new-check');
     } else {
+      setAuthModalConfig({
+        title: 'SIGN IN REQUIRED TO START A CHECK',
+        description: 'Create an account or sign in to check your packaging artwork and manage your inspection history.',
+        targetWorkflow: '/new-check',
+      });
+      setAuthModalOpen(true);
+    }
+  };
+
+  const handleProtectedFeatureClick = (path: string) => {
+    if (user) {
+      navigate(path);
+    } else {
+      setAuthModalConfig({
+        title: 'SIGN IN REQUIRED TO ACCESS WORKSPACE',
+        description: 'Create an account or sign in to check your packaging artwork and manage your inspection history.',
+        targetWorkflow: path,
+      });
+      setAuthModalOpen(true);
+    }
+  };
+
+  const handleDownloadResourceClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (user) {
+      navigate('/rules');
+    } else {
+      setAuthModalConfig({
+        title: 'SIGN IN REQUIRED TO DOWNLOAD',
+        description: 'Create an account to download and save this resource.',
+        targetWorkflow: '/rules',
+      });
       setAuthModalOpen(true);
     }
   };
@@ -100,9 +136,9 @@ export const LandingPage: React.FC = () => {
   const featureCards = [
     {
       id: 'analysis',
-      icon: Cpu,
-      title: 'AI-Powered Analysis',
-      desc: 'Detects compliance issues across Legal Metrology and FSSAI rules.',
+      icon: SearchCheck,
+      title: 'Compliance Evaluation',
+      desc: 'Detects packaging compliance issues across Legal Metrology and FSSAI rules.',
       path: '/workbench',
       color: '#3B82F6',
     },
@@ -110,7 +146,7 @@ export const LandingPage: React.FC = () => {
       id: 'improve',
       icon: Wand2,
       title: 'Design Improvement',
-      desc: 'Get actionable millimeter font and contrast suggestions to fix issues.',
+      desc: 'Actionable millimeter font height and contrast suggestions to resolve issues.',
       path: '/improve',
       color: '#10B981',
     },
@@ -118,7 +154,7 @@ export const LandingPage: React.FC = () => {
       id: 'compare',
       icon: GitCompare,
       title: 'Side-by-Side Compare',
-      desc: 'Track visual and statutory changes to validate improvements.',
+      desc: 'Track visual and statutory changes between artwork revisions.',
       path: '/compare',
       color: '#8B5CF6',
     },
@@ -126,7 +162,7 @@ export const LandingPage: React.FC = () => {
       id: 'simulation',
       icon: Sliders,
       title: 'Simulation & Revalidation',
-      desc: 'Test hypothetical artwork values to ensure final design remains compliant.',
+      desc: 'Test hypothetical parameter adjustments against statutory thresholds before print.',
       path: '/simulator',
       color: '#F59E0B',
     },
@@ -134,7 +170,7 @@ export const LandingPage: React.FC = () => {
       id: 'passport',
       icon: FileCheck2,
       title: 'Label Passport',
-      desc: 'Complete immutable audit trail and history ledger for transparency.',
+      desc: 'Chronological provenance ledger and inspection verification repository.',
       path: '/passport',
       color: '#EC4899',
     },
@@ -144,35 +180,35 @@ export const LandingPage: React.FC = () => {
     {
       number: '1',
       title: '1. CHECK',
-      subtitle: 'Upload your artwork or product images',
+      subtitle: 'Upload your artwork dielines or product packshots',
       icon: UploadCloud,
       badgeColor: '#3B82F6',
     },
     {
       number: '2',
       title: '2. IMPROVE',
-      subtitle: 'Get structured design suggestions',
+      subtitle: 'Review structured design suggestions and fixes',
       icon: Wand2,
       badgeColor: '#10B981',
     },
     {
       number: '3',
       title: '3. COMPARE',
-      subtitle: 'Review changes side by side',
+      subtitle: 'Verify revisions side-by-side without regression',
       icon: GitCompare,
       badgeColor: '#8B5CF6',
     },
     {
       number: '4',
       title: '4. VERIFY',
-      subtitle: 'Ensure compliance before print',
+      subtitle: 'Ensure compliance before plate making and print',
       icon: ShieldCheck,
       badgeColor: '#F97316',
     },
     {
       number: '5',
       title: '5. RECORD',
-      subtitle: 'Save to your Label Passport',
+      subtitle: 'Save verification records to your Label Passport',
       icon: FileCheck2,
       badgeColor: '#EC4899',
     },
@@ -180,7 +216,7 @@ export const LandingPage: React.FC = () => {
 
   return (
     <div id="home" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-app)', color: 'var(--text-primary)' }}>
-      {/* 1. Global Navigation Bar matching reference */}
+      {/* 1. Global Navigation Bar */}
       <header
         style={{
           height: '74px',
@@ -194,7 +230,7 @@ export const LandingPage: React.FC = () => {
         }}
       >
         <div className="container" style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          {/* Left: Brand Typography Wordmark (No enclosing box) */}
+          {/* Left: Brand Typography Wordmark */}
           <NiyamuraLogo variant="full" size="md" to="/" />
 
           {/* Center: Dynamic Active Navigation Links */}
@@ -246,6 +282,20 @@ export const LandingPage: React.FC = () => {
                 </a>
               );
             })}
+            <Link
+              to="/rules"
+              style={{
+                padding: '0.45rem 1rem',
+                borderRadius: 'var(--radius-full)',
+                color: 'var(--text-secondary)',
+                fontWeight: 500,
+                fontSize: '0.875rem',
+                textDecoration: 'none',
+              }}
+              className="menu-item-hover"
+            >
+              Rule Library
+            </Link>
           </nav>
 
           {/* Right: Theme Switch + Auth CTAs */}
@@ -265,7 +315,7 @@ export const LandingPage: React.FC = () => {
             ) : (
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
                 <Link to="/login" className="btn btn-secondary btn-sm" style={{ padding: '0.45rem 1rem' }}>
-                  Log In
+                  Sign In
                 </Link>
                 <Link
                   to="/signup"
@@ -283,8 +333,8 @@ export const LandingPage: React.FC = () => {
         </div>
       </header>
 
-      {/* 2. Hero Section matching reference image */}
-      <section style={{ padding: '3.5rem 0 3.5rem', position: 'relative', overflow: 'hidden' }}>
+      {/* 2. Hero Section */}
+      <section style={{ padding: '4rem 0 3.5rem', position: 'relative', overflow: 'hidden' }}>
         {/* Subtle radial ambient background light */}
         <div
           style={{
@@ -294,7 +344,7 @@ export const LandingPage: React.FC = () => {
             transform: 'translateX(-50%)',
             width: '900px',
             height: '500px',
-            background: 'radial-gradient(ellipse at center, rgba(124, 58, 237, 0.12) 0%, rgba(99, 102, 241, 0.03) 50%, transparent 75%)',
+            background: 'radial-gradient(ellipse at center, rgba(124, 58, 237, 0.1) 0%, rgba(99, 102, 241, 0.02) 50%, transparent 75%)',
             pointerEvents: 'none',
             zIndex: 0,
           }}
@@ -305,41 +355,6 @@ export const LandingPage: React.FC = () => {
             
             {/* Left Hero Column */}
             <div>
-              {/* Eyebrow Line: Uniform Opacity & Color flanked by hairline dividers */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.75rem',
-                  marginBottom: '1.25rem',
-                  maxWidth: '520px',
-                }}
-              >
-                <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-strong)', opacity: 0.5 }} />
-                <div
-                  style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.12em',
-                    color: 'var(--text-secondary)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    textTransform: 'uppercase',
-                    fontFamily: 'var(--font-heading)',
-                  }}
-                >
-                  <span>TRUST</span>
-                  <span style={{ opacity: 0.4 }}>•</span>
-                  <span>COMPLY</span>
-                  <span style={{ opacity: 0.4 }}>•</span>
-                  <span>PRINT</span>
-                  <span style={{ opacity: 0.4 }}>•</span>
-                  <span>WITH CONFIDENCE</span>
-                </div>
-                <div style={{ flex: 1, height: '1px', backgroundColor: 'var(--border-strong)', opacity: 0.5 }} />
-              </div>
-
               {/* Main Headline */}
               <h1
                 style={{
@@ -355,7 +370,7 @@ export const LandingPage: React.FC = () => {
                 <span className="text-gradient-violet">Stronger Brands.</span>
               </h1>
 
-              {/* Tagline / Subtitle from reference */}
+              {/* Tagline / Subtitle */}
               <p
                 style={{
                   fontSize: '1.2rem',
@@ -368,7 +383,7 @@ export const LandingPage: React.FC = () => {
                 From design to compliance.
               </p>
 
-              {/* Supporting Text */}
+              {/* Supporting Text - Accurate, clean copy without AI buzzwords */}
               <p
                 style={{
                   fontSize: '1.05rem',
@@ -378,76 +393,189 @@ export const LandingPage: React.FC = () => {
                   marginBottom: '2rem',
                 }}
               >
-                AI-powered pre-print compliance for FSSAI, Legal Metrology and mandatory declaration rules. Catch issues early, improve designs, and go to print with confidence.
+                Pre-print compliance for FSSAI, Legal Metrology and mandatory declaration requirements. Catch issues early, improve designs, and go to print with confidence.
               </p>
 
-              {/* CTA Button */}
+              {/* CTA Button: START A CHECK */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '2.5rem' }}>
                 <button
                   onClick={handleStartCheckClick}
                   className="btn btn-primary btn-lg"
                   style={{
-                    padding: '0.85rem 2rem',
+                    padding: '0.9rem 2.25rem',
                     borderRadius: 'var(--radius-lg)',
-                    gap: '0.75rem',
-                    boxShadow: '0 8px 24px rgba(124, 58, 237, 0.45)',
+                    boxShadow: '0 8px 24px rgba(124, 58, 237, 0.4)',
+                    fontSize: '1.05rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.02em',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <ArrowRight size={20} />
-                    <div style={{ textAlign: 'left', lineHeight: 1.15 }}>
-                      <span style={{ display: 'block', fontSize: '1.05rem', fontWeight: 700 }}>Start a Check</span>
-                      <span style={{ display: 'block', fontSize: '0.7rem', opacity: 0.85, fontWeight: 500 }}>
-                        {user ? 'Open Workspace' : '(Sign in required)'}
-                      </span>
-                    </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                    <span>START A CHECK</span>
+                    <ArrowRight size={18} />
                   </div>
                 </button>
               </div>
 
-              {/* Value Proposition 4 Pillars Row matching Reference Image 2 */}
+              {/* Lower Four-Part Brand Strip: Refined, Subtle 3D, Premium with COMPLIANCE */}
               <div
                 style={{
                   display: 'grid',
                   gridTemplateColumns: 'repeat(4, 1fr)',
-                  gap: '1rem',
-                  paddingTop: '1.5rem',
+                  gap: '0.85rem',
+                  paddingTop: '1.75rem',
                   borderTop: '1px solid var(--border-default)',
                   maxWidth: '520px',
                 }}
               >
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '0.35rem' }}>
-                  <div style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-surface-subtle)', border: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-primary)' }}>
-                    <ShieldCheck size={19} />
+                {/* Pillar 1: TRUST */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    textAlign: 'center',
+                    gap: '0.45rem',
+                    padding: '0.85rem 0.5rem',
+                    borderRadius: 'var(--radius-lg)',
+                    backgroundColor: 'var(--bg-surface)',
+                    border: '1px solid var(--border-default)',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  }}
+                  className="brand-pillar-card"
+                >
+                  <div
+                    style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'var(--brand-primary-light)',
+                      border: '1px solid rgba(124, 58, 237, 0.2)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--brand-primary)',
+                      boxShadow: '0 2px 6px rgba(124, 58, 237, 0.15)',
+                    }}
+                  >
+                    <ShieldCheck size={20} />
                   </div>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.06em', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', color: 'var(--text-primary)', textTransform: 'uppercase' }}>
                     TRUST
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '0.35rem' }}>
-                  <div style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-surface-subtle)', border: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-primary)' }}>
-                    <FileCheck size={19} />
+                {/* Pillar 2: COMPLIANCE */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    textAlign: 'center',
+                    gap: '0.45rem',
+                    padding: '0.85rem 0.5rem',
+                    borderRadius: 'var(--radius-lg)',
+                    backgroundColor: 'var(--bg-surface)',
+                    border: '1px solid var(--border-default)',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  }}
+                  className="brand-pillar-card"
+                >
+                  <div
+                    style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'rgba(16, 185, 129, 0.12)',
+                      border: '1px solid rgba(16, 185, 129, 0.25)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: 'var(--status-good-solid)',
+                      boxShadow: '0 2px 6px rgba(16, 185, 129, 0.15)',
+                    }}
+                  >
+                    <FileCheck size={20} />
                   </div>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.06em', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
-                    COMPLY
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', color: 'var(--text-primary)', textTransform: 'uppercase' }}>
+                    COMPLIANCE
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '0.35rem' }}>
-                  <div style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-surface-subtle)', border: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-primary)' }}>
-                    <Package size={19} />
+                {/* Pillar 3: PRINT */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    textAlign: 'center',
+                    gap: '0.45rem',
+                    padding: '0.85rem 0.5rem',
+                    borderRadius: 'var(--radius-lg)',
+                    backgroundColor: 'var(--bg-surface)',
+                    border: '1px solid var(--border-default)',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  }}
+                  className="brand-pillar-card"
+                >
+                  <div
+                    style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'rgba(249, 115, 22, 0.12)',
+                      border: '1px solid rgba(249, 115, 22, 0.25)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#F97316',
+                      boxShadow: '0 2px 6px rgba(249, 115, 22, 0.15)',
+                    }}
+                  >
+                    <Package size={20} />
                   </div>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.06em', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', color: 'var(--text-primary)', textTransform: 'uppercase' }}>
                     PRINT
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: '0.35rem' }}>
-                  <div style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-surface-subtle)', border: '1px solid var(--border-default)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--brand-primary)' }}>
-                    <BarChart3 size={19} />
+                {/* Pillar 4: WITH CONFIDENCE */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    textAlign: 'center',
+                    gap: '0.45rem',
+                    padding: '0.85rem 0.5rem',
+                    borderRadius: 'var(--radius-lg)',
+                    backgroundColor: 'var(--bg-surface)',
+                    border: '1px solid var(--border-default)',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                  }}
+                  className="brand-pillar-card"
+                >
+                  <div
+                    style={{
+                      width: '38px',
+                      height: '38px',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'rgba(59, 130, 246, 0.12)',
+                      border: '1px solid rgba(59, 130, 246, 0.25)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#3B82F6',
+                      boxShadow: '0 2px 6px rgba(59, 130, 246, 0.15)',
+                    }}
+                  >
+                    <BarChart3 size={20} />
                   </div>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 800, letterSpacing: '0.06em', color: 'var(--text-secondary)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', color: 'var(--text-primary)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
                     WITH CONFIDENCE
                   </span>
                 </div>
@@ -455,7 +583,7 @@ export const LandingPage: React.FC = () => {
 
             </div>
 
-            {/* Right Hero Column: 3D Packaging Centerpiece + Floating Glass Card on Outer Right */}
+            {/* Right Hero Column: 3D Packaging Centerpiece + Floating Compliance Card */}
             <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
               
               {/* Main Realistic 3D Packaging Container */}
@@ -482,23 +610,23 @@ export const LandingPage: React.FC = () => {
                 />
               </div>
 
-              {/* Floating Translucent Glass Compliance Card placed BESIDE the pouch on the outer right */}
+              {/* Floating Glass Compliance Card on Outer Right */}
               <div
                 className="glass-card animate-float"
                 style={{
                   position: 'absolute',
-                  top: '10%',
+                  top: '8%',
                   right: '-12px',
-                  width: '235px',
+                  width: '240px',
                   padding: '1.25rem',
                   borderRadius: 'var(--radius-lg)',
                   zIndex: 20,
                   boxShadow: '0 16px 40px rgba(0, 0, 0, 0.45)',
                   backdropFilter: 'blur(20px)',
                   WebkitBackdropFilter: 'blur(20px)',
+                  border: '1px solid var(--glass-border)',
                 }}
               >
-                {/* Visual indicator callout */}
                 <div
                   style={{
                     fontSize: '0.72rem',
@@ -519,7 +647,7 @@ export const LandingPage: React.FC = () => {
                     </div>
                     <div style={{ fontSize: '0.75rem', lineHeight: 1.15 }}>
                       <span style={{ fontWeight: 700, display: 'block' }}>FSSAI Compliance</span>
-                      <span style={{ fontSize: '0.6875rem', color: 'var(--status-good-text)' }}>Compliant</span>
+                      <span style={{ fontSize: '0.6875rem', color: 'var(--status-good-text)' }}>Evaluated Compliant</span>
                     </div>
                   </div>
 
@@ -529,7 +657,7 @@ export const LandingPage: React.FC = () => {
                     </div>
                     <div style={{ fontSize: '0.75rem', lineHeight: 1.15 }}>
                       <span style={{ fontWeight: 700, display: 'block' }}>Legal Metrology</span>
-                      <span style={{ fontSize: '0.6875rem', color: 'var(--status-good-text)' }}>Compliant</span>
+                      <span style={{ fontSize: '0.6875rem', color: 'var(--status-good-text)' }}>Evaluated Compliant</span>
                     </div>
                   </div>
 
@@ -539,7 +667,7 @@ export const LandingPage: React.FC = () => {
                     </div>
                     <div style={{ fontSize: '0.75rem', lineHeight: 1.15 }}>
                       <span style={{ fontWeight: 700, display: 'block' }}>Mandatory Declarations</span>
-                      <span style={{ fontSize: '0.6875rem', color: 'var(--status-good-text)' }}>Compliant</span>
+                      <span style={{ fontSize: '0.6875rem', color: 'var(--status-good-text)' }}>Evaluated Compliant</span>
                     </div>
                   </div>
 
@@ -549,19 +677,19 @@ export const LandingPage: React.FC = () => {
                     </div>
                     <div style={{ fontSize: '0.75rem', lineHeight: 1.15 }}>
                       <span style={{ fontWeight: 700, display: 'block' }}>Allergen Labelling</span>
-                      <span style={{ fontSize: '0.6875rem', color: 'var(--status-good-text)' }}>Compliant</span>
+                      <span style={{ fontSize: '0.6875rem', color: 'var(--status-good-text)' }}>Evaluated Compliant</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Ready for Print badge */}
+                {/* Compliance Ready for Print badge */}
                 <div style={{ marginTop: '1rem', textAlign: 'center' }}>
                   <div
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '0.35rem',
-                      padding: '0.3rem 0.8rem',
+                      padding: '0.35rem 0.85rem',
                       borderRadius: 'var(--radius-full)',
                       background: 'linear-gradient(135deg, #7C3AED 0%, #6366F1 100%)',
                       color: '#FFFFFF',
@@ -570,9 +698,12 @@ export const LandingPage: React.FC = () => {
                       boxShadow: '0 4px 12px rgba(124, 58, 237, 0.4)',
                     }}
                   >
-                    <span>Ready for Print</span>
+                    <span>Compliance Ready for Print</span>
                     <CheckCircle2 size={13} />
                   </div>
+                  <p style={{ fontSize: '0.625rem', color: 'var(--text-muted)', marginTop: '0.35rem', lineHeight: 1.2 }}>
+                    Evaluated workflow status; not government certification.
+                  </p>
                 </div>
               </div>
 
@@ -581,7 +712,7 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 3. Five Feature Cards Row (Floating below hero) matching reference image */}
+      {/* 3. Five Feature Cards Row */}
       <section id="features" style={{ padding: '2.5rem 0 4rem' }}>
         <div className="container">
           <div
@@ -600,8 +731,7 @@ export const LandingPage: React.FC = () => {
                   key={feat.id}
                   onClick={() => {
                     setActiveFeatureIndex(idx);
-                    if (user) navigate(feat.path);
-                    else setAuthModalOpen(true);
+                    handleProtectedFeatureClick(feat.path);
                   }}
                   className="glass-card"
                   style={{
@@ -612,6 +742,7 @@ export const LandingPage: React.FC = () => {
                     justifyContent: 'space-between',
                     border: isActive ? `1px solid ${feat.color}` : '1px solid var(--border-default)',
                     transform: isActive ? 'translateY(-4px)' : 'none',
+                    transition: 'all var(--transition-fast)',
                   }}
                 >
                   <div>
@@ -669,7 +800,7 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 4. The Niyamura Workflow Section matching reference image */}
+      {/* 4. The Niyamura Workflow Section */}
       <section
         id="workflow"
         style={{
@@ -695,17 +826,16 @@ export const LandingPage: React.FC = () => {
                   marginBottom: '0.4rem',
                 }}
               >
-                The Niyamura Workflow
+                The NIYAMURA Workflow
               </span>
               <h2 style={{ fontSize: '2.4rem', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: '0.5rem' }}>
                 From Upload to <span className="text-gradient-violet">Print-Ready</span>
               </h2>
               <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', maxWidth: '620px' }}>
-                A simple, structured workflow to ensure your packaging meets all compliance requirements.
+                A structured, step-by-step pre-print compliance verification process.
               </p>
             </div>
 
-            {/* Subtitle callout */}
             <div
               style={{
                 fontSize: '0.9rem',
@@ -722,7 +852,7 @@ export const LandingPage: React.FC = () => {
             </div>
           </div>
 
-          {/* 5-Step Connected Horizontal Stepper */}
+          {/* 5-Step Connected Stepper */}
           <div
             style={{
               display: 'grid',
@@ -743,7 +873,6 @@ export const LandingPage: React.FC = () => {
                     position: 'relative',
                   }}
                 >
-                  {/* Step Icon Badge */}
                   <div
                     style={{
                       width: '48px',
@@ -777,16 +906,16 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 5. Packaging Formats & Regulations Showcase */}
+      {/* 5. Packaging Formats Showcase */}
       <section id="regulations" style={{ padding: '2rem 0 5rem' }}>
         <div className="container">
           <div style={{ textAlign: 'center', maxWidth: '680px', margin: '0 auto 3rem' }}>
-            <span className="badge badge-sample" style={{ marginBottom: '0.5rem' }}>Coverage</span>
+            <span className="badge badge-sample" style={{ marginBottom: '0.5rem' }}>Packaging Coverage</span>
             <h2 style={{ fontSize: '2.25rem', fontWeight: 800, marginBottom: '0.75rem' }}>
               Multi-Format Commercial Packaging
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-              Screened against Legal Metrology PCR 2011 and FSSAI 2020 labelling requirements across all standard commercial container formats.
+              Screened against Legal Metrology PCR 2011 and FSSAI 2020 labelling requirements across standard commercial container formats.
             </p>
           </div>
 
@@ -803,7 +932,7 @@ export const LandingPage: React.FC = () => {
               <div style={{ height: '200px', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: '1rem' }}>
                 <img src={bottle3D} alt="Glass Bottle" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
-              <h4 style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>Glass Bottles</h4>
+              <h4 style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>Glass Bottles & Jars</h4>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Oils, beverages, wellness elixirs, and liquid containers.</p>
             </div>
 
@@ -819,14 +948,14 @@ export const LandingPage: React.FC = () => {
               <div style={{ height: '200px', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: '1rem' }}>
                 <img src={jar3D} alt="Jars and Tubs" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </div>
-              <h4 style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>Jars & Canisters</h4>
+              <h4 style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>Canisters & Tubs</h4>
               <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Nutraceutical tubs, protein powders, creams, and condiments.</p>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 6. Regulatory Resources Section */}
+      {/* 6. Regulatory Resources Section (Publicly Viewable; Auth-Gated Download) */}
       <section
         id="resources"
         style={{
@@ -838,12 +967,12 @@ export const LandingPage: React.FC = () => {
       >
         <div className="container">
           <div style={{ textAlign: 'center', maxWidth: '680px', margin: '0 auto 3rem' }}>
-            <span className="badge badge-sample" style={{ marginBottom: '0.5rem' }}>Resources</span>
+            <span className="badge badge-sample" style={{ marginBottom: '0.5rem' }}>Official Guidance</span>
             <h2 style={{ fontSize: '2.25rem', fontWeight: 800, marginBottom: '0.75rem' }}>
-              Pre-Print Compliance Knowledge Base
+              Statutory Knowledge Base & Reference Guides
             </h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-              Practical guides, statutory rule references, and pre-press checklists curated for packaging designers and regulatory specialists.
+              Official statutory provisions, gazette notifications, and pre-press checklists curated for packaging designers and regulatory specialists.
             </p>
           </div>
 
@@ -853,15 +982,23 @@ export const LandingPage: React.FC = () => {
                 <div style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--brand-primary-light)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
                   <BookOpen size={22} />
                 </div>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                  Dept. of Consumer Affairs
+                </div>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.5rem' }}>Legal Metrology PCR 2011 Guide</h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  Comprehensive guide on minimum numeral font heights, principal display panel area calculations, and unit sale price requirements.
+                  Statutory provisions on minimum numeral font heights (Schedule-II & Rule 9), principal display panel calculations, and Unit Sale Price (USP) rules.
                 </p>
               </div>
-              <Link to="/rules" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, fontSize: '0.875rem', marginTop: '1.25rem' }}>
-                <span>Explore Rules</span>
-                <ArrowRight size={14} />
-              </Link>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1.5rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem' }}>
+                <Link to="/rules" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, fontSize: '0.875rem', color: 'var(--brand-primary)' }}>
+                  <span>View Rules</span>
+                  <ArrowRight size={14} />
+                </Link>
+                <button onClick={handleDownloadResourceClick} className="btn btn-ghost btn-sm" style={{ fontSize: '0.75rem' }}>
+                  Download Resource
+                </button>
+              </div>
             </div>
 
             <div className="card-tactile" style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
@@ -869,37 +1006,53 @@ export const LandingPage: React.FC = () => {
                 <div style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-md)', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: 'var(--status-good-solid)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
                   <CheckCircle2 size={22} />
                 </div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.5rem' }}>FSSAI 2020 Labelling Handbook</h3>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                  FSSAI Authority of India
+                </div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.5rem' }}>FSSAI 2020 Labelling Regulations</h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  Mandatory nutritional panels, allergen warnings, vegetarian/non-vegetarian logos, license display, and batch declarations.
+                  Mandatory nutritional panels, allergen declarations, vegetarian/non-vegetarian logos, FSSAI 14-digit license placement, and batch declarations.
                 </p>
               </div>
-              <Link to="/rules" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, fontSize: '0.875rem', marginTop: '1.25rem' }}>
-                <span>View FSSAI Specs</span>
-                <ArrowRight size={14} />
-              </Link>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1.5rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem' }}>
+                <Link to="/rules" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, fontSize: '0.875rem', color: 'var(--brand-primary)' }}>
+                  <span>View FSSAI Specs</span>
+                  <ArrowRight size={14} />
+                </Link>
+                <button onClick={handleDownloadResourceClick} className="btn btn-ghost btn-sm" style={{ fontSize: '0.75rem' }}>
+                  Download Resource
+                </button>
+              </div>
             </div>
 
             <div className="card-tactile" style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
               <div>
-                <div style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-md)', backgroundColor: 'rgba(245, 158, 11, 0.15)', color: 'var(--status-review-solid)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
-                  <Sparkles size={22} />
+                <div style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-md)', backgroundColor: 'rgba(249, 115, 22, 0.15)', color: '#F97316', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
+                  <FileCheck2 size={22} />
                 </div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.5rem' }}>Pre-Press Artwork Checklist</h3>
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.25rem' }}>
+                  Pre-Press Standards
+                </div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.5rem' }}>Pre-Print Verification Checklist</h3>
                 <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  Print-ready checklist covering bleed dimensions, barcode quiet zones, contrast ratios, and color separation best practices.
+                  Artwork guidelines covering bleed dimensions, barcode quiet zones, minimum contrast ratios, and mandatory manufacturer declaration grouping.
                 </p>
               </div>
-              <button onClick={handleStartCheckClick} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, fontSize: '0.875rem', marginTop: '1.25rem', color: 'var(--brand-primary)', textAlign: 'left' }}>
-                <span>Run Checklist Check</span>
-                <ArrowRight size={14} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1.5rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem' }}>
+                <Link to="/rules" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, fontSize: '0.875rem', color: 'var(--brand-primary)' }}>
+                  <span>Explore Catalog</span>
+                  <ArrowRight size={14} />
+                </Link>
+                <button onClick={handleDownloadResourceClick} className="btn btn-ghost btn-sm" style={{ fontSize: '0.75rem' }}>
+                  Download Resource
+                </button>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 7. Final Call to Action Section (Replaces Pricing) */}
+      {/* 7. Final Call to Action Section */}
       <section style={{ padding: '5rem 0' }}>
         <div className="container">
           <div
@@ -917,21 +1070,8 @@ export const LandingPage: React.FC = () => {
               overflow: 'hidden',
             }}
           >
-            <div
-              style={{
-                position: 'absolute',
-                top: '-50%',
-                left: '50%',
-                transform: 'translateX(-50%)',
-                width: '500px',
-                height: '300px',
-                background: 'radial-gradient(ellipse at center, rgba(124, 58, 237, 0.2) 0%, transparent 70%)',
-                pointerEvents: 'none',
-              }}
-            />
-
             <span className="badge badge-sample" style={{ marginBottom: '1rem' }}>
-              Pre-Print Statutory Assurance
+              Pre-Print Packaging Verification
             </span>
 
             <h2 style={{ fontSize: 'clamp(2rem, 4vw, 2.75rem)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: '1rem' }}>
@@ -939,7 +1079,7 @@ export const LandingPage: React.FC = () => {
             </h2>
 
             <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.6, maxWidth: '580px', margin: '0 auto 2.25rem auto' }}>
-              Screen your packaging artwork against Legal Metrology PCR 2011 and FSSAI 2020 rules before plate making. Catch issues early, improve designs, and go to print with confidence.
+              Screen your packaging artwork against Legal Metrology PCR 2011 and FSSAI 2020 rules before cylinder engraving and plate making.
             </p>
 
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
@@ -947,15 +1087,16 @@ export const LandingPage: React.FC = () => {
                 onClick={handleStartCheckClick}
                 className="btn btn-primary btn-lg"
                 style={{
-                  padding: '0.85rem 2.25rem',
+                  padding: '0.9rem 2.25rem',
                   borderRadius: 'var(--radius-lg)',
-                  gap: '0.75rem',
-                  boxShadow: '0 8px 24px rgba(124, 58, 237, 0.45)',
+                  boxShadow: '0 8px 24px rgba(124, 58, 237, 0.4)',
+                  fontSize: '1rem',
+                  fontWeight: 700,
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  <ArrowRight size={20} />
-                  <span style={{ fontSize: '1.05rem', fontWeight: 700 }}>Start a Check</span>
+                  <span>START A CHECK</span>
+                  <ArrowRight size={18} />
                 </div>
               </button>
 
@@ -963,8 +1104,9 @@ export const LandingPage: React.FC = () => {
                 to="/rules"
                 className="btn btn-secondary btn-lg"
                 style={{
-                  padding: '0.85rem 1.75rem',
+                  padding: '0.9rem 1.75rem',
                   borderRadius: 'var(--radius-lg)',
+                  fontSize: '1rem',
                 }}
               >
                 <span>Browse Rule Library</span>
@@ -981,7 +1123,7 @@ export const LandingPage: React.FC = () => {
             <NiyamuraLogo variant="full" size="md" to="/" />
 
             <div style={{ display: 'flex', gap: '2rem', fontSize: '0.875rem', flexWrap: 'wrap' }}>
-              <Link to="/login" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Log In</Link>
+              <Link to="/login" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Sign In</Link>
               <Link to="/signup" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Create Account</Link>
               <a href="#features" onClick={(e) => handleNavClick(e, 'features')} style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Product</a>
               <a href="#workflow" onClick={(e) => handleNavClick(e, 'workflow')} style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>How it Works</a>
@@ -996,11 +1138,13 @@ export const LandingPage: React.FC = () => {
         </div>
       </footer>
 
-      {/* Auth Gate Modal for Start a Check */}
+      {/* Auth Gate Modal */}
       <AuthRequiredModal
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
-        targetWorkflow="/new-check"
+        title={authModalConfig.title}
+        description={authModalConfig.description}
+        targetWorkflow={authModalConfig.targetWorkflow}
       />
     </div>
   );

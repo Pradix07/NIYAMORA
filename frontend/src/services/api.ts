@@ -151,6 +151,17 @@ export interface ApiRuleVersion {
   status: string;
 }
 
+export interface ApiRuleSource {
+  id: string;
+  title: string;
+  issuing_authority: string;
+  source_url: string;
+  document_type: string;
+  publication_date?: string;
+  effective_date?: string;
+  status: string;
+}
+
 export interface ApiRule {
   id: string;
   domain: string;
@@ -672,6 +683,24 @@ export const api = {
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw new Error(err.detail || 'Failed to fetch rules');
+    }
+    return res.json();
+  },
+
+  async getRule(ruleIdOrCode: string): Promise<ApiRule> {
+    const res = await authFetch(`${API_BASE_URL}/api/rules/${encodeURIComponent(ruleIdOrCode)}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch rule');
+    }
+    return res.json();
+  },
+
+  async getRuleSources(): Promise<ApiRuleSource[]> {
+    const res = await authFetch(`${API_BASE_URL}/api/rules/sources`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch rule sources');
     }
     return res.json();
   },

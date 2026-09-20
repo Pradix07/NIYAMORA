@@ -8,12 +8,16 @@ interface AuthRequiredModalProps {
   isOpen: boolean;
   onClose: () => void;
   targetWorkflow?: string;
+  title?: string;
+  description?: string;
 }
 
 export const AuthRequiredModal: React.FC<AuthRequiredModalProps> = ({
   isOpen,
   onClose,
   targetWorkflow = '/new-check',
+  title = 'SIGN IN REQUIRED TO START A CHECK',
+  description = 'Create an account or sign in to check your packaging artwork and manage your inspection history.',
 }) => {
   const navigate = useNavigate();
 
@@ -34,11 +38,11 @@ export const AuthRequiredModal: React.FC<AuthRequiredModalProps> = ({
           <NiyamuraLogo variant="full" size="md" />
         </div>
 
-        <h3 style={{ fontSize: '1.35rem', fontWeight: 800, marginBottom: '0.5rem', color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-          Sign In Required to Start Check
+        <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '0.6rem', color: 'var(--text-primary)', letterSpacing: '-0.02em', textTransform: 'uppercase' }}>
+          {title}
         </h3>
         <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5, marginBottom: '1.5rem' }}>
-          Packaging inspection artworks, findings evidence, and Label Passports are strictly encrypted and isolated within your company account.
+          {description}
         </p>
 
         {/* Concise trust points */}
@@ -61,11 +65,11 @@ export const AuthRequiredModal: React.FC<AuthRequiredModalProps> = ({
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
             <ShieldCheck size={15} style={{ color: 'var(--brand-primary)', flexShrink: 0 }} />
-            <span>Tenant-isolated secure file storage & audit trail</span>
+            <span>Tenant-isolated secure file storage & inspection history</span>
           </div>
         </div>
 
-        {/* Action Choice Buttons with EXACT required labels */}
+        {/* Action Choice Buttons with standardized labels [ Sign In ] [ Create Account ] */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <button
             onClick={() => handleNavigate('/login')}
@@ -73,7 +77,7 @@ export const AuthRequiredModal: React.FC<AuthRequiredModalProps> = ({
             style={{ width: '100%', gap: '0.6rem', justifyContent: 'center' }}
           >
             <LogIn size={18} />
-            <span>Sign In to Existing Account</span>
+            <span>Sign In</span>
             <ArrowRight size={16} />
           </button>
 

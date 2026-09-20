@@ -39,12 +39,12 @@ export const NiyamuraLogo: React.FC<NiyamuraLogoProps> = ({
   const { height, markWidth, fontSize, tagSize } = getDimensions();
   const stemColor = isDark ? '#FFFFFF' : '#0B0F19';
 
-  // The stylized "N" mark matching Image 1 and Image 3
+  // The stylized "N" mark matching Image 1 and Image 3 with tightened bounding box
   const StylizedN = ({ iconSize = height }: { iconSize?: number }) => (
     <svg
       width={iconSize}
       height={iconSize}
-      viewBox="0 0 40 40"
+      viewBox="4 4 32 32"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       style={{ flexShrink: 0, display: 'block' }}
@@ -127,9 +127,9 @@ export const NiyamuraLogo: React.FC<NiyamuraLogoProps> = ({
         ...style,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '1px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0px' }}>
         {/* Stylized initial N */}
-        <div style={{ display: 'flex', alignItems: 'center', marginRight: '1px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', marginRight: '0px' }}>
           <StylizedN iconSize={height} />
         </div>
 
@@ -144,6 +144,7 @@ export const NiyamuraLogo: React.FC<NiyamuraLogoProps> = ({
             lineHeight: 1,
             display: 'inline-flex',
             alignItems: 'flex-start',
+            marginLeft: '-1px',
           }}
         >
           iyamura

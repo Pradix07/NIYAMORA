@@ -11,7 +11,8 @@ import {
   CheckCircle2,
   ShieldCheck,
   ArrowRight,
-  Sparkles
+  Eye,
+  EyeOff,
 } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
@@ -22,21 +23,26 @@ export const LoginPage: React.FC = () => {
   const { login } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      setError('Please enter both your work email and password.');
+    if (!email.trim() || !password) {
+      setError('Please enter both your email and password.');
       return;
     }
 
     try {
       setLoading(true);
       setError(null);
-      await login(email, password);
-      navigate(redirectPath);
+      const res = await login(email.trim(), password);
+      if (res.success) {
+        navigate(redirectPath);
+      } else {
+        setError(res.error || 'Authentication failed. Please check your credentials.');
+      }
     } catch (err: any) {
       console.error('Login error:', err);
       setError(err.message || 'Authentication failed. Please check your credentials.');
@@ -125,8 +131,8 @@ export const LoginPage: React.FC = () => {
                   marginBottom: '1rem',
                 }}
               >
-                <Sparkles size={12} />
-                <span>Enterprise Packaging Verification</span>
+                <ShieldCheck size={14} />
+                <span>Pre-Print Packaging Compliance</span>
               </div>
 
               <h2
@@ -143,7 +149,7 @@ export const LoginPage: React.FC = () => {
               </h2>
 
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6, marginBottom: '2rem' }}>
-                Secure multi-tenant workspace with deterministic Legal Metrology PCR 2011 & FSSAI 2020 verification, millimeter font size checks, and immutable Label Passports.
+                Deterministic Legal Metrology PCR 2011 & FSSAI 2020 verification, millimeter numeral height checks, and Label Passport provenance.
               </p>
 
               {/* 3D Mockup Box */}
@@ -176,7 +182,7 @@ export const LoginPage: React.FC = () => {
                     fontWeight: 600,
                   }}
                 >
-                  ✓ Pre-Print Screened SKU
+                  ✓ Pre-Print Screened Packaging
                 </div>
               </div>
             </div>
@@ -184,11 +190,11 @@ export const LoginPage: React.FC = () => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '2rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
                 <CheckCircle2 size={15} style={{ color: 'var(--status-good-solid)', flexShrink: 0 }} />
-                <span>Zero-assumption OCR text & bounding box extraction</span>
+                <span>Zero-assumption OCR text & spatial bounding box extraction</span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
                 <ShieldCheck size={15} style={{ color: 'var(--brand-primary)', flexShrink: 0 }} />
-                <span>Tenant-isolated encrypted storage & audit trail</span>
+                <span>Tenant-isolated secure artwork storage & inspection history</span>
               </div>
             </div>
           </div>
@@ -200,7 +206,7 @@ export const LoginPage: React.FC = () => {
                 Sign In
               </h3>
               <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-                Enter your work credentials to access your company workspace.
+                Enter your credentials to access your packaging workspace.
               </p>
             </div>
 
@@ -228,7 +234,7 @@ export const LoginPage: React.FC = () => {
             <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--text-primary)' }}>
-                  Work Email
+                  Email
                 </label>
                 <input
                   type="email"
@@ -246,19 +252,34 @@ export const LoginPage: React.FC = () => {
                   <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)' }}>
                     Password
                   </label>
-                  <a href="#forgot" style={{ fontSize: '0.75rem', color: 'var(--brand-primary)', fontWeight: 600 }}>
-                    Forgot password?
-                  </a>
                 </div>
-                <input
-                  type="password"
-                  placeholder="••••••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  disabled={loading}
-                  required
-                  style={{ width: '100%', boxSizing: 'border-box' }}
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="••••••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    required
+                    style={{ width: '100%', boxSizing: 'border-box', paddingRight: '2.5rem' }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    style={{
+                      position: 'absolute',
+                      right: '10px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: 'var(--text-muted)',
+                      padding: '2px',
+                    }}
+                    tabIndex={-1}
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
 
               <button
@@ -275,7 +296,7 @@ export const LoginPage: React.FC = () => {
                 ) : (
                   <>
                     <LogIn size={18} />
-                    <span>Sign In to Workspace</span>
+                    <span>Sign In</span>
                     <ArrowRight size={16} />
                   </>
                 )}
@@ -283,7 +304,7 @@ export const LoginPage: React.FC = () => {
             </form>
 
             <div style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-              Don't have a workspace account yet?{' '}
+              Don't have an account yet?{' '}
               <Link to={`/signup?redirect=${encodeURIComponent(redirectPath)}`} style={{ color: 'var(--brand-primary)', fontWeight: 700 }}>
                 Create Account
               </Link>
@@ -294,7 +315,7 @@ export const LoginPage: React.FC = () => {
 
       {/* Footer */}
       <footer style={{ padding: '1.25rem 2rem', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-        © 2026 NIYAMURA. Where Packaging Meets Compliance. All rights reserved.
+        © 2026 NIYAMURA. Packaging Compliance Before Print. All rights reserved.
       </footer>
     </div>
   );

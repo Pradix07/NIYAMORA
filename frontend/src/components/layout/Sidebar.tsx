@@ -25,11 +25,19 @@ interface SidebarProps {
   onItemClick?: () => void;
 }
 
+interface NavItem {
+  label: string;
+  path: string;
+  icon: React.ComponentType<{ size?: number; style?: React.CSSProperties }>;
+  highlight?: boolean;
+  badge?: string;
+}
+
 export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   const location = useLocation();
   const [settingsExpanded, setSettingsExpanded] = useState(() => location.pathname.startsWith('/settings'));
 
-  const navItems = [
+  const navItems: NavItem[] = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { label: 'Products', path: '/products', icon: Boxes },
     { label: 'New Check', path: '/new-check', icon: PlusCircle, highlight: true },
@@ -40,10 +48,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
     { label: 'Compare', path: '/compare', icon: GitCompare },
     { label: 'Regression', path: '/regression', icon: TrendingDown },
     { label: 'Simulator', path: '/simulator', icon: Sliders },
-    { label: 'Review Center', path: '/review', icon: CheckSquare, badge: '3' },
+    { label: 'Review Center', path: '/review', icon: CheckSquare },
     { label: 'Reports', path: '/reports', icon: FileSpreadsheet },
     { label: 'Label Passport', path: '/passport', icon: FileCheck2 },
     { label: 'Rule Library', path: '/rules', icon: BookOpen },
+    { label: 'Resources', path: '/resources', icon: BookOpen },
   ];
 
   const settingsSubItems = [

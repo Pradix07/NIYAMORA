@@ -16,7 +16,7 @@ import {
   Loader2,
   Package,
   Sliders,
-  Sparkles,
+  Boxes
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
@@ -72,17 +72,19 @@ export const DashboardPage: React.FC = () => {
   const reviewCount = inspections.reduce((acc, i) => acc + (i.findings_summary?.review_count || 0), 0);
 
   const getGreeting = () => {
+    if (!user) return 'Welcome to NIYAMURA';
     const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
+    const timeGreeting = hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
+    return `${timeGreeting}, ${user.name.split(' ')[0]}`;
   };
+
+  const isNewWorkspace = !loading && products.length === 0 && totalInspections === 0;
 
   return (
     <AppShell breadcrumbs={[{ label: 'Dashboard' }]}>
       <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         
-        {/* Top Greeting Banner with 3D Packaging Vignette */}
+        {/* Top Greeting Banner */}
         <div
           className="glass-panel"
           style={{
@@ -97,20 +99,19 @@ export const DashboardPage: React.FC = () => {
         >
           <div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <span className="badge badge-sample" style={{ fontSize: '0.7rem' }}>
-                <Sparkles size={11} /> Workspace: {user?.company || 'Enterprise'}
-              </span>
-              <span className="badge badge-good" style={{ fontSize: '0.7rem' }}>
-                Deterministic Engine Active
+              <span className="badge badge-neutral" style={{ fontSize: '0.75rem', fontWeight: 600 }}>
+                {user?.company || 'Packaging Workspace'}
               </span>
             </div>
 
             <h1 style={{ fontSize: '2.1rem', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: '0.5rem' }}>
-              {getGreeting()}, {user ? user.name.split(' ')[0] : 'Compliance Lead'}
+              {isNewWorkspace ? 'Welcome to NIYAMURA' : getGreeting()}
             </h1>
 
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: 1.5, maxWidth: '560px', marginBottom: '1.5rem' }}>
-              Screen packaging artwork against Legal Metrology PCR 2011 and FSSAI 2020 rules before plate making. Currently monitoring <strong>{products.length} registered products</strong> across <strong>{totalInspections} audits</strong>.
+              {isNewWorkspace
+                ? 'Start your first packaging compliance check to begin building your workspace.'
+                : `Screen packaging artwork against Legal Metrology PCR 2011 and FSSAI 2020 rules before plate making. Currently monitoring ${products.length} registered products across ${totalInspections} audits.`}
             </p>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', flexWrap: 'wrap' }}>
@@ -120,7 +121,7 @@ export const DashboardPage: React.FC = () => {
                 style={{ gap: '0.5rem' }}
               >
                 <PlusCircle size={18} />
-                <span>New Packaging Check</span>
+                <span>Start a Check</span>
               </button>
 
               <button
@@ -148,7 +149,7 @@ export const DashboardPage: React.FC = () => {
                 border: '1px solid var(--glass-border)',
               }}
             >
-              <img src={pouch3D} alt="Stand-Up Pouch Mockup" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              <img src={pouch3D} alt="Packaging Artwork Inspection" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               <div
                 style={{
                   position: 'absolute',
@@ -160,7 +161,7 @@ export const DashboardPage: React.FC = () => {
                 }}
               >
                 <div>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#FFF' }}>Live Inspection Engine</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#FFF' }}>Pre-Print Compliance Screening</span>
                   <p style={{ fontSize: '0.6875rem', color: 'rgba(255,255,255,0.75)' }}>Legal Metrology & FSSAI Declarations</p>
                 </div>
               </div>
@@ -178,78 +179,47 @@ export const DashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* Attention Area: "What needs your attention?" */}
+        {/* Workspace Summary Cards */}
         <div>
           <div style={{ marginBottom: '1rem' }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.02em' }}>What needs your attention?</h2>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.02em' }}>Workspace Overview</h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Key statutory findings, review items, and verified audit counts.</p>
           </div>
 
-          <div className="grid-3" style={{ gap: '1.25rem' }}>
+          <div className="grid-4" style={{ gap: '1.25rem' }}>
+            {/* Products Card */}
             <div 
               className="glass-card"
               style={{
                 padding: '1.5rem',
-                borderLeft: '4px solid var(--status-issue-solid)',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
                 cursor: 'pointer',
               }}
-              onClick={() => navigate('/workbench')}
+              onClick={() => navigate('/products')}
             >
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--status-issue-text)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Statutory Issues
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Products
                   </span>
-                  <AlertTriangle size={17} style={{ color: 'var(--status-issue-solid)' }} />
+                  <Boxes size={17} style={{ color: 'var(--brand-primary)' }} />
                 </div>
-                <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--status-issue-text)', fontFamily: 'var(--font-heading)' }}>
-                  {loading ? '...' : issueCount}
+                <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
+                  {loading ? '...' : products.length}
                 </div>
                 <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.4 }}>
-                  Findings requiring dieline re-formatting or numeral height adjustments.
+                  Registered packaging SKUs in workspace.
                 </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8125rem', color: 'var(--brand-primary)', fontWeight: 700, marginTop: '1.25rem' }}>
-                <span>Inspect in Workbench</span>
+                <span>View Products</span>
                 <ChevronRight size={14} />
               </div>
             </div>
 
-            <div 
-              className="glass-card"
-              style={{
-                padding: '1.5rem',
-                borderLeft: '4px solid var(--status-review-solid)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-              }}
-              onClick={() => navigate('/review')}
-            >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--status-review-text)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Review Queue
-                  </span>
-                  <Clock size={17} style={{ color: 'var(--status-review-solid)' }} />
-                </div>
-                <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--status-review-text)', fontFamily: 'var(--font-heading)' }}>
-                  {loading ? '...' : reviewCount}
-                </div>
-                <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.4 }}>
-                  Declarations flagged for human specialist verification or contrast check.
-                </p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8125rem', color: 'var(--brand-primary)', fontWeight: 700, marginTop: '1.25rem' }}>
-                <span>Open Review Center</span>
-                <ChevronRight size={14} />
-              </div>
-            </div>
-
+            {/* Completed Audits */}
             <div 
               className="glass-card"
               style={{
@@ -273,11 +243,77 @@ export const DashboardPage: React.FC = () => {
                   {loading ? '...' : completedInspections}
                 </div>
                 <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.4 }}>
-                  Artworks evaluated deterministically across registered SKUs.
+                  Artworks evaluated deterministically.
                 </p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8125rem', color: 'var(--brand-primary)', fontWeight: 700, marginTop: '1.25rem' }}>
-                <span>View Product Catalog</span>
+                <span>View History</span>
+                <ChevronRight size={14} />
+              </div>
+            </div>
+
+            {/* Statutory Issues */}
+            <div 
+              className="glass-card"
+              style={{
+                padding: '1.5rem',
+                borderLeft: '4px solid var(--status-issue-solid)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+              }}
+              onClick={() => navigate('/workbench')}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--status-issue-text)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Statutory Issues
+                  </span>
+                  <AlertTriangle size={17} style={{ color: 'var(--status-issue-solid)' }} />
+                </div>
+                <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--status-issue-text)', fontFamily: 'var(--font-heading)' }}>
+                  {loading ? '...' : issueCount}
+                </div>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.4 }}>
+                  Non-compliant values requiring re-formatting.
+                </p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8125rem', color: 'var(--brand-primary)', fontWeight: 700, marginTop: '1.25rem' }}>
+                <span>Inspect Issues</span>
+                <ChevronRight size={14} />
+              </div>
+            </div>
+
+            {/* Review Queue */}
+            <div 
+              className="glass-card"
+              style={{
+                padding: '1.5rem',
+                borderLeft: '4px solid var(--status-review-solid)',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+              }}
+              onClick={() => navigate('/review')}
+            >
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--status-review-text)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Review Queue
+                  </span>
+                  <Clock size={17} style={{ color: 'var(--status-review-solid)' }} />
+                </div>
+                <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--status-review-text)', fontFamily: 'var(--font-heading)' }}>
+                  {loading ? '...' : reviewCount}
+                </div>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.4 }}>
+                  Items flagged for specialist confirmation.
+                </p>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8125rem', color: 'var(--brand-primary)', fontWeight: 700, marginTop: '1.25rem' }}>
+                <span>Review Center</span>
                 <ChevronRight size={14} />
               </div>
             </div>
@@ -291,10 +327,12 @@ export const DashboardPage: React.FC = () => {
               <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Registered Packaging Products</h2>
               <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Select a product SKU to view versions, dielines, and inspection history.</p>
             </div>
-            <Link to="/products" className="btn btn-secondary btn-sm" style={{ gap: '0.25rem' }}>
-              <span>View All ({products.length})</span>
-              <ArrowRight size={14} />
-            </Link>
+            {products.length > 0 && (
+              <Link to="/products" className="btn btn-secondary btn-sm" style={{ gap: '0.25rem' }}>
+                <span>View All ({products.length})</span>
+                <ArrowRight size={14} />
+              </Link>
+            )}
           </div>
 
           {loading ? (
@@ -303,15 +341,15 @@ export const DashboardPage: React.FC = () => {
               <p style={{ fontWeight: 600 }}>Loading company products and inspections...</p>
             </div>
           ) : products.length === 0 ? (
-            <div className="card" style={{ padding: '3.5rem 2rem', textAlign: 'center' }}>
-              <Package size={40} style={{ color: 'var(--text-muted)', margin: '0 auto 0.75rem auto' }} />
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>No packaging products registered yet</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '0.25rem', maxWidth: '420px', margin: '0.25rem auto 1.5rem auto' }}>
-                Register your first packaging SKU to run pre-press compliance checks, suggested designs, and regression verification.
+            <div className="card" style={{ padding: '3.5rem 2rem', textAlign: 'center', backgroundColor: 'var(--bg-surface)' }}>
+              <Package size={44} style={{ color: 'var(--brand-primary)', margin: '0 auto 1rem auto', opacity: 0.8 }} />
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '0.5rem' }}>No packaging products registered yet</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', maxWidth: '440px', margin: '0 auto 1.5rem auto', lineHeight: 1.5 }}>
+                Start your first packaging compliance check to begin building your workspace.
               </p>
-              <button onClick={() => navigate('/new-check')} className="btn btn-primary" style={{ gap: '0.4rem' }}>
+              <button onClick={() => navigate('/new-check')} className="btn btn-primary" style={{ gap: '0.4rem', margin: '0 auto' }}>
                 <PlusCircle size={16} />
-                <span>Start New Check</span>
+                <span>Start a Check</span>
               </button>
             </div>
           ) : (
@@ -327,3 +365,5 @@ export const DashboardPage: React.FC = () => {
     </AppShell>
   );
 };
+
+export default DashboardPage;

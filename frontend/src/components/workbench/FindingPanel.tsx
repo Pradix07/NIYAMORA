@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { ApiEvaluation, ApiFinding, ApiExtractedField } from '../../services/api';
-import { Sparkles, BookOpen, AlertCircle, CheckCircle2, XCircle, HelpCircle, MinusCircle } from 'lucide-react';
+import { Wand2, BookOpen, AlertCircle, CheckCircle2, XCircle, HelpCircle, MinusCircle } from 'lucide-react';
 
 interface FindingPanelProps {
   evaluations?: ApiEvaluation[];
@@ -109,7 +109,7 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
               className="btn btn-primary btn-sm"
               style={{ gap: '0.35rem', boxShadow: '0 2px 8px rgba(79, 70, 229, 0.3)' }}
             >
-              <Sparkles size={14} />
+              <Wand2 size={14} />
               <span>Improve Design</span>
             </button>
           )}
@@ -182,6 +182,16 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
         {activeTab === 'RULES' ? (
           /* Deterministic Rule Evaluations List */
           <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {hasEvaluations && issueCount === 0 && reviewCount === 0 && (
+              <div style={{ margin: '0.875rem 1.25rem', padding: '1rem', backgroundColor: 'var(--status-good-bg)', border: '1px solid var(--status-good-border)', borderRadius: 'var(--radius-md)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: 'var(--status-good-text)', fontSize: '0.875rem' }}>
+                  <CheckCircle2 size={17} /> COMPLIANCE VERIFICATION COMPLETE
+                </div>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--text-primary)', marginTop: '4px', lineHeight: 1.4 }}>
+                  No unresolved issues found. {passCount} of {evaluations.length} evaluated checks passed. Artwork complies with evaluated pre-print rules.
+                </p>
+              </div>
+            )}
             {filteredEvaluations.map((ev) => {
               const isSelected = ev.id === selectedFindingId || ev.rule_code === selectedFindingId;
               return (

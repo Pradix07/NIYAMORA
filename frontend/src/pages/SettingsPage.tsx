@@ -19,9 +19,9 @@ export const SettingsPage: React.FC = () => {
   const activeTab = tab || 'general';
 
   const [savedSuccess, setSavedSuccess] = useState(false);
-  const [companyName, setCompanyName] = useState(user?.company || 'Aura Packaging Labs');
-  const [userName, setUserName] = useState(user?.name || 'Devin Vance');
-  const [userEmail, setUserEmail] = useState(user?.email || 'devin@aurapackaging.com');
+  const [companyName, setCompanyName] = useState(user?.company || '');
+  const [userName, setUserName] = useState(user?.name || '');
+  const [userEmail, setUserEmail] = useState(user?.email || '');
 
   const handleSaveGeneral = (e: React.FormEvent) => {
     e.preventDefault();

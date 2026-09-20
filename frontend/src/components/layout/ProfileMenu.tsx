@@ -30,8 +30,8 @@ export const ProfileMenu: React.FC = () => {
   if (!user) {
     return (
       <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-        <Link to="/login" className="btn btn-ghost btn-sm">Log In</Link>
-        <Link to="/signup" className="btn btn-primary btn-sm">Sign Up</Link>
+        <Link to="/login" className="btn btn-ghost btn-sm">Sign In</Link>
+        <Link to="/signup" className="btn btn-primary btn-sm">Create Account</Link>
       </div>
     );
   }
