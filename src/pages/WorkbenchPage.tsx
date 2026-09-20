@@ -4,16 +4,17 @@ import { AppShell } from '../components/layout/AppShell';
 import { ArtworkViewer } from '../components/workbench/ArtworkViewer';
 import type { CustomEvidenceBox } from '../components/workbench/ArtworkViewer';
 import { FindingPanel } from '../components/workbench/FindingPanel';
-import { SAMPLE_FINDINGS, SAMPLE_PRODUCTS } from '../data/mockData';
 import { api } from '../services/api';
 import type { ApiInspection, ApiEvaluation, ApiFinding, ApiRiskMapResponse, ApiRiskMapItem } from '../services/api';
-import { Sparkles, FileText, CheckCircle2, AlertTriangle, ShieldCheck, GitCompare, Map, TrendingDown } from 'lucide-react';
+import { Sparkles, FileText, CheckCircle2, AlertTriangle, ShieldCheck, GitCompare, Map, TrendingDown, Loader2, AlertCircle, Plus, RefreshCw } from 'lucide-react';
 
 export const WorkbenchPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const inspectionId = searchParams.get('inspectionId');
 
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [inspection, setInspection] = useState<ApiInspection | null>(null);
   const [evaluations, setEvaluations] = useState<ApiEvaluation[]>([]);
   const [findings, setFindings] = useState<ApiFinding[]>([]);
@@ -21,37 +22,50 @@ export const WorkbenchPage: React.FC = () => {
   const [riskMap, setRiskMap] = useState<ApiRiskMapResponse | null>(null);
   const [showRiskMap, setShowRiskMap] = useState<boolean>(false);
 
-  const fallbackProduct = SAMPLE_PRODUCTS[0];
-  const fallbackFindings = SAMPLE_FINDINGS;
+  const loadInspectionData = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      let targetInspectionId = inspectionId;
+      if (!targetInspectionId) {
+        const inspections = await api.getInspections();
+        if (inspections.length > 0) {
+          targetInspectionId = inspections[0].id;
+        }
+      }
+
+      if (targetInspectionId) {
+        const inspData = await api.getInspection(targetInspectionId);
+        setInspection(inspData);
+
+        const [evals, fnds, risk] = await Promise.all([
+          api.getEvaluations(targetInspectionId).catch(() => []),
+          api.getFindings(targetInspectionId).catch(() => []),
+          api.getRiskMap(inspData.product_id, targetInspectionId).catch(() => null),
+        ]);
+
+        setEvaluations(evals);
+        setFindings(fnds);
+        if (risk) setRiskMap(risk);
+        if (evals.length > 0) {
+          setSelectedFindingId(evals[0].id);
+        } else if (fnds.length > 0) {
+          setSelectedFindingId(fnds[0].id);
+        }
+      } else {
+        // No inspections found in the system
+        setInspection(null);
+      }
+    } catch (err: any) {
+      console.error('Failed to load inspection data:', err);
+      setError(err.message || 'Failed to load inspection details from server.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (inspectionId) {
-      api.getInspection(inspectionId)
-        .then((data) => {
-          setInspection(data);
-          return Promise.all([
-            api.getEvaluations(inspectionId).catch(() => []),
-            api.getFindings(inspectionId).catch(() => []),
-            api.getRiskMap(data.product_id, inspectionId).catch(() => null),
-          ]);
-        })
-        .then(([evals, fnds, risk]) => {
-          setEvaluations(evals);
-          setFindings(fnds);
-          if (risk) setRiskMap(risk);
-          if (evals.length > 0) {
-            setSelectedFindingId(evals[0].id);
-          } else if (fnds.length > 0) {
-            setSelectedFindingId(fnds[0].id);
-          }
-        })
-        .catch((err) => {
-          console.warn('Failed to load inspection from API, falling back to mock dataset:', err);
-          setSelectedFindingId(fallbackFindings[0].id);
-        });
-    } else {
-      setSelectedFindingId(fallbackFindings[0].id);
-    }
+    loadInspectionData();
   }, [inspectionId]);
 
   // Build custom boxes from live extraction & evaluation evidence
@@ -90,13 +104,65 @@ export const WorkbenchPage: React.FC = () => {
       }));
   }
 
-  const productName = inspection?.product_name || fallbackProduct.name;
-  const brandName = inspection?.brand || fallbackProduct.brand;
-  const versionLabel = inspection?.version_label || fallbackProduct.latestVersion;
-  const previewUrl = inspection?.preview_url ? api.getFileUrl(inspection.preview_url) : null;
-  const complianceVerdict = inspection?.compliance_verdict;
-  const productId = inspection?.product_id || fallbackProduct.id;
-  const versionId = inspection?.artwork_version_id;
+  if (loading) {
+    return (
+      <AppShell breadcrumbs={[{ label: 'Products', path: '/products' }, { label: 'Workbench' }]}>
+        <div style={{ maxWidth: '1000px', margin: '4rem auto', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1rem' }}>
+          <Loader2 size={32} className="animate-spin" style={{ color: 'var(--brand-primary)' }} />
+          <h3 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Loading Inspection Results...</h3>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Retrieving bounding boxes, OCR extractions, and statutory evaluations.</p>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (error) {
+    return (
+      <AppShell breadcrumbs={[{ label: 'Products', path: '/products' }, { label: 'Workbench' }]}>
+        <div style={{ maxWidth: '800px', margin: '3rem auto' }}>
+          <div className="card" style={{ padding: '2rem', textAlign: 'center', borderLeft: '4px solid var(--status-issue-solid)' }}>
+            <AlertCircle size={36} style={{ color: 'var(--status-issue-solid)', margin: '0 auto 1rem' }} />
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, marginBottom: '0.5rem' }}>Unable to Load Inspection</h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>{error}</p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
+              <button onClick={() => loadInspectionData()} className="btn btn-primary btn-sm" style={{ gap: '0.35rem' }}>
+                <RefreshCw size={14} /> Retry
+              </button>
+              <button onClick={() => navigate('/products')} className="btn btn-secondary btn-sm">
+                View Products
+              </button>
+            </div>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  if (!inspection) {
+    return (
+      <AppShell breadcrumbs={[{ label: 'Products', path: '/products' }, { label: 'Workbench' }]}>
+        <div style={{ maxWidth: '800px', margin: '3rem auto' }}>
+          <div className="card" style={{ padding: '3rem 2rem', textAlign: 'center' }}>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, marginBottom: '0.5rem' }}>No Active Packaging Inspection Found</h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
+              Upload your pre-press artwork dieline or packshot to run deterministic Legal Metrology and FSSAI checks.
+            </p>
+            <button onClick={() => navigate('/new-check')} className="btn btn-primary" style={{ gap: '0.4rem', margin: '0 auto' }}>
+              <Plus size={16} /> Run New Packaging Check
+            </button>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  const productName = inspection.product_name || 'Packaging Artwork';
+  const brandName = inspection.brand || 'Brand';
+  const versionLabel = inspection.version_label || 'V01';
+  const previewUrl = inspection.preview_url ? api.getFileUrl(inspection.preview_url) : null;
+  const complianceVerdict = inspection.compliance_verdict;
+  const productId = inspection.product_id;
+  const versionId = inspection.artwork_version_id;
 
   return (
     <AppShell breadcrumbs={[{ label: 'Products', path: '/products' }, { label: productName, path: `/products/${productId}` }, { label: 'Results & Workbench' }]}>
@@ -202,7 +268,7 @@ export const WorkbenchPage: React.FC = () => {
         >
           {/* Left: Interactive Artwork Canvas with Evidence Bounding Boxes */}
           <ArtworkViewer
-            findings={inspection ? undefined : fallbackFindings}
+            findings={undefined}
             customBoxes={customBoxes}
             selectedFindingId={selectedFindingId}
             onSelectFinding={(id) => setSelectedFindingId(id)}

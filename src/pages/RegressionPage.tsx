@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { api } from '../services/api';
 import type { ApiRegressionResult, ApiProduct, ApiRegressionItem } from '../services/api';
-import { SAMPLE_REGRESSION_DATA, SAMPLE_PRODUCTS } from '../data/mockData';
 import { 
   TrendingDown, 
   CheckCircle2, 
@@ -20,9 +19,6 @@ export const RegressionPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [product, setProduct] = useState<ApiProduct | null>(null);
   const [regression, setRegression] = useState<ApiRegressionResult | null>(null);
-
-  const fallbackProduct = SAMPLE_PRODUCTS[0];
-  const fallbackData = SAMPLE_REGRESSION_DATA;
 
   useEffect(() => {
     async function loadData() {
@@ -58,41 +54,10 @@ export const RegressionPage: React.FC = () => {
     loadData();
   }, [queryProductId]);
 
-  const activeRegression = regression || {
-    product_id: fallbackProduct.id,
-    product_name: fallbackProduct.name,
-    comparison_title: fallbackData.comparisonTitle,
-    version_a_label: 'V01',
-    version_b_label: 'V02',
-    regression_detected: fallbackData.newIssuesIntroduced.length > 0,
-    regression_verdict: fallbackData.newIssuesIntroduced.length > 0 ? ('REGRESSION_DETECTED' as const) : ('IMPROVED' as const),
-    fixed_issues: fallbackData.fixedIssues.map((f) => ({
-      rule_code: f.code,
-      field: f.field,
-      description: f.description,
-      old_status: 'ISSUE',
-      new_status: 'PASS',
-      severity: 'CRITICAL',
-    })),
-    new_issues_introduced: fallbackData.newIssuesIntroduced.map((n) => ({
-      rule_code: n.code,
-      field: n.field,
-      description: n.description,
-      old_status: 'PASS',
-      new_status: 'ISSUE',
-      severity: 'CRITICAL',
-    })),
-    improved_issues: [],
-    unchanged_issues: [],
-    review_changed_issues: [],
-    version_a_summary: { PASS: 4, ISSUE: 2, REVIEW: 1 },
-    version_b_summary: { PASS: 5, ISSUE: 1, REVIEW: 1 },
-  };
+  const productName = product?.name || 'Packaging Artwork';
+  const prodId = product?.id || '';
 
-  const productName = product?.name || fallbackProduct.name;
-  const prodId = product?.id || fallbackProduct.id;
-
-  if (loading && !regression && !product) {
+  if (loading) {
     return (
       <AppShell breadcrumbs={[{ label: 'Products', path: '/products' }, { label: 'Compliance Regression' }]}>
         <div style={{ maxWidth: '1200px', margin: '4rem auto', textAlign: 'center' }}>
@@ -101,6 +66,36 @@ export const RegressionPage: React.FC = () => {
       </AppShell>
     );
   }
+
+  if (!regression) {
+    return (
+      <AppShell breadcrumbs={[{ label: 'Products', path: '/products' }, { label: productName, path: prodId ? `/products/${prodId}` : '/products' }, { label: 'Compliance Regression' }]}>
+        <div style={{ maxWidth: '900px', margin: '3rem auto' }}>
+          <div className="card" style={{ padding: '3rem 2rem', textAlign: 'center' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--brand-primary-light)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+              <TrendingDown size={24} />
+            </div>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, marginBottom: '0.5rem' }}>Two Artwork Revisions Required for Regression Analysis</h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem', maxWidth: '600px', margin: '0 auto 1.5rem' }}>
+              Regression analysis verifies that pre-press changes in revision V02 resolved statutory defects without accidentally re-introducing new non-compliance issues.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
+              {prodId && (
+                <button onClick={() => navigate(`/improve?productId=${prodId}`)} className="btn btn-primary" style={{ gap: '0.4rem' }}>
+                  <Sparkles size={16} /> Open Improve Design (Generate V02)
+                </button>
+              )}
+              <button onClick={() => navigate('/new-check')} className="btn btn-secondary">
+                Upload New Artwork
+              </button>
+            </div>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  const activeRegression = regression;
 
   return (
     <AppShell breadcrumbs={[{ label: 'Products', path: '/products' }, { label: productName, path: `/products/${prodId}` }, { label: 'Compliance Regression' }]}>

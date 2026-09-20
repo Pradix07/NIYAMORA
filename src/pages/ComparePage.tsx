@@ -3,7 +3,6 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { api } from '../services/api';
 import type { ApiComparisonResult, ApiProduct } from '../services/api';
-import { SAMPLE_COMPARISON, SAMPLE_PRODUCTS } from '../data/mockData';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { ArrowRight, Sparkles } from 'lucide-react';
 
@@ -16,9 +15,6 @@ export const ComparePage: React.FC = () => {
   const [product, setProduct] = useState<ApiProduct | null>(null);
   const [comparison, setComparison] = useState<ApiComparisonResult | null>(null);
   const [filterType, setFilterType] = useState<string>('ALL');
-
-  const fallbackProduct = SAMPLE_PRODUCTS[0];
-  const fallbackComparison = SAMPLE_COMPARISON;
 
   useEffect(() => {
     async function loadData() {
@@ -54,38 +50,10 @@ export const ComparePage: React.FC = () => {
     loadData();
   }, [queryProductId]);
 
-  const activeComparison = comparison || {
-    product_id: fallbackProduct.id,
-    product_name: fallbackProduct.name,
-    version_a_id: 'v1',
-    version_b_id: 'v2',
-    version_a_label: fallbackComparison.versionA,
-    version_b_label: fallbackComparison.versionB,
-    fixed_count: fallbackComparison.fixedCount,
-    improved_count: fallbackComparison.improvedCount,
-    unchanged_count: fallbackComparison.unchangedCount,
-    new_issue_count: fallbackComparison.newIssueCount,
-    review_count: 0,
-    details: fallbackComparison.details.map((d) => ({
-      category: d.category,
-      field: d.field,
-      status_a: d.statusA,
-      status_b: d.statusB,
-      change_type: d.changeType,
-      detail: d.detail,
-      rule_code: 'LMPC-RULE',
-    })),
-  };
+  const productName = product?.name || 'Packaging Artwork';
+  const prodId = product?.id || '';
 
-  const filteredDetails = activeComparison.details.filter((d) => {
-    if (filterType === 'ALL') return true;
-    return d.change_type.toLowerCase() === filterType.toLowerCase();
-  });
-
-  const productName = product?.name || fallbackProduct.name;
-  const prodId = product?.id || fallbackProduct.id;
-
-  if (loading && !comparison && !product) {
+  if (loading) {
     return (
       <AppShell breadcrumbs={[{ label: 'Products', path: '/products' }, { label: 'Compare' }]}>
         <div style={{ maxWidth: '1400px', margin: '4rem auto', textAlign: 'center' }}>
@@ -94,6 +62,41 @@ export const ComparePage: React.FC = () => {
       </AppShell>
     );
   }
+
+  if (!comparison) {
+    return (
+      <AppShell breadcrumbs={[{ label: 'Products', path: '/products' }, { label: productName, path: prodId ? `/products/${prodId}` : '/products' }, { label: 'Compare' }]}>
+        <div style={{ maxWidth: '900px', margin: '3rem auto' }}>
+          <div className="card" style={{ padding: '3rem 2rem', textAlign: 'center' }}>
+            <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--brand-primary-light)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
+              <Sparkles size={24} />
+            </div>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, marginBottom: '0.5rem' }}>Two Artwork Versions Required for Diff</h2>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem', maxWidth: '600px', margin: '0 auto 1.5rem' }}>
+              Side-by-side compliance comparison computes statutory deltas between a baseline version (V01) and an improved revision (V02). Generate an improvement plan or upload a second artwork version.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
+              {prodId && (
+                <button onClick={() => navigate(`/improve?productId=${prodId}`)} className="btn btn-primary" style={{ gap: '0.4rem' }}>
+                  <Sparkles size={16} /> Open Improve Design (Generate V02)
+                </button>
+              )}
+              <button onClick={() => navigate('/new-check')} className="btn btn-secondary">
+                Upload New Artwork
+              </button>
+            </div>
+          </div>
+        </div>
+      </AppShell>
+    );
+  }
+
+  const activeComparison = comparison;
+
+  const filteredDetails = activeComparison.details.filter((d) => {
+    if (filterType === 'ALL') return true;
+    return d.change_type.toLowerCase() === filterType.toLowerCase();
+  });
 
   return (
     <AppShell breadcrumbs={[{ label: 'Products', path: '/products' }, { label: productName, path: `/products/${prodId}` }, { label: 'Compare' }]}>

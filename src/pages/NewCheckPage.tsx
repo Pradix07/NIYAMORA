@@ -75,12 +75,7 @@ export const NewCheckPage: React.FC = () => {
       navigate(`/processing?inspectionId=${response.inspection_id}`);
     } catch (err: any) {
       console.error('Upload failed:', err);
-      // Fallback for offline mode or server startup
-      setErrorMessage(err.message || 'Failed to connect to backend server. Ensure backend is running.');
-      // Still allow navigation to processing after short delay if desired
-      setTimeout(() => {
-        navigate('/processing');
-      }, 1500);
+      setErrorMessage(err.message || 'Failed to upload artwork and initiate inspection. Please verify backend connection.');
     } finally {
       setIsSubmitting(false);
     }

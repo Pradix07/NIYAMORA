@@ -1,14 +1,15 @@
 import os
 import hashlib
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 import jwt
+from backend.app.core.config import settings
 
-# Configuration
-SECRET_KEY = os.getenv("JWT_SECRET_KEY", "niyamora_packaging_compliance_production_secret_key_2026_secure_32bytes")
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "1440")) # 24 hours
+
+def get_jwt_secret() -> str:
+    return settings.get_jwt_secret_key()
 
 def hash_password(password: str) -> str:
     """
@@ -44,7 +45,6 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
                 iterations
             )
             return secrets.compare_digest(derived.hex(), stored_hash)
-        # Fallback for plain bcrypt / legacy if present
         elif hashed_password.startswith("$2b$") or hashed_password.startswith("$2a$"):
             from passlib.context import CryptContext
             pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -55,15 +55,17 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def create_access_token(data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
     """
-    Generates a signed JWT access token.
+    Generates a signed JWT access token. Fails closed in production if secret is unconfigured.
     """
+    secret_key = get_jwt_secret()
     to_encode = data.copy()
+    now_utc = datetime.now(timezone.utc)
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = now_utc + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire, "iat": datetime.utcnow()})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+        expire = now_utc + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    to_encode.update({"exp": expire, "iat": now_utc})
+    encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=ALGORITHM)
     return encoded_jwt
 
 def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
@@ -71,7 +73,8 @@ def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
     Decodes and validates a JWT access token.
     """
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        secret_key = get_jwt_secret()
+        payload = jwt.decode(token, secret_key, algorithms=[ALGORITHM])
         return payload
     except (jwt.PyJWTError, Exception):
         return None

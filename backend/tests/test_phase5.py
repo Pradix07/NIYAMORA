@@ -401,3 +401,155 @@ def test_secure_file_access_boundary():
     # Non-existent version -> 404
     non_existent = client.get(f"/api/files/preview/{str(uuid.uuid4())}", headers={"Authorization": f"Bearer {token_a}"})
     assert non_existent.status_code == 404
+
+
+# ============================================================
+# PHASE 5 TEST 9: Role-Based Access Control (RBAC) Server-Side Enforcement
+# ============================================================
+def test_rbac_require_role_enforcement():
+    from backend.app.api.deps import require_role
+    from fastapi import Depends
+
+    # Define a temporary test endpoint in the FastAPI app to verify server-side role enforcement
+    @app.get("/api/test-rbac-admin")
+    def rbac_admin_only_route(user=Depends(require_role(["ADMIN"]))):
+        return {"status": "ok", "user": user.email}
+
+    # 1. Create standard company user
+    res_user = client.post("/api/auth/signup", json={
+        "name": "Standard Operator",
+        "email": "operator@standard.com",
+        "password": "Password123!",
+        "company_name": "Standard Co",
+        "role": "COMPANY_USER"
+    })
+    token_user = res_user.json()["access_token"]
+
+    # 2. Create admin user
+    res_admin = client.post("/api/auth/signup", json={
+        "name": "Super Admin",
+        "email": "admin@standard.com",
+        "password": "Password123!",
+        "company_name": "Standard Co",
+        "role": "ADMIN"
+    })
+    token_admin = res_admin.json()["access_token"]
+
+    # 3. Standard user attempts admin route -> 403 Forbidden
+    res_forbidden = client.get("/api/test-rbac-admin", headers={"Authorization": f"Bearer {token_user}"})
+    assert res_forbidden.status_code == 403
+    assert "Forbidden" in res_forbidden.json()["detail"]
+
+    # 4. Admin user accesses admin route -> 200 OK
+    res_allowed = client.get("/api/test-rbac-admin", headers={"Authorization": f"Bearer {token_admin}"})
+    assert res_allowed.status_code == 200
+    assert res_allowed.json()["status"] == "ok"
+
+
+# ============================================================
+# PHASE 5 TEST 10: Cross-Company Report & PDF Download Isolation
+# ============================================================
+def test_cross_company_report_pdf_download_isolation():
+    # User A (Company A)
+    res_a = client.post("/api/auth/signup", json={
+        "name": "User Alpha",
+        "email": "alpha_reports@companya.com",
+        "password": "PasswordA123!",
+        "company_name": "Alpha Reports Corp",
+        "role": "COMPANY_USER"
+    })
+    token_a = res_a.json()["access_token"]
+
+    # User B (Company B)
+    res_b = client.post("/api/auth/signup", json={
+        "name": "User Beta",
+        "email": "beta_reports@companyb.com",
+        "password": "PasswordB123!",
+        "company_name": "Beta Reports Corp",
+        "role": "COMPANY_USER"
+    })
+    token_b = res_b.json()["access_token"]
+
+    # User A uploads artwork
+    pdf_stream = create_synthetic_artwork_pdf(product_name="Alpha Crunch")
+    upload_res = client.post(
+        "/api/upload-check",
+        files={"file": ("alpha_report.pdf", pdf_stream.getvalue(), "application/pdf")},
+        data={"product_name": "Alpha Crunch", "brand": "Alpha", "category": "Food", "packaging_type": "BOX"},
+        headers={"Authorization": f"Bearer {token_a}"}
+    )
+    assert upload_res.status_code == 201
+    product_id = upload_res.json()["product_id"]
+    version_id = upload_res.json()["version_id"]
+
+    # User A generates suggested design improvement
+    suggest_res = client.post(
+        f"/api/products/{product_id}/artworks/{version_id}/suggest",
+        headers={"Authorization": f"Bearer {token_a}"}
+    )
+    assert suggest_res.status_code == 201
+    design_id = suggest_res.json()["id"]
+
+    # User A can download their report PDF
+    pdf_a = client.get(f"/api/suggested-designs/{design_id}/pdf", headers={"Authorization": f"Bearer {token_a}"})
+    assert pdf_a.status_code == 200
+    assert pdf_a.headers["content-type"] == "application/pdf"
+    assert len(pdf_a.content) > 100
+
+    # User B cannot download User A's report PDF -> 403 Forbidden
+    pdf_b = client.get(f"/api/suggested-designs/{design_id}/pdf", headers={"Authorization": f"Bearer {token_b}"})
+    assert pdf_b.status_code == 403
+
+    # User B cannot get User A's suggested design details -> 403 Forbidden
+    detail_b = client.get(f"/api/suggested-designs/{design_id}", headers={"Authorization": f"Bearer {token_b}"})
+    assert detail_b.status_code == 403
+
+
+# ============================================================
+# PHASE 5 TEST 11: Production JWT Secret Fail-Closed Hardening
+# ============================================================
+def test_production_jwt_secret_fail_closed(monkeypatch):
+    from backend.app.core.security import get_jwt_secret
+
+    # 1. In production with no JWT_SECRET_KEY -> Must fail fast
+    monkeypatch.setenv("ENVIRONMENT", "production")
+    monkeypatch.delenv("JWT_SECRET_KEY", raising=False)
+    with pytest.raises(RuntimeError) as exc_info:
+        get_jwt_secret()
+    assert "JWT_SECRET_KEY must be explicitly configured" in str(exc_info.value)
+
+    # 2. In production with development fallback secret -> Must fail fast
+    monkeypatch.setenv("JWT_SECRET_KEY", "dev_secret_key_niyamora")
+    with pytest.raises(RuntimeError) as exc_info:
+        get_jwt_secret()
+    assert "Development fallbacks are strictly prohibited" in str(exc_info.value)
+
+    # 3. In production with explicit cryptographic secret -> Must succeed
+    monkeypatch.setenv("JWT_SECRET_KEY", "prod_9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0")
+    secret = get_jwt_secret()
+    assert secret == "prod_9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0"
+
+
+# ============================================================
+# PHASE 5 TEST 12: Production Database Safety & PostgreSQL Enforcement
+# ============================================================
+def test_production_database_safety_postgresql_enforced():
+    from backend.app.db.session import validate_database_configuration
+
+    # 1. Production with SQLite -> Must fail fast
+    with pytest.raises(RuntimeError) as exc_info:
+        validate_database_configuration("sqlite:///./niyamora.db", "production")
+    assert "PostgreSQL DATABASE_URL" in str(exc_info.value)
+
+    # 2. Production with empty database URL -> Must fail fast
+    with pytest.raises(RuntimeError) as exc_info:
+        validate_database_configuration("", "production")
+    assert "PostgreSQL DATABASE_URL" in str(exc_info.value)
+
+    # 3. Production with valid PostgreSQL URL -> Must succeed
+    validate_database_configuration("postgresql://niyamora_admin:secure_pass@db.prod.internal:5432/niyamora_prod", "production")
+
+    # 4. Development with SQLite -> Permitted
+    validate_database_configuration("sqlite:///./niyamora_dev.db", "development")
+
+

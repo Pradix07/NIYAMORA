@@ -81,8 +81,9 @@ def get_suggested_design(
         raise HTTPException(status_code=404, detail="Suggested design not found.")
 
     product = db.query(Product).filter(Product.id == suggested.product_id).first()
-    if product:
-        verify_product_ownership(product, company)
+    if not product:
+        raise HTTPException(status_code=404, detail="Associated product not found.")
+    verify_product_ownership(product, company)
 
     source_preview = f"/api/files/preview/{suggested.source_artwork_version_id}"
     sug_preview = f"/api/files/preview/{suggested.suggested_artwork_version_id}" if suggested.suggested_artwork_version_id else None
@@ -153,8 +154,9 @@ def render_suggested_design(
         raise HTTPException(status_code=404, detail="Suggested design not found.")
 
     product = db.query(Product).filter(Product.id == suggested.product_id).first()
-    if product:
-        verify_product_ownership(product, company)
+    if not product:
+        raise HTTPException(status_code=404, detail="Associated product not found.")
+    verify_product_ownership(product, company)
 
     updated = SuggestedDesignRenderer.render_suggested_design(db, id)
     return get_suggested_design(id=updated.id, company=company, db=db)
@@ -170,8 +172,9 @@ def verify_suggested_design(
         raise HTTPException(status_code=404, detail="Suggested design not found.")
 
     product = db.query(Product).filter(Product.id == suggested.product_id).first()
-    if product:
-        verify_product_ownership(product, company)
+    if not product:
+        raise HTTPException(status_code=404, detail="Associated product not found.")
+    verify_product_ownership(product, company)
 
     updated = ValidationService.revalidate_suggested_design(db, id)
     return get_suggested_design(id=updated.id, company=company, db=db)
@@ -187,8 +190,9 @@ def download_suggested_design_pdf(
         raise HTTPException(status_code=404, detail="Suggested design not found.")
 
     product = db.query(Product).filter(Product.id == suggested.product_id).first()
-    if product:
-        verify_product_ownership(product, company)
+    if not product:
+        raise HTTPException(status_code=404, detail="Associated product not found.")
+    verify_product_ownership(product, company)
 
     pdf_bytes, filename = PDFReportGenerator.generate_suggested_design_pdf(db, id)
 
