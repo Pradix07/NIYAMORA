@@ -1,32 +1,69 @@
-# React + TypeScript + Vite
+# NIYAMORA
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+**Pre-print Packaging Statutory Compliance Verification Platform**
 
-Currently, two official plugins are available:
+NIYAMORA automates the verification of packaging artworks against Indian packaging standards (Legal Metrology PCR 2011 and FSSAI 2020) using deterministic versioned rule evaluation, computer vision, and OCR.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+---
 
-## React Compiler
+## Project Structure
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```text
+NIYAMORA/
+├── frontend/          # React 19 + TypeScript + Vite web application
+├── backend/           # FastAPI backend + deterministic compliance engine
+├── docs/              # Architectural and deployment documentation
+│   ├── ARCHITECTURE.md
+│   └── DEPLOYMENT.md
+├── .gitignore
+└── README.md
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+---
+
+## Quick Start
+
+### Backend
+
+```bash
+# Create and activate virtual environment (optional)
+# python -m venv .venv
+# .venv\Scripts\activate  (Windows) or source .venv/bin/activate (macOS/Linux)
+
+# Install dependencies
+pip install -r backend/requirements.txt
+
+# Run backend server
+uvicorn backend.app.main:app --reload --port 8000
+
+# Run backend tests
+python -m pytest -q backend/tests
+```
+
+### Frontend
+
+```bash
+cd frontend
+
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build production bundle
+npm run build
+
+# Run typecheck
+npm run typecheck
+
+# Run linter
+npm run lint
+```
+
+---
+
+## Documentation
+
+- [Architecture Guide](docs/ARCHITECTURE.md)
+- [Deployment Guide](docs/DEPLOYMENT.md)

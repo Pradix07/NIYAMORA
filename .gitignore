@@ -23,11 +23,15 @@ dist-ssr
 *.sln
 *.sw?
 
+# Environment files
+.env
+.env.*
+*.env
+
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
-*.env
 .pytest_cache/
 .coverage
 htmlcov/
