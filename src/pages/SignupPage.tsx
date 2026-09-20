@@ -1,43 +1,60 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { User, Mail, Building, Lock, Eye, EyeOff } from 'lucide-react';
+import { NiyamuraLogo } from '../components/common/NiyamuraLogo';
+import { ThemeSwitch } from '../components/common/ThemeSwitch';
+import bottle3D from '../assets/bottle_3d.jpg';
+import {
+  UserPlus,
+  AlertCircle,
+  Loader2,
+  CheckCircle2,
+  ShieldCheck,
+  ArrowRight,
+  Sparkles,
+} from 'lucide-react';
 
 export const SignupPage: React.FC = () => {
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectPath = searchParams.get('redirect') || '/dashboard';
+
+  const { signup } = useAuth();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [company, setCompany] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-
-  const { signup } = useAuth();
-  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    if (!name || !email || !company || !password) {
+      setError('Please fill out all required fields.');
+      return;
+    }
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match');
+      setError('Passwords do not match.');
       return;
     }
 
     if (password.length < 8) {
-      setError('Password must be at least 8 characters long');
+      setError('Password must be at least 8 characters long.');
       return;
     }
 
-    setLoading(true);
-    const res = await signup(name, email, company, password);
-    setLoading(false);
-
-    if (res.success) {
-      navigate('/dashboard');
-    } else {
-      setError(res.error || 'Failed to create account.');
+    try {
+      setLoading(true);
+      setError(null);
+      await signup(email, password, name, company);
+      navigate(redirectPath);
+    } catch (err: any) {
+      console.error('Signup error:', err);
+      setError(err.message || 'Failed to create account. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -47,176 +64,295 @@ export const SignupPage: React.FC = () => {
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '2rem 1.5rem',
         backgroundColor: 'var(--bg-app)',
       }}
     >
-      <div style={{ width: '100%', maxWidth: '460px' }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '1.75rem' }}>
-          <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1rem' }}>
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: 'var(--radius-md)',
-                background: 'linear-gradient(135deg, #4F46E5 0%, #3B82F6 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#FFFFFF',
-                boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)',
-              }}
-            >
-              <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
-                <path d="M8 22V10L16 18L24 10V22" stroke="#FFFFFF" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round"/>
-                <circle cx="24" cy="22" r="2.5" fill="#10B981"/>
-              </svg>
-            </div>
-            <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              NIYAMORA
-            </span>
+      {/* Top Header */}
+      <header
+        style={{
+          padding: '1.25rem 2rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid var(--border-default)',
+          backgroundColor: 'var(--topbar-bg)',
+          backdropFilter: 'blur(16px)',
+        }}
+      >
+        <NiyamuraLogo variant="full" size="md" to="/" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <ThemeSwitch size="sm" />
+          <Link to="/login" className="btn btn-secondary btn-sm">
+            Sign In
           </Link>
-          <h1 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '0.25rem' }}>Create Your Workspace</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            Start checking packaging artwork before print production
-          </p>
         </div>
+      </header>
 
-        {/* Signup Card */}
-        <div className="card-tactile" style={{ padding: '2rem', backgroundColor: 'var(--bg-surface)' }}>
-          {error && (
-            <div
-              style={{
-                padding: '0.75rem',
-                backgroundColor: 'var(--status-issue-bg)',
-                border: '1px solid var(--status-issue-border)',
-                color: 'var(--status-issue-text)',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '0.8125rem',
-                marginBottom: '1.25rem',
-              }}
-            >
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {/* Full Name */}
+      {/* Main Two-Column Auth Layout */}
+      <main
+        style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '2.5rem 1.5rem',
+        }}
+      >
+        <div
+          style={{
+            width: '100%',
+            maxWidth: '1060px',
+            display: 'grid',
+            gridTemplateColumns: '1.05fr 1fr',
+            backgroundColor: 'var(--card-bg)',
+            border: '1px solid var(--border-default)',
+            borderRadius: 'var(--radius-2xl)',
+            overflow: 'hidden',
+            boxShadow: 'var(--shadow-xl)',
+          }}
+        >
+          {/* Left Column: Brand Story & 3D Packaging */}
+          <div
+            style={{
+              padding: '3rem 2.5rem',
+              background: 'linear-gradient(145deg, var(--bg-surface-subtle) 0%, var(--bg-surface) 100%)',
+              borderRight: '1px solid var(--border-default)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              position: 'relative',
+            }}
+          >
             <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                Full Name
-              </label>
-              <div style={{ position: 'relative' }}>
-                <User size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.25rem 0.65rem',
+                  borderRadius: 'var(--radius-full)',
+                  backgroundColor: 'var(--brand-primary-light)',
+                  color: 'var(--brand-primary)',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  marginBottom: '1rem',
+                }}
+              >
+                <Sparkles size={12} />
+                <span>Enterprise Packaging Verification</span>
+              </div>
+
+              <h2
+                style={{
+                  fontSize: '1.85rem',
+                  fontWeight: 800,
+                  lineHeight: 1.2,
+                  letterSpacing: '-0.025em',
+                  marginBottom: '1rem',
+                }}
+              >
+                Start Your Pre-Print <br />
+                <span className="text-gradient-violet">Compliance Workspace.</span>
+              </h2>
+
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6, marginBottom: '2rem' }}>
+                Screen pre-press dielines, automate Legal Metrology & FSSAI declaration checks, and maintain a permanent Label Passport audit trail.
+              </p>
+
+              {/* 3D Mockup Box */}
+              <div
+                style={{
+                  height: '210px',
+                  borderRadius: 'var(--radius-lg)',
+                  overflow: 'hidden',
+                  position: 'relative',
+                  boxShadow: 'var(--shadow-md)',
+                  border: '1px solid var(--border-default)',
+                }}
+              >
+                <img
+                  src={bottle3D}
+                  alt="Niyamura 3D Amber Bottle Mockup"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '10px',
+                    left: '12px',
+                    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                    backdropFilter: 'blur(8px)',
+                    color: '#FFF',
+                    padding: '3px 8px',
+                    borderRadius: 'var(--radius-xs)',
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  ✓ Amber Bottle 500ml Mockup
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '2rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                <CheckCircle2 size={15} style={{ color: 'var(--status-good-solid)', flexShrink: 0 }} />
+                <span>Unlimited packaging artwork versions & inspections</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                <ShieldCheck size={15} style={{ color: 'var(--brand-primary)', flexShrink: 0 }} />
+                <span>Deterministic statutory evaluation & rule versioning</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Sign Up Form */}
+          <div style={{ padding: '3rem 2.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.35rem', letterSpacing: '-0.02em' }}>
+                Create Account
+              </h3>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                Create a new company workspace for your packaging team.
+              </p>
+            </div>
+
+            {error && (
+              <div
+                className="animate-fade-in"
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.65rem',
+                  padding: '0.875rem 1rem',
+                  backgroundColor: 'var(--status-issue-bg)',
+                  border: '1px solid var(--status-issue-border)',
+                  borderRadius: 'var(--radius-md)',
+                  color: 'var(--status-issue-text)',
+                  fontSize: '0.85rem',
+                  marginBottom: '1.25rem',
+                }}
+              >
+                <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div>{error}</div>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-primary)' }}>
+                  Full Name
+                </label>
                 <input
                   type="text"
+                  placeholder="e.g. Maya Sharma"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  placeholder="e.g. Alex Morgan"
+                  disabled={loading}
                   required
-                  style={{ width: '100%', paddingLeft: '38px' }}
+                  style={{ width: '100%', boxSizing: 'border-box' }}
                 />
               </div>
-            </div>
 
-            {/* Email */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                Work Email
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Mail size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="alex@brandpackaging.com"
-                  required
-                  style={{ width: '100%', paddingLeft: '38px' }}
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-primary)' }}>
+                    Work Email
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="maya@brand.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={loading}
+                    required
+                    style={{ width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-primary)' }}>
+                    Company / Brand
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Apex Foods"
+                    value={company}
+                    onChange={(e) => setCompany(e.target.value)}
+                    disabled={loading}
+                    required
+                    style={{ width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Company / Brand Name */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                Company / Organization
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Building size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <input
-                  type="text"
-                  value={company}
-                  onChange={(e) => setCompany(e.target.value)}
-                  placeholder="e.g. Aura Botanicals Ltd."
-                  required
-                  style={{ width: '100%', paddingLeft: '38px' }}
-                />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-primary)' }}>
+                    Password
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="At least 8 chars"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    disabled={loading}
+                    required
+                    style={{ width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
+
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem', color: 'var(--text-primary)' }}>
+                    Confirm Password
+                  </label>
+                  <input
+                    type="password"
+                    placeholder="••••••••••••"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={loading}
+                    required
+                    style={{ width: '100%', boxSizing: 'border-box' }}
+                  />
+                </div>
               </div>
-            </div>
 
-            {/* Password */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                Password (min. 8 characters)
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  style={{ width: '100%', paddingLeft: '38px', paddingRight: '38px' }}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              </div>
-            </div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn btn-primary btn-lg"
+                style={{ width: '100%', marginTop: '0.5rem', justifyContent: 'center' }}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    <span>Creating workspace...</span>
+                  </>
+                ) : (
+                  <>
+                    <UserPlus size={18} />
+                    <span>Create Workspace Account</span>
+                    <ArrowRight size={16} />
+                  </>
+                )}
+              </button>
+            </form>
 
-            {/* Confirm Password */}
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                Confirm Password
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  style={{ width: '100%', paddingLeft: '38px' }}
-                />
-              </div>
-            </div>
-
-            <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: '100%', height: '42px', marginTop: '0.5rem' }}>
-              {loading ? 'Creating Account...' : 'Create Account'}
-            </button>
-          </form>
-
-          <div style={{ marginTop: '1.5rem', textAlign: 'center', borderTop: '1px solid var(--border-default)', paddingTop: '1.25rem' }}>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-              Already registered?{' '}
-              <Link to="/login" style={{ fontWeight: 600, color: 'var(--brand-primary)' }}>
-                Sign in here
+            <div style={{ marginTop: '1.5rem', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Already have an account?{' '}
+              <Link to={`/login?redirect=${encodeURIComponent(redirectPath)}`} style={{ color: 'var(--brand-primary)', fontWeight: 700 }}>
+                Sign In
               </Link>
-            </p>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
+
+      {/* Footer */}
+      <footer style={{ padding: '1.25rem 2rem', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+        © 2026 NIYAMURA. Where Packaging Meets Compliance. All rights reserved.
+      </footer>
     </div>
   );
 };

@@ -54,7 +54,7 @@ export const ReportsPage: React.FC = () => {
               <span className="badge badge-primary">Audit Documentation</span>
               <span className="badge badge-neutral">Pre-Print Records</span>
             </div>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>NIYAMORA Compliance Reports & PDFs</h1>
+            <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>NIYAMURA Compliance Reports & PDFs</h1>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
               Export and download statutory review summaries, suggested design comparison reports, and audit logs.
             </p>
@@ -63,7 +63,7 @@ export const ReportsPage: React.FC = () => {
 
         {/* Error Alert */}
         {error && (
-          <div className="card" style={{ padding: '1rem 1.25rem', backgroundColor: 'var(--status-issue-subtle)', borderLeft: '4px solid var(--status-issue-solid)', color: 'var(--status-issue-text)' }}>
+          <div className="card" style={{ padding: '1rem 1.25rem', backgroundColor: 'var(--status-issue-bg)', borderLeft: '4px solid var(--status-issue-solid)', color: 'var(--status-issue-text)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <AlertCircle size={18} />
               <span style={{ fontWeight: 600 }}>{error}</span>
@@ -124,8 +124,8 @@ export const ReportsPage: React.FC = () => {
                   </div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                      <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>NIYAMORA Suggested Design Report ({design.target_version_label || 'V02'})</h3>
-                      <span className={`badge ${design.verification_status === 'VERIFIED' ? 'badge-success' : 'badge-warning'}`}>
+                      <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>NIYAMURA Suggested Design Report ({design.target_version_label || 'V02'})</h3>
+                      <span className={`badge ${design.verification_status === 'VERIFIED' ? 'badge-good' : 'badge-review'}`}>
                         {design.verification_status}
                       </span>
                     </div>

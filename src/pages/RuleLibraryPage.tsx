@@ -219,7 +219,7 @@ export const RuleLibraryPage: React.FC = () => {
 
                   <div style={{ padding: '0.875rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-sm)' }}>
                     <strong style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
-                      How NIYAMORA Checks It:
+                      How NIYAMURA Checks It:
                     </strong>
                     <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
                       {rule.howWeCheck}

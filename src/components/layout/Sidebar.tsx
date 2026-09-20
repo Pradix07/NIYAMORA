@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { NiyamuraLogo } from '../common/NiyamuraLogo';
 import {
   LayoutDashboard,
   Boxes,
@@ -56,7 +57,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   return (
     <aside
       style={{
-        width: '260px',
+        width: '264px',
         backgroundColor: 'var(--sidebar-bg)',
         borderRight: '1px solid var(--sidebar-border)',
         display: 'flex',
@@ -68,40 +69,12 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
     >
       {/* Brand Header */}
       <div style={{ padding: '1.25rem 1.25rem 1rem', borderBottom: '1px solid var(--border-default)' }}>
-        <NavLink to="/dashboard" style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-          <div
-            style={{
-              width: '34px',
-              height: '34px',
-              borderRadius: 'var(--radius-md)',
-              background: 'linear-gradient(135deg, #4F46E5 0%, #3B82F6 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: '#FFFFFF',
-              boxShadow: '0 4px 10px rgba(79, 70, 229, 0.3)',
-              flexShrink: 0,
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 32 32" fill="none">
-              <path d="M8 22V10L16 18L24 10V22" stroke="#FFFFFF" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round"/>
-              <circle cx="24" cy="22" r="2.5" fill="#10B981"/>
-            </svg>
-          </div>
-          <div>
-            <span style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-primary)', display: 'block', lineHeight: 1 }}>
-              NIYAMORA
-            </span>
-            <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', fontWeight: 500, letterSpacing: '0.01em', marginTop: '3px', display: 'block' }}>
-              Packaging Compliance
-            </span>
-          </div>
-        </NavLink>
+        <NiyamuraLogo variant="full" size="md" to="/dashboard" />
       </div>
 
       {/* Navigation Links */}
       <nav style={{ padding: '0.875rem 0.75rem', display: 'flex', flexDirection: 'column', gap: '0.2rem', flex: 1 }}>
-        <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0.35rem 0.65rem 0.25rem' }}>
+        <div style={{ fontSize: '0.6875rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', padding: '0.35rem 0.65rem 0.25rem' }}>
           Compliance Workspace
         </div>
 
@@ -121,9 +94,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                 padding: '0.55rem 0.75rem',
                 borderRadius: 'var(--radius-md)',
                 fontSize: '0.875rem',
-                fontWeight: isItemActive ? 600 : 500,
+                fontWeight: isItemActive ? 700 : 500,
                 color: isItemActive ? 'var(--brand-primary)' : 'var(--text-secondary)',
                 backgroundColor: isItemActive ? 'var(--brand-primary-light)' : 'transparent',
+                boxShadow: isItemActive ? '0 1px 3px rgba(124, 58, 237, 0.15)' : 'none',
+                border: isItemActive ? '1px solid rgba(124, 58, 237, 0.25)' : '1px solid transparent',
                 transition: 'all var(--transition-fast)',
               }}
               className="sidebar-link-hover"
@@ -192,7 +167,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
                       padding: '0.4rem 0.65rem',
                       borderRadius: 'var(--radius-sm)',
                       fontSize: '0.8125rem',
-                      fontWeight: isSubActive ? 600 : 500,
+                      fontWeight: isSubActive ? 700 : 500,
                       color: isSubActive ? 'var(--brand-primary)' : 'var(--text-secondary)',
                       backgroundColor: isSubActive ? 'var(--brand-primary-light)' : 'transparent',
                     }}
@@ -212,10 +187,10 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
         </div>
       </nav>
 
-      {/* Footer Branding Badge (NO profile here, profile is strictly top-right!) */}
+      {/* Footer Branding Badge */}
       <div style={{ padding: '0.875rem 1.25rem', borderTop: '1px solid var(--border-default)', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-        <p style={{ fontWeight: 600, color: 'var(--text-secondary)' }}>NIYAMORA Workspace</p>
-        <p style={{ fontSize: '0.7rem' }}>Phase 1 Product Foundation</p>
+        <p style={{ fontWeight: 700, color: 'var(--text-secondary)' }}>NIYAMURA Workspace</p>
+        <p style={{ fontSize: '0.6875rem' }}>Packaging Compliance Before Print</p>
       </div>
     </aside>
   );

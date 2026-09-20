@@ -1,32 +1,47 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Eye, EyeOff, Lock, Mail, ShieldCheck } from 'lucide-react';
-import { Modal } from '../components/common/Modal';
+import { NiyamuraLogo } from '../components/common/NiyamuraLogo';
+import { ThemeSwitch } from '../components/common/ThemeSwitch';
+import pouch3D from '../assets/pouch_3d.jpg';
+import {
+  LogIn,
+  AlertCircle,
+  Loader2,
+  CheckCircle2,
+  ShieldCheck,
+  ArrowRight,
+  Sparkles
+} from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const [email, setEmail] = useState('devin@aurapackaging.com');
-  const [password, setPassword] = useState('password123');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [showForgotModal, setShowForgotModal] = useState(false);
-  const [forgotSent, setForgotSent] = useState(false);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectPath = searchParams.get('redirect') || '/dashboard';
 
   const { login } = useAuth();
-  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
+    if (!email || !password) {
+      setError('Please enter both your work email and password.');
+      return;
+    }
 
-    const res = await login(email, password);
-    setLoading(false);
-    if (res.success) {
-      navigate('/dashboard');
-    } else {
-      setError(res.error || 'Failed to sign in. Please verify credentials.');
+    try {
+      setLoading(true);
+      setError(null);
+      await login(email, password);
+      navigate(redirectPath);
+    } catch (err: any) {
+      console.error('Login error:', err);
+      setError(err.message || 'Authentication failed. Please check your credentials.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -36,169 +51,251 @@ export const LoginPage: React.FC = () => {
         minHeight: '100vh',
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1.5rem',
         backgroundColor: 'var(--bg-app)',
       }}
     >
-      <div style={{ width: '100%', maxWidth: '420px' }}>
-        {/* Brand Header */}
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <Link to="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1rem' }}>
-            <div
-              style={{
-                width: '40px',
-                height: '40px',
-                borderRadius: 'var(--radius-md)',
-                background: 'linear-gradient(135deg, #4F46E5 0%, #3B82F6 100%)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#FFFFFF',
-                boxShadow: '0 4px 12px rgba(79, 70, 229, 0.3)',
-              }}
-            >
-              <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
-                <path d="M8 22V10L16 18L24 10V22" stroke="#FFFFFF" strokeWidth="2.75" strokeLinecap="round" strokeLinejoin="round"/>
-                <circle cx="24" cy="22" r="2.5" fill="#10B981"/>
-              </svg>
-            </div>
-            <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>
-              NIYAMORA
-            </span>
+      {/* Top Header */}
+      <header
+        style={{
+          padding: '1.25rem 2rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: '1px solid var(--border-default)',
+          backgroundColor: 'var(--topbar-bg)',
+          backdropFilter: 'blur(16px)',
+        }}
+      >
+        <NiyamuraLogo variant="full" size="md" to="/" />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <ThemeSwitch size="sm" />
+          <Link to="/signup" className="btn btn-secondary btn-sm">
+            Create Account
           </Link>
-          <h1 style={{ fontSize: '1.4rem', fontWeight: 700, marginBottom: '0.25rem' }}>Welcome Back</h1>
-          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
-            Sign in to access your pre-print compliance workspace
-          </p>
         </div>
+      </header>
 
-        {/* Login Card */}
-        <div className="card-tactile" style={{ padding: '2rem', backgroundColor: 'var(--bg-surface)' }}>
-          {error && (
-            <div
-              style={{
-                padding: '0.75rem',
-                backgroundColor: 'var(--status-issue-bg)',
-                border: '1px solid var(--status-issue-border)',
-                color: 'var(--status-issue-text)',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: '0.8125rem',
-                marginBottom: '1.25rem',
-              }}
-            >
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-            {/* Email Field */}
+      {/* Main Two-Column Auth Layout */}
+      <main
+        style={{
+          flex: 1,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '2.5rem 1.5rem',
+        }}
+      >
+        <div
+          style={{
+            width: '100%',
+            maxWidth: '1020px',
+            display: 'grid',
+            gridTemplateColumns: '1.1fr 0.9fr',
+            backgroundColor: 'var(--card-bg)',
+            border: '1px solid var(--border-default)',
+            borderRadius: 'var(--radius-2xl)',
+            overflow: 'hidden',
+            boxShadow: 'var(--shadow-xl)',
+          }}
+        >
+          {/* Left Column: Brand Story & 3D Packaging */}
+          <div
+            style={{
+              padding: '3rem 2.5rem',
+              background: 'linear-gradient(145deg, var(--bg-surface-subtle) 0%, var(--bg-surface) 100%)',
+              borderRight: '1px solid var(--border-default)',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'space-between',
+              position: 'relative',
+            }}
+          >
             <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                Work Email
-              </label>
-              <div style={{ position: 'relative' }}>
-                <Mail size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.25rem 0.65rem',
+                  borderRadius: 'var(--radius-full)',
+                  backgroundColor: 'var(--brand-primary-light)',
+                  color: 'var(--brand-primary)',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  marginBottom: '1rem',
+                }}
+              >
+                <Sparkles size={12} />
+                <span>Enterprise Packaging Verification</span>
+              </div>
+
+              <h2
+                style={{
+                  fontSize: '1.85rem',
+                  fontWeight: 800,
+                  lineHeight: 1.2,
+                  letterSpacing: '-0.025em',
+                  marginBottom: '1rem',
+                }}
+              >
+                Packaging Compliance <br />
+                <span className="text-gradient-violet">Before You Print.</span>
+              </h2>
+
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6, marginBottom: '2rem' }}>
+                Secure multi-tenant workspace with deterministic Legal Metrology PCR 2011 & FSSAI 2020 verification, millimeter font size checks, and immutable Label Passports.
+              </p>
+
+              {/* 3D Mockup Box */}
+              <div
+                style={{
+                  height: '210px',
+                  borderRadius: 'var(--radius-lg)',
+                  overflow: 'hidden',
+                  position: 'relative',
+                  boxShadow: 'var(--shadow-md)',
+                  border: '1px solid var(--border-default)',
+                }}
+              >
+                <img
+                  src={pouch3D}
+                  alt="Niyamura 3D Packaging Mockup"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '10px',
+                    left: '12px',
+                    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+                    backdropFilter: 'blur(8px)',
+                    color: '#FFF',
+                    padding: '3px 8px',
+                    borderRadius: 'var(--radius-xs)',
+                    fontSize: '0.7rem',
+                    fontWeight: 600,
+                  }}
+                >
+                  ✓ Pre-Print Screened SKU
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '2rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                <CheckCircle2 size={15} style={{ color: 'var(--status-good-solid)', flexShrink: 0 }} />
+                <span>Zero-assumption OCR text & bounding box extraction</span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                <ShieldCheck size={15} style={{ color: 'var(--brand-primary)', flexShrink: 0 }} />
+                <span>Tenant-isolated encrypted storage & audit trail</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Column: Sign In Form */}
+          <div style={{ padding: '3rem 2.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <div style={{ marginBottom: '2rem' }}>
+              <h3 style={{ fontSize: '1.5rem', fontWeight: 800, marginBottom: '0.35rem', letterSpacing: '-0.02em' }}>
+                Sign In
+              </h3>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                Enter your work credentials to access your company workspace.
+              </p>
+            </div>
+
+            {error && (
+              <div
+                className="animate-fade-in"
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: '0.65rem',
+                  padding: '0.875rem 1rem',
+                  backgroundColor: 'var(--status-issue-bg)',
+                  border: '1px solid var(--status-issue-border)',
+                  borderRadius: 'var(--radius-md)',
+                  color: 'var(--status-issue-text)',
+                  fontSize: '0.85rem',
+                  marginBottom: '1.5rem',
+                }}
+              >
+                <AlertCircle size={18} style={{ flexShrink: 0, marginTop: '2px' }} />
+                <div>{error}</div>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.4rem', color: 'var(--text-primary)' }}>
+                  Work Email
+                </label>
                 <input
                   type="email"
+                  placeholder="name@company.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@company.com"
+                  disabled={loading}
                   required
-                  style={{ width: '100%', paddingLeft: '38px' }}
+                  style={{ width: '100%', boxSizing: 'border-box' }}
                 />
               </div>
-            </div>
 
-            {/* Password Field */}
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
-                <label style={{ fontSize: '0.8125rem', fontWeight: 600 }}>Password</label>
-                <button
-                  type="button"
-                  onClick={() => setShowForgotModal(true)}
-                  style={{ fontSize: '0.75rem', color: 'var(--brand-primary)', fontWeight: 600 }}
-                >
-                  Forgot password?
-                </button>
-              </div>
-              <div style={{ position: 'relative' }}>
-                <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.4rem' }}>
+                  <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)' }}>
+                    Password
+                  </label>
+                  <a href="#forgot" style={{ fontSize: '0.75rem', color: 'var(--brand-primary)', fontWeight: 600 }}>
+                    Forgot password?
+                  </a>
+                </div>
                 <input
-                  type={showPassword ? 'text' : 'password'}
+                  type="password"
+                  placeholder="••••••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
+                  disabled={loading}
                   required
-                  style={{ width: '100%', paddingLeft: '38px', paddingRight: '38px' }}
+                  style={{ width: '100%', boxSizing: 'border-box' }}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }}
-                  aria-label={showPassword ? 'Hide password' : 'Show password'}
-                >
-                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
               </div>
-            </div>
 
-            <button type="submit" disabled={loading} className="btn btn-primary" style={{ width: '100%', height: '42px', marginTop: '0.5rem' }}>
-              {loading ? 'Signing in...' : 'Sign In'}
-            </button>
-          </form>
+              <button
+                type="submit"
+                disabled={loading}
+                className="btn btn-primary btn-lg"
+                style={{ width: '100%', marginTop: '0.5rem', justifyContent: 'center' }}
+              >
+                {loading ? (
+                  <>
+                    <Loader2 size={18} className="animate-spin" />
+                    <span>Signing in...</span>
+                  </>
+                ) : (
+                  <>
+                    <LogIn size={18} />
+                    <span>Sign In to Workspace</span>
+                    <ArrowRight size={16} />
+                  </>
+                )}
+              </button>
+            </form>
 
-          <div style={{ marginTop: '1.5rem', textAlign: 'center', borderTop: '1px solid var(--border-default)', paddingTop: '1.25rem' }}>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-              Don't have an account?{' '}
-              <Link to="/signup" style={{ fontWeight: 600, color: 'var(--brand-primary)' }}>
-                Create an account
+            <div style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              Don't have a workspace account yet?{' '}
+              <Link to={`/signup?redirect=${encodeURIComponent(redirectPath)}`} style={{ color: 'var(--brand-primary)', fontWeight: 700 }}>
+                Create Account
               </Link>
-            </p>
+            </div>
           </div>
         </div>
-      </div>
+      </main>
 
-      {/* Forgot Password Modal */}
-      <Modal
-        isOpen={showForgotModal}
-        onClose={() => { setShowForgotModal(false); setForgotSent(false); }}
-        title="Reset Password"
-        subtitle="Enter your email address to receive password reset instructions."
-      >
-        {forgotSent ? (
-          <div style={{ textAlign: 'center', padding: '1rem 0' }}>
-            <div style={{ width: '44px', height: '44px', borderRadius: '50%', backgroundColor: 'var(--status-good-bg)', color: 'var(--status-good-solid)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1rem' }}>
-              <ShieldCheck size={24} />
-            </div>
-            <h4 style={{ fontWeight: 700, marginBottom: '0.35rem' }}>Reset Link Dispatched</h4>
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '1.5rem' }}>
-              If an account exists for {email}, a reset link has been dispatched.
-            </p>
-            <button className="btn btn-primary btn-sm" onClick={() => setShowForgotModal(false)}>
-              Back to Sign In
-            </button>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                Account Email
-              </label>
-              <input
-                type="email"
-                defaultValue={email}
-                placeholder="name@company.com"
-                style={{ width: '100%' }}
-              />
-            </div>
-            <button className="btn btn-primary" onClick={() => setForgotSent(true)}>
-              Send Reset Link
-            </button>
-          </div>
-        )}
-      </Modal>
+      {/* Footer */}
+      <footer style={{ padding: '1.25rem 2rem', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+        © 2026 NIYAMURA. Where Packaging Meets Compliance. All rights reserved.
+      </footer>
     </div>
   );
 };

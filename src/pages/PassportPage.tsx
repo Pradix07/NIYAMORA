@@ -67,10 +67,10 @@ export const PassportPage: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-              <span className="badge badge-primary">Product Provenance Passport</span>
+              <span className="badge badge-sample">Product Provenance Passport</span>
               <span className="badge badge-neutral">Immutable Audit Ledger</span>
             </div>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>NIYAMORA Label Passport</h1>
+            <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>NIYAMURA Label Passport</h1>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
               Complete chronological provenance, inspection verification log, and evidence repository.
             </p>
@@ -79,7 +79,6 @@ export const PassportPage: React.FC = () => {
           {products.length > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <select
-                className="select"
                 value={selectedProductId}
                 onChange={(e) => handleSelectProduct(e.target.value)}
                 style={{ minWidth: '220px' }}
@@ -112,14 +111,14 @@ export const PassportPage: React.FC = () => {
               Statutory Transparency Statement
             </h4>
             <p style={{ fontSize: '0.8125rem', color: 'var(--text-primary)', marginTop: '0.2rem', lineHeight: 1.5 }}>
-              Label Passport is a NIYAMORA product history record and internal quality ledger. It is not a government certificate, does not represent statutory endorsement, and does not guarantee legal immunity from regulatory inspection authorities.
+              Label Passport is a NIYAMURA internal product history record and verification ledger. It is not an official government certificate or statutory endorsement.
             </p>
           </div>
         </div>
 
         {/* Error State */}
         {error && (
-          <div className="card" style={{ padding: '1rem 1.25rem', backgroundColor: 'var(--status-issue-subtle)', borderLeft: '4px solid var(--status-issue-solid)', color: 'var(--status-issue-text)' }}>
+          <div className="card" style={{ padding: '1rem 1.25rem', backgroundColor: 'var(--status-issue-bg)', borderLeft: '4px solid var(--status-issue-solid)', color: 'var(--status-issue-text)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <AlertCircle size={18} />
               <span style={{ fontWeight: 600 }}>{error}</span>
@@ -141,7 +140,7 @@ export const PassportPage: React.FC = () => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
             
             {/* Product Metadata Summary */}
-            <div className="card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
+            <div className="card-tactile" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem', backgroundColor: 'var(--bg-surface)' }}>
               <div>
                 <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase' }}>
                   {passport.brand}
@@ -184,7 +183,7 @@ export const PassportPage: React.FC = () => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <span style={{ fontWeight: 800, fontSize: '1rem' }}>{v.version_label}</span>
                           <span className="badge badge-neutral">{v.source_type}</span>
-                          <span className="badge badge-success">{v.verification_status}</span>
+                          <span className="badge badge-good">{v.verification_status}</span>
                         </div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginTop: '0.25rem' }}>
                           Storage Key: {v.storage_key} • Hash: {v.file_hash || 'SHA256 verified'}
@@ -216,7 +215,7 @@ export const PassportPage: React.FC = () => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                           <span style={{ fontWeight: 700 }}>Inspection #{i.inspection_id.slice(0, 8)}</span>
                           <span className="badge badge-neutral">{i.version_label}</span>
-                          <span className={`badge ${i.status === 'COMPLETED' ? 'badge-success' : 'badge-warning'}`}>{i.status}</span>
+                          <span className={`badge ${i.status === 'COMPLETED' ? 'badge-good' : 'badge-review'}`}>{i.status}</span>
                         </div>
                         <div style={{ fontSize: '0.8125rem', marginTop: '0.35rem', color: 'var(--text-secondary)' }}>
                           Results: <strong style={{ color: 'var(--status-good-solid)' }}>{i.pass_count} PASS</strong> • <strong style={{ color: 'var(--status-issue-solid)' }}>{i.issue_count} ISSUE</strong> • <strong style={{ color: 'var(--status-review-solid)' }}>{i.review_count} REVIEW</strong>

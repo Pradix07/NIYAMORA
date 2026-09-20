@@ -74,7 +74,7 @@ export const DiffVisualizer: React.FC<DiffVisualizerProps> = ({
             Review compliance suggestions before the package goes to print.
           </h2>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', maxWidth: '700px', marginTop: '0.25rem' }}>
-            Compare original artwork with NIYAMORA's structured compliance suggestions. Critical statutory values (MRP, net quantity, manufacturer address) are preserved deterministically.
+            Compare original artwork with NIYAMURA's structured compliance suggestions. Critical statutory values (MRP, net quantity, manufacturer address) are preserved deterministically.
           </p>
         </div>
 
@@ -372,7 +372,7 @@ export const DiffVisualizer: React.FC<DiffVisualizerProps> = ({
                 </div>
 
                 <div style={{ height: '80px', backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#666' }}>NIYAMORA Suggested Overlay</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#666' }}>NIYAMURA Suggested Overlay</span>
                 </div>
 
                 <div
@@ -455,7 +455,7 @@ export const DiffVisualizer: React.FC<DiffVisualizerProps> = ({
 
                   <div style={{ backgroundColor: 'var(--bg-surface)', padding: '0.625rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--status-good-border)' }}>
                     <span style={{ color: 'var(--status-good-text)', fontWeight: 600, display: 'block', fontSize: '0.7rem', textTransform: 'uppercase' }}>
-                      NIYAMORA Suggested Specification:
+                      NIYAMURA Suggested Specification:
                     </span>
                     <p style={{ marginTop: '3px', color: 'var(--text-primary)', fontWeight: 700, fontFamily: 'var(--font-mono)', whiteSpace: 'pre-line' }}>
                       {change.suggested_value}

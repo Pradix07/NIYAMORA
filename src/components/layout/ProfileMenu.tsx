@@ -59,13 +59,14 @@ export const ProfileMenu: React.FC = () => {
             width: '28px',
             height: '28px',
             borderRadius: '50%',
-            backgroundColor: 'var(--brand-primary)',
+            background: 'var(--brand-gradient)',
             color: '#FFFFFF',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             fontWeight: 700,
             fontSize: '0.8125rem',
+            boxShadow: '0 2px 6px rgba(124, 58, 237, 0.3)',
           }}
         >
           {user.name.charAt(0).toUpperCase()}
@@ -84,16 +85,13 @@ export const ProfileMenu: React.FC = () => {
       {/* Dropdown Menu */}
       {isOpen && (
         <div
-          className="card-tactile animate-fade-in"
+          className="glass-card animate-fade-in"
           style={{
             position: 'absolute',
             top: 'calc(100% + 8px)',
             right: 0,
             width: '240px',
-            backgroundColor: 'var(--bg-surface)',
-            border: '1px solid var(--border-default)',
             borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow-lg)',
             zIndex: 1000,
             padding: '0.5rem',
           }}
@@ -167,7 +165,7 @@ export const ProfileMenu: React.FC = () => {
             className="menu-item-hover"
           >
             <HelpCircle size={16} style={{ color: 'var(--text-secondary)' }} />
-            Help & Documentation
+            Help & Guidance
           </button>
 
           <div style={{ borderTop: '1px solid var(--border-default)', marginTop: '0.35rem', paddingTop: '0.35rem' }}>
@@ -198,7 +196,7 @@ export const ProfileMenu: React.FC = () => {
       <Modal
         isOpen={showHelpModal}
         onClose={() => setShowHelpModal(false)}
-        title="NIYAMORA Help & Guidance"
+        title="NIYAMURA Help & Guidance"
         subtitle="Packaging Compliance Before Print"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', fontSize: '0.9rem' }}>
@@ -208,21 +206,21 @@ export const ProfileMenu: React.FC = () => {
               <strong>CHECK → IMPROVE → COMPARE → VERIFY → RECORD</strong>
             </p>
             <p style={{ marginTop: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.825rem' }}>
-              NIYAMORA helps packaging designers, pre-press managers, and compliance teams screen artwork prior to costly cylinder engraving, plate making, or flexographic print runs.
+              NIYAMURA helps packaging designers, pre-press managers, and compliance teams screen artwork prior to costly cylinder engraving, plate making, or flexographic print runs.
             </p>
           </div>
 
           <div>
-            <h5 style={{ fontWeight: 700, marginBottom: '0.25rem' }}>Where is the Theme switch?</h5>
+            <h5 style={{ fontWeight: 700, marginBottom: '0.25rem' }}>Theme Preferences</h5>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-              Theme preferences (System, Light, Dark) can be adjusted exclusively inside <strong>Settings → Appearance</strong>.
+              You can toggle between System, Light, and Dark mode directly from the top utility bar or inside <strong>Settings → Appearance</strong>.
             </p>
           </div>
 
           <div>
-            <h5 style={{ fontWeight: 700, marginBottom: '0.25rem' }}>Notice Regarding Regulatory Information</h5>
+            <h5 style={{ fontWeight: 700, marginBottom: '0.25rem' }}>Statutory Disclaimer</h5>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-              NIYAMORA provides pre-print compliance screening and verification assistance. It is not an official government authority and does not issue legal certificates.
+              NIYAMURA provides pre-print compliance screening and verification assistance against evaluated Legal Metrology PCR 2011 and FSSAI 2020 rules. It is not an official government authority and does not issue legal certificates.
             </p>
           </div>
         </div>

@@ -1,7 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, Plus, Search, Layers } from 'lucide-react';
+import { Menu, Plus, Search } from 'lucide-react';
 import { ProfileMenu } from './ProfileMenu';
+import { ThemeSwitch } from '../common/ThemeSwitch';
 import { Breadcrumbs } from '../common/Breadcrumbs';
 import type { BreadcrumbItem } from '../common/Breadcrumbs';
 
@@ -21,7 +22,8 @@ export const TopUtilityBar: React.FC<TopUtilityBarProps> = ({
       style={{
         height: '64px',
         backgroundColor: 'var(--topbar-bg)',
-        backdropFilter: 'blur(12px)',
+        backdropFilter: 'blur(16px)',
+        WebkitBackdropFilter: 'blur(16px)',
         borderBottom: '1px solid var(--border-default)',
         position: 'sticky',
         top: 0,
@@ -46,14 +48,14 @@ export const TopUtilityBar: React.FC<TopUtilityBarProps> = ({
         <Breadcrumbs items={breadcrumbs} />
       </div>
 
-      {/* Right side: Global Search + Demo Badge + + New Check CTA + Profile */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem' }}>
+      {/* Right side: Global Search + ThemeSwitch + + New Check CTA + Profile */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
         {/* Quick Search */}
         <div style={{ position: 'relative', display: 'none' }} className="desktop-search-container">
           <Search size={15} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
           <input
             type="text"
-            placeholder="Search products, rules, or findings..."
+            placeholder="Search packaging SKUs, rules, or findings..."
             style={{
               paddingLeft: '32px',
               paddingRight: '12px',
@@ -67,10 +69,8 @@ export const TopUtilityBar: React.FC<TopUtilityBarProps> = ({
           />
         </div>
 
-        {/* Demo Indicator */}
-        <div className="badge badge-sample" title="Phase 1 UI running with realistic packaging dataset">
-          <Layers size={11} /> Phase 1 Demo
-        </div>
+        {/* 3-State Theme Switch */}
+        <ThemeSwitch size="sm" />
 
         {/* Quick New Check CTA */}
         <button
