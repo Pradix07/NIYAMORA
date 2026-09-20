@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { api } from '../services/api';
-import type { ApiRegressionResult, ApiProduct } from '../services/api';
+import type { ApiRegressionResult, ApiProduct, ApiRegressionItem } from '../services/api';
 import { SAMPLE_REGRESSION_DATA, SAMPLE_PRODUCTS } from '../data/mockData';
 import { 
   TrendingDown, 
@@ -221,7 +221,7 @@ export const RegressionPage: React.FC = () => {
               <p style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>No prior issues were recorded.</p>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {activeRegression.fixed_issues.map((item, idx) => (
+                {activeRegression.fixed_issues.map((item: ApiRegressionItem, idx: number) => (
                   <div key={idx} style={{ padding: '1rem', backgroundColor: 'var(--status-good-bg)', border: '1px solid var(--status-good-border)', borderRadius: 'var(--radius-md)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
                       <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--status-good-text)' }}>
@@ -262,7 +262,7 @@ export const RegressionPage: React.FC = () => {
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                {activeRegression.new_issues_introduced.map((item, idx) => (
+                {activeRegression.new_issues_introduced.map((item: ApiRegressionItem, idx: number) => (
                   <div key={idx} style={{ padding: '1rem', backgroundColor: 'var(--status-issue-bg)', border: '1px solid var(--status-issue-border)', borderRadius: 'var(--radius-md)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
                       <span style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--status-issue-text)' }}>

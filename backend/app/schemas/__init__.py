@@ -20,8 +20,18 @@ from backend.app.schemas.suggested_design import (
     RiskMapResponse,
     RiskMapItem,
 )
+from backend.app.schemas.auth import (
+    UserSignup,
+    UserLogin,
+    UserResponse,
+    TokenResponse,
+)
 
 __all__ = [
+    "UserSignup",
+    "UserLogin",
+    "UserResponse",
+    "TokenResponse",
     "ProductCreate",
     "ProductUpdate",
     "ProductRead",

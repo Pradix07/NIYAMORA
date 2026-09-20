@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { AppShell } from '../components/layout/AppShell';
-import { SAMPLE_REVIEWS } from '../data/mockData';
 import type { ReviewItem } from '../types';
 import { StatusBadge } from '../components/common/StatusBadge';
 import { 
@@ -8,63 +7,62 @@ import {
   XCircle, 
   RefreshCw, 
   MessageSquare, 
-  ShieldCheck,
-  AlertCircle
+  AlertCircle,
+  Loader2,
+  CheckCircle2
 } from 'lucide-react';
 import { Modal } from '../components/common/Modal';
-import { api } from '../services/api';
-import type { ApiFinding } from '../services/api';
+import { api, type ApiFinding } from '../services/api';
 
 export const ReviewCenterPage: React.FC = () => {
-  const [reviews, setReviews] = useState<ReviewItem[]>(SAMPLE_REVIEWS);
+  const [reviews, setReviews] = useState<ReviewItem[]>([]);
   const [activeNoteModalItem, setActiveNoteModalItem] = useState<ReviewItem | null>(null);
   const [noteText, setNoteText] = useState('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const loadBackendReviews = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const inspections = await api.getInspections();
+      const liveReviewItems: ReviewItem[] = [];
+
+      for (const insp of inspections.slice(0, 10)) {
+        try {
+          const findings = await api.getFindings(insp.id);
+          findings.forEach((f: ApiFinding) => {
+            liveReviewItems.push({
+              id: f.id,
+              findingId: f.id,
+              productId: insp.product_id,
+              productName: insp.product_name || 'Packaging Artwork',
+              versionLabel: insp.version_label || 'V01',
+              requirementName: `${f.rule_code}: ${f.title}`,
+              category: f.severity === 'CRITICAL' ? 'Statutory Requirement' : 'Packaging Standard',
+              status: f.status === 'REVIEWED' ? 'APPROVED_PASS' : 'PENDING',
+              reasonForReview: f.summary,
+              foundValue: f.observed_value || 'No valid evidence detected',
+              confidence: 0.88,
+              reviewedBy: undefined,
+              reviewedAt: undefined,
+              reviewerNotes: undefined,
+            });
+          });
+        } catch (err) {
+          console.warn('Could not load findings for inspection', insp.id, err);
+        }
+      }
+      setReviews(liveReviewItems);
+    } catch (err: any) {
+      setError(err.message || 'Failed to load review items.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    async function loadBackendReviews() {
-      try {
-        setLoading(true);
-        const inspections = await api.getInspections();
-        if (inspections && inspections.length > 0) {
-          // Fetch findings for latest inspections
-          const liveReviewItems: ReviewItem[] = [];
-          for (const insp of inspections.slice(0, 5)) {
-            try {
-              const findings = await api.getFindings(insp.id);
-              findings.forEach((f: ApiFinding) => {
-                liveReviewItems.push({
-                  id: f.id,
-                  findingId: f.id,
-                  productId: insp.product_id,
-                  productName: insp.product_name || 'Packaging Artwork',
-                  versionLabel: insp.version_label || 'V01',
-                  requirementName: `${f.rule_code}: ${f.title}`,
-                  category: f.severity === 'CRITICAL' ? 'Statutory Requirement' : 'Packaging Standard',
-                  status: f.status === 'REVIEWED' ? 'APPROVED_PASS' : 'PENDING',
-                  reasonForReview: f.summary,
-                  foundValue: f.observed_value || 'No valid evidence detected',
-                  confidence: 0.88,
-                  reviewedBy: undefined,
-                  reviewedAt: undefined,
-                  reviewerNotes: undefined,
-                });
-              });
-            } catch (err) {
-              console.warn('Could not load findings for inspection', insp.id, err);
-            }
-          }
-          if (liveReviewItems.length > 0) {
-            setReviews(liveReviewItems);
-          }
-        }
-      } catch (err) {
-        console.log('Using sample reviews fallback', err);
-      } finally {
-        setLoading(false);
-      }
-    }
     loadBackendReviews();
   }, []);
 
@@ -87,240 +85,229 @@ export const ReviewCenterPage: React.FC = () => {
       )
     );
 
-    // Persist to backend if item is a real finding
     try {
       await api.submitReview({
         finding_id: id,
         decision: newStatus,
         notes: `Recorded by specialist auditor: ${statusLabel}`,
       });
-    } catch {
-      // Ignored for sample items or non-inspection mock IDs
+      showToast(`Decision recorded: ${statusLabel}`);
+    } catch (err: any) {
+      showToast(`Review decision saved locally (${err.message})`);
     }
-
-    showToast(`Decision recorded: Marked item as ${statusLabel}`);
   };
 
   const handleSaveNote = async () => {
     if (!activeNoteModalItem) return;
-    const itemId = activeNoteModalItem.id;
+
     setReviews((prev) =>
       prev.map((r) =>
-        r.id === itemId
-          ? { ...r, reviewerNotes: noteText }
+        r.id === activeNoteModalItem.id
+          ? {
+              ...r,
+              reviewerNotes: noteText,
+            }
           : r
       )
     );
 
     try {
       await api.submitReview({
-        finding_id: itemId,
+        finding_id: activeNoteModalItem.id,
         decision: activeNoteModalItem.status,
         notes: noteText,
       });
+      showToast('Review note persisted to audit trail.');
     } catch {
-      // Ignored for mock IDs
+      showToast('Note saved to session.');
     }
 
     setActiveNoteModalItem(null);
     setNoteText('');
-    showToast('Reviewer note saved successfully.');
   };
 
-  const pendingCount = reviews.filter((r) => r.status === 'PENDING').length;
+  const pendingReviews = reviews.filter((r) => r.status === 'PENDING');
+  const resolvedReviews = reviews.filter((r) => r.status !== 'PENDING');
 
   return (
     <AppShell breadcrumbs={[{ label: 'Review Center' }]}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
         
-        {/* Statutory Legal Disclaimer Banner */}
-        <div style={{
-          padding: '0.75rem 1.25rem',
-          backgroundColor: 'rgba(59, 130, 246, 0.08)',
-          border: '1px solid rgba(59, 130, 246, 0.25)',
-          borderRadius: 'var(--radius-md)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '0.75rem',
-          fontSize: '0.8125rem',
-          color: 'var(--text-secondary)'
-        }}>
-          <AlertCircle size={16} style={{ color: 'var(--brand-primary)', flexShrink: 0 }} />
-          <span>
-            <strong>Official Legal Metrology Pre-Print Review:</strong> Assisted pre-print verification under verified Legal Metrology (Packaged Commodities) Rules, 2011. Not a substitute for statutory authority certification.
-          </span>
-        </div>
+        {/* Toast Alert */}
+        {toastMessage && (
+          <div
+            style={{
+              position: 'fixed',
+              bottom: '2rem',
+              right: '2rem',
+              backgroundColor: 'var(--text-primary)',
+              color: 'var(--bg-surface)',
+              padding: '0.875rem 1.25rem',
+              borderRadius: 'var(--radius-md)',
+              boxShadow: 'var(--shadow-xl)',
+              zIndex: 1000,
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}
+          >
+            <Check size={16} />
+            <span>{toastMessage}</span>
+          </div>
+        )}
 
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-              <span className="badge badge-sample">Specialist Review Queue</span>
-              <span className="badge badge-review">{pendingCount} Items Awaiting Sign-off</span>
-              {loading && <span className="badge badge-neutral">Syncing backend...</span>}
+              <span className="badge badge-warning">{pendingReviews.length} Pending Review</span>
+              <span className="badge badge-success">{resolvedReviews.length} Resolved</span>
             </div>
             <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Human Review Center</h1>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-              Audit borderline contrast ratios, ambiguous packaging declarations, and statutory compliance findings without altering machine evaluation baselines.
+              Specialist decision console for OCR confidence reviews, non-standard declarations, and statutory exemptions.
             </p>
           </div>
+
+          <button onClick={loadBackendReviews} className="btn btn-outline" style={{ gap: '0.4rem' }}>
+            <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
+            <span>Refresh Queue</span>
+          </button>
         </div>
 
-        {/* Toast Notification */}
-        {toastMessage && (
-          <div
-            className="animate-fade-in"
-            style={{
-              padding: '0.75rem 1.25rem',
-              backgroundColor: 'var(--brand-primary)',
-              color: '#FFFFFF',
-              borderRadius: 'var(--radius-md)',
-              fontWeight: 600,
-              fontSize: '0.875rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              boxShadow: 'var(--shadow-md)',
-            }}
-          >
-            <ShieldCheck size={16} />
-            <span>{toastMessage}</span>
+        {/* Error Alert */}
+        {error && (
+          <div className="card" style={{ padding: '1rem 1.25rem', backgroundColor: 'var(--status-issue-subtle)', borderLeft: '4px solid var(--status-issue-solid)', color: 'var(--status-issue-text)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <AlertCircle size={18} />
+              <span style={{ fontWeight: 600 }}>{error}</span>
+            </div>
           </div>
         )}
 
-        {/* Review Items List */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-          {reviews.map((item) => (
-            <div
-              key={item.id}
-              className="card-tactile"
-              style={{
-                padding: '1.5rem',
-                backgroundColor: 'var(--bg-surface)',
-                borderLeft: item.status === 'PENDING' ? '4px solid var(--status-review-solid)' : item.status === 'APPROVED_PASS' ? '4px solid var(--status-good-solid)' : '4px solid var(--status-issue-solid)',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase' }}>
-                      {item.category}
-                    </span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>• {item.productName}</span>
-                    <StatusBadge status={item.status} size="sm" />
+        {/* Review Queue Items */}
+        {loading ? (
+          <div className="card" style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+            <Loader2 size={28} className="animate-spin" style={{ margin: '0 auto 0.75rem auto' }} />
+            <p>Loading human review items from inspection pipeline...</p>
+          </div>
+        ) : reviews.length === 0 ? (
+          <div className="card" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
+            <CheckCircle2 size={42} style={{ color: 'var(--status-good-solid)', margin: '0 auto 0.75rem auto' }} />
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Review Queue Clear</h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', maxWidth: '400px', margin: '0.25rem auto 0 auto' }}>
+              No statutory declarations currently require human specialist review.
+            </p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+            {reviews.map((item) => (
+              <div
+                key={item.id}
+                className="card"
+                style={{
+                  padding: '1.5rem',
+                  borderLeft: item.status === 'PENDING' ? '4px solid var(--status-review-solid)' : '4px solid var(--status-good-solid)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '1rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                      <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--brand-primary)' }}>
+                        {item.productName} ({item.versionLabel})
+                      </span>
+                      <span className="badge badge-neutral">{item.category}</span>
+                    </div>
+                    <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>{item.requirementName}</h3>
+                    <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+                      {item.reasonForReview}
+                    </p>
                   </div>
-                  <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>{item.requirementName}</h3>
+
+                  <StatusBadge status={item.status === 'PENDING' ? 'REVIEW' : 'GOOD'} />
                 </div>
 
-                <div style={{ textAlign: 'right' }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block' }}>Engine Confidence</span>
-                  <span style={{ fontSize: '1rem', fontWeight: 800, fontFamily: 'var(--font-mono)', color: item.confidence >= 0.85 ? 'var(--brand-primary)' : 'var(--status-review-solid)' }}>
-                    {(item.confidence * 100).toFixed(0)}%
-                  </span>
+                {/* Evidence Card */}
+                <div style={{ padding: '0.875rem 1rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700 }}>
+                    Extracted Declaration Evidence:
+                  </div>
+                  <div style={{ fontSize: '0.9375rem', fontFamily: 'var(--font-mono)', fontWeight: 600, marginTop: '0.25rem' }}>
+                    "{item.foundValue}"
+                  </div>
                 </div>
+
+                {/* Action Buttons */}
+                {item.status === 'PENDING' ? (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.75rem', flexWrap: 'wrap', borderTop: '1px solid var(--border-default)', paddingTop: '1rem' }}>
+                    <button
+                      onClick={() => {
+                        setActiveNoteModalItem(item);
+                        setNoteText(item.reviewerNotes || '');
+                      }}
+                      className="btn btn-ghost btn-sm"
+                      style={{ gap: '0.35rem' }}
+                    >
+                      <MessageSquare size={14} />
+                      <span>Add Note</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleDecision(item.id, 'CONFIRMED_ISSUE', 'Marked as Non-Compliant Issue')}
+                      className="btn btn-outline btn-sm"
+                      style={{ color: 'var(--status-issue-solid)', borderColor: 'var(--status-issue-border)', gap: '0.35rem' }}
+                    >
+                      <XCircle size={14} />
+                      <span>Confirm Issue</span>
+                    </button>
+
+                    <button
+                      onClick={() => handleDecision(item.id, 'APPROVED_PASS', 'Approved as Compliant')}
+                      className="btn btn-primary btn-sm"
+                      style={{ gap: '0.35rem' }}
+                    >
+                      <Check size={14} />
+                      <span>Approve (Pass)</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8125rem', color: 'var(--text-muted)', borderTop: '1px solid var(--border-default)', paddingTop: '0.75rem' }}>
+                    <span>Reviewed by {item.reviewedBy || 'Specialist'} {item.reviewedAt || 'recently'}</span>
+                    {item.reviewerNotes && <span>Note: {item.reviewerNotes}</span>}
+                  </div>
+                )}
               </div>
-
-              {/* Finding Reason & Details */}
-              <div className="grid-2" style={{ gap: '1rem', marginBottom: '1.25rem' }}>
-                <div style={{ padding: '0.875rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)' }}>
-                  <strong style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
-                    Reason for Review / Finding Detail:
-                  </strong>
-                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                    {item.reasonForReview}
-                  </p>
-                </div>
-
-                <div style={{ padding: '0.875rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)' }}>
-                  <strong style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', display: 'block', marginBottom: '4px' }}>
-                    Found Value / Extracted Evidence:
-                  </strong>
-                  <p style={{ fontSize: '0.8125rem', fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>
-                    {item.foundValue}
-                  </p>
-                </div>
-              </div>
-
-              {item.reviewerNotes && (
-                <div style={{ marginBottom: '1rem', padding: '0.75rem', backgroundColor: 'var(--brand-primary-light)', borderRadius: 'var(--radius-sm)', fontSize: '0.8125rem' }}>
-                  <strong style={{ color: 'var(--brand-primary)' }}>Specialist Note:</strong> {item.reviewerNotes}
-                </div>
-              )}
-
-              {/* Reviewer Decision Footer */}
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-default)', paddingTop: '1rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  {item.reviewedBy ? (
-                    <span>Reviewed by <strong>{item.reviewedBy}</strong> ({item.reviewedAt})</span>
-                  ) : (
-                    <span>Pending specialist verification</span>
-                  )}
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                  <button
-                    onClick={() => {
-                      setActiveNoteModalItem(item);
-                      setNoteText(item.reviewerNotes || '');
-                    }}
-                    className="btn btn-ghost btn-sm"
-                    style={{ gap: '0.35rem' }}
-                  >
-                    <MessageSquare size={13} />
-                    <span>Add Note</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleDecision(item.id, 'NEW_IMAGE_REQUESTED', 'New Image Requested')}
-                    className="btn btn-secondary btn-sm"
-                    style={{ gap: '0.35rem' }}
-                  >
-                    <RefreshCw size={13} />
-                    <span>Request New Image</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleDecision(item.id, 'CONFIRMED_ISSUE', 'Issue Confirmed')}
-                    className="btn btn-danger btn-sm"
-                    style={{ gap: '0.35rem' }}
-                  >
-                    <XCircle size={13} />
-                    <span>Mark as Issue</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleDecision(item.id, 'APPROVED_PASS', 'Approved Pass')}
-                    className="btn btn-primary btn-sm"
-                    style={{ gap: '0.35rem' }}
-                  >
-                    <Check size={13} />
-                    <span>Confirm & Pass</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
       </div>
 
-      {/* Specialist Note Modal */}
+      {/* Note Modal */}
       <Modal
         isOpen={!!activeNoteModalItem}
         onClose={() => setActiveNoteModalItem(null)}
-        title="Add Reviewer Specialist Note"
-        subtitle={`Adding audit annotation for ${activeNoteModalItem?.requirementName}`}
+        title="Auditor Review Note"
+        maxWidth="480px"
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+            Record statutory rationale or inspection context into the immutable audit trail:
+          </p>
           <textarea
+            className="textarea"
             rows={4}
+            placeholder="e.g. Visual inspection confirms font character height is >= 4.0mm under Schedule-II area table."
             value={noteText}
             onChange={(e) => setNoteText(e.target.value)}
-            placeholder="e.g. Verified with pre-press plate supplier that kraft texture will receive white underprint..."
-            style={{ width: '100%' }}
           />
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-            <button onClick={() => setActiveNoteModalItem(null)} className="btn btn-secondary">
+            <button onClick={() => setActiveNoteModalItem(null)} className="btn btn-ghost">
               Cancel
             </button>
             <button onClick={handleSaveNote} className="btn btn-primary">

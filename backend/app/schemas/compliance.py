@@ -113,3 +113,39 @@ class HumanReviewRead(BaseModel):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+class PassportVersionItem(BaseModel):
+    version_id: str
+    version_number: int
+    version_label: str
+    file_path: Optional[str] = None
+    original_filename: Optional[str] = None
+    created_at: datetime
+    processing_status: Optional[str] = "READY"
+
+class PassportInspectionItem(BaseModel):
+    inspection_id: str
+    version_label: str
+    status: str
+    created_at: datetime
+    completed_at: Optional[datetime] = None
+    pass_count: int = 0
+    issue_count: int = 0
+    review_count: int = 0
+    na_count: int = 0
+
+class PassportResponse(BaseModel):
+    product_id: str
+    product_name: str
+    brand: str
+    sku: str
+    category: str
+    packaging_type: str
+    net_quantity: str
+    created_at: datetime
+    versions: List[PassportVersionItem] = []
+    inspections: List[PassportInspectionItem] = []
+    human_reviews: List[HumanReviewRead] = []
+    audit_events: List[Dict[str, Any]] = []
+    disclaimer: str = "Label Passport is a NIYAMORA internal provenance ledger and product history record. It is not a government certificate or official legal approval."
+

@@ -122,3 +122,116 @@ def get_design_risk_map(
         )
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Risk map generation failed: {str(e)}")
+
+@router.get("/products/{product_id}/passport")
+def get_product_label_passport(
+    product_id: str,
+    company: Company = Depends(get_current_company),
+    db: Session = Depends(get_db)
+):
+    """
+    Label Passport: aggregates complete immutable provenance, artwork versions,
+    inspection evaluations, human reviews, and audit events for a product.
+    """
+    product = db.query(Product).filter(Product.id == product_id).first()
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found.")
+    verify_product_ownership(product, company)
+
+    # 1. Versions
+    from backend.app.models.artwork import Artwork
+    from backend.app.models.artwork_version import ArtworkVersion
+    from backend.app.models.inspection import Inspection
+    from backend.app.models.compliance import Evaluation, Finding, HumanReview
+    from backend.app.models.suggested_design import AuditEvent
+
+    artworks = db.query(Artwork).filter(Artwork.product_id == product_id).all()
+    artwork_ids = [a.id for a in artworks]
+
+    versions = db.query(ArtworkVersion).filter(ArtworkVersion.artwork_id.in_(artwork_ids)).order_by(ArtworkVersion.version_number.asc()).all() if artwork_ids else []
+    version_items = [
+        {
+            "version_id": v.id,
+            "version_number": v.version_number,
+            "version_label": v.version_label or f"V{v.version_number:02d}",
+            "file_path": v.file_path,
+            "original_filename": v.original_filename,
+            "created_at": v.created_at.isoformat() if v.created_at else None,
+            "processing_status": v.processing_status or "READY"
+        }
+        for v in versions
+    ]
+
+    # 2. Inspections
+    inspections = db.query(Inspection).filter(Inspection.product_id == product_id).order_by(Inspection.created_at.desc()).all()
+    inspection_items = []
+    inspection_ids = [i.id for i in inspections]
+
+    for insp in inspections:
+        evals = db.query(Evaluation).filter(Evaluation.inspection_id == insp.id).all()
+        p_cnt = sum(1 for e in evals if e.status == "PASS")
+        i_cnt = sum(1 for e in evals if e.status == "ISSUE")
+        r_cnt = sum(1 for e in evals if e.status == "REVIEW")
+        na_cnt = sum(1 for e in evals if e.status == "N/A")
+        inspection_items.append({
+            "inspection_id": insp.id,
+            "version_label": insp.artwork_version.version_label if insp.artwork_version else "V01",
+            "status": insp.status,
+            "created_at": insp.created_at.isoformat() if insp.created_at else None,
+            "completed_at": insp.completed_at.isoformat() if insp.completed_at else None,
+            "pass_count": p_cnt,
+            "issue_count": i_cnt,
+            "review_count": r_cnt,
+            "na_count": na_cnt
+        })
+
+    # 3. Human Reviews
+    reviews = db.query(HumanReview).filter(HumanReview.inspection_id.in_(inspection_ids)).order_by(HumanReview.created_at.desc()).all() if inspection_ids else []
+    review_items = [
+        {
+            "id": r.id,
+            "inspection_id": r.inspection_id,
+            "finding_id": r.finding_id,
+            "reviewer_name": r.reviewer_name,
+            "decision": r.decision,
+            "notes": r.notes,
+            "created_at": r.created_at.isoformat() if r.created_at else None
+        }
+        for r in reviews
+    ]
+
+    # 4. Audit Events
+    audit_filter_ids = [product_id] + artwork_ids + inspection_ids
+    audit_events = db.query(AuditEvent).filter(
+        AuditEvent.entity_id.in_(audit_filter_ids)
+    ).order_by(AuditEvent.created_at.desc()).limit(50).all() if audit_filter_ids else []
+
+    audit_items = [
+        {
+            "id": a.id,
+            "action": a.action,
+            "user_id": a.user_id,
+            "entity_type": a.entity_type,
+            "entity_id": a.entity_id,
+            "details": a.details,
+            "created_at": a.created_at.isoformat() if a.created_at else None
+        }
+        for a in audit_events
+    ]
+
+    return {
+        "product_id": product.id,
+        "product_name": product.name,
+        "brand": product.brand,
+        "sku": product.sku,
+        "category": product.category,
+        "packaging_type": product.packaging_type,
+        "net_quantity": product.net_quantity,
+        "created_at": product.created_at.isoformat() if product.created_at else None,
+        "versions": version_items,
+        "inspections": inspection_items,
+        "human_reviews": review_items,
+        "audit_events": audit_items,
+        "disclaimer": "Label Passport is a NIYAMORA internal provenance ledger and product history record. It is not a government certificate or official legal approval."
+    }
+

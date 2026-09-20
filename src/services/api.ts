@@ -1,5 +1,21 @@
 export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
 
+export interface ApiUser {
+  id: string;
+  company_id: string;
+  company_name?: string;
+  name: string;
+  email: string;
+  role: 'COMPANY_USER' | 'REVIEWER' | 'INSPECTOR' | 'ADMIN';
+  created_at: string;
+}
+
+export interface ApiTokenResponse {
+  access_token: string;
+  token_type: string;
+  user: ApiUser;
+}
+
 export interface ApiProduct {
   id: string;
   company_id: string;
@@ -198,9 +214,6 @@ export interface ApiInspection {
     issue_count: number;
     review_count: number;
     na_count: number;
-    verdict: string;
-    score: number;
-    disclaimer: string;
   };
   preview_url?: string;
   error_message?: string;
@@ -208,15 +221,14 @@ export interface ApiInspection {
   completed_at?: string;
 }
 
-// Phase 4 Interfaces
 export interface ApiStructuredUSP {
-  quantity_basis: string;
+  quantity_basis: 'MASS' | 'VOLUME' | 'LENGTH' | 'COUNT';
   quantity_value: number;
   quantity_unit: string;
   usp_basis: string;
-  usp_value?: number;
+  usp_value: number | null;
   usp_unit: string;
-  mrp_value?: number;
+  mrp_value?: number | null;
   rounding_rule?: string;
   rule_version?: string;
   applicability?: string;
@@ -229,57 +241,72 @@ export interface ApiSuggestedDesignChange {
   finding_id?: string;
   field_key: string;
   field_name: string;
-  original_value?: string;
+  original_value: string;
   suggested_value: string;
-  original_location?: { x: number; y: number; width: number; height: number };
-  suggested_location?: { x: number; y: number; width: number; height: number };
+  original_location: { x: number; y: number; width: number; height: number };
+  suggested_location: { x: number; y: number; width: number; height: number };
   original_style?: Record<string, any>;
   suggested_style?: Record<string, any>;
   reason: string;
   rule_code: string;
   rule_reference?: string;
   evidence_reference?: string;
-  change_type: 'CORRECTION' | 'ADDITION' | 'REPOSITION' | 'REFORMAT' | 'REVIEW_REQUIRED';
-  status: 'FIXED' | 'IMPROVED' | 'REVIEW' | 'REVIEW_REQUIRED';
-  structured_usp?: ApiStructuredUSP | null;
+  change_type: 'SCALE' | 'REFORMAT' | 'ADDITION' | 'RELOCATE' | 'CORRECTION' | 'REVIEW_REQUIRED';
+  status: 'FIXED' | 'IMPROVED' | 'REVIEW';
+  structured_usp?: ApiStructuredUSP;
 }
 
 export interface ApiSuggestedDesign {
   id: string;
   product_id: string;
-  product_name?: string;
-  source_artwork_version_id: string;
-  source_inspection_id: string;
-  suggested_artwork_version_id?: string;
-  version_label: string;
-  status: 'GENERATED' | 'RENDERED' | 'VERIFIED' | 'APPLIED';
-  change_set: ApiSuggestedDesignChange[];
-  rendered_artwork_reference?: string;
+  source_version_id: string;
+  target_version_id?: string;
+  target_version_label?: string;
+  version_label?: string;
   preview_url?: string;
   source_preview_url?: string;
-  validation_status: 'PENDING' | 'IMPROVED' | 'NO_CHANGE' | 'NEW_ISSUES_FOUND' | 'REVIEW_REQUIRED';
-  validation_inspection_id?: string;
-  report_reference?: string;
+  validation_status?: string;
+  status?: string;
+  change_count: number;
+  change_set: ApiSuggestedDesignChange[];
+  rendered_image_url?: string;
+  rendered_pdf_url?: string;
+  verification_status: 'PENDING' | 'VERIFIED' | 'FAILED' | 'REVIEW_REQUIRED';
+  revalidation_inspection_id?: string;
+  version_a_summary?: Record<string, number>;
+  version_b_summary?: Record<string, number>;
+  fixed_count?: number;
+  new_issues_count?: number;
+  review_changed_count?: number;
+  disclaimer: string;
   created_by: string;
   created_at: string;
+  updated_at: string;
 }
 
-export interface ApiComparisonDetail {
-  category: string;
-  field: string;
-  status_a: string;
-  status_b: string;
-  change_type: string;
-  detail: string;
+export interface ApiComparisonItem {
+  field_key: string;
+  field_name: string;
   rule_code: string;
+  rule_title: string;
+  source_reference?: string;
+  version_a_status: 'PASS' | 'ISSUE' | 'REVIEW' | 'N/A' | 'NOT_EVALUATED';
+  version_a_value: string;
+  version_a_explanation?: string;
+  version_b_status: 'PASS' | 'ISSUE' | 'REVIEW' | 'N/A' | 'NOT_EVALUATED';
+  version_b_value: string;
+  version_b_explanation?: string;
+  transition: 'FIXED' | 'IMPROVED' | 'UNCHANGED' | 'NEW_ISSUE' | 'REVIEW_CHANGED' | 'UNCHANGED_REVIEW';
+  is_regression: boolean;
+  notes: string;
 }
 
 export interface ApiComparisonResult {
   product_id: string;
   product_name: string;
   version_a_id: string;
-  version_b_id: string;
   version_a_label: string;
+  version_b_id: string;
   version_b_label: string;
   version_a_preview_url?: string;
   version_b_preview_url?: string;
@@ -290,10 +317,18 @@ export interface ApiComparisonResult {
   review_count: number;
   version_a_summary?: Record<string, number>;
   version_b_summary?: Record<string, number>;
-  details: ApiComparisonDetail[];
+  details: Array<{
+    category: string;
+    field: string;
+    status_a: string;
+    status_b: string;
+    change_type: string;
+    detail: string;
+    rule_code: string;
+  }>;
 }
 
-export interface ApiRegressionIssue {
+export interface ApiRegressionItem {
   rule_code: string;
   field: string;
   description: string;
@@ -310,26 +345,25 @@ export interface ApiRegressionResult {
   version_a_label: string;
   version_b_label: string;
   regression_detected: boolean;
-  regression_verdict: 'NO_REGRESSION' | 'REGRESSION_DETECTED' | 'IMPROVED';
-  fixed_issues: ApiRegressionIssue[];
-  new_issues_introduced: ApiRegressionIssue[];
-  improved_issues: ApiRegressionIssue[];
-  unchanged_issues: ApiRegressionIssue[];
-  review_changed_issues?: ApiRegressionIssue[];
+  regression_verdict: string;
+  fixed_issues: ApiRegressionItem[];
+  new_issues_introduced: ApiRegressionItem[];
+  improved_issues: ApiRegressionItem[];
+  unchanged_issues: ApiRegressionItem[];
+  review_changed_issues?: ApiRegressionItem[];
   version_a_summary?: Record<string, number>;
   version_b_summary?: Record<string, number>;
 }
 
 export interface ApiSimulationRequest {
-  rule_code?: string;
-  font_height_mm?: number;
-  pack_weight_g?: number;
-  pdp_area_sqcm?: number;
-  packaging_type?: string;
-  mrp?: string;
-  unit_sale_price?: string;
-  category?: string;
-  date_str?: string;
+  rule_code: string;
+  pdp_area_cm2?: number;
+  net_quantity_value?: number;
+  net_quantity_unit?: string;
+  mrp_value?: number;
+  is_state_excise_liquor?: boolean;
+  actual_character_height_mm?: number;
+  custom_parameters?: Record<string, any>;
 }
 
 export interface ApiSimulationResponse {
@@ -342,13 +376,7 @@ export interface ApiSimulationResponse {
   hypothetical_verdict: string;
   explanation: string;
   difference_label: string;
-  threshold_matrix?: Array<{
-    tier: string;
-    min_numeral_mm?: number;
-    min_letter_mm?: number;
-    pdp_area?: string;
-    rule?: string;
-  }>;
+  threshold_matrix?: Array<Record<string, any>>;
 }
 
 export interface ApiRiskMapItem {
@@ -356,10 +384,8 @@ export interface ApiRiskMapItem {
   category: string;
   field: string;
   rule_code: string;
-  status?: string;
-  density_level?: 'HIGH' | 'MEDIUM' | 'LOW';
-  risk_level?: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
-  risk_score?: number;
+  status: string;
+  density_level: string;
   bbox?: { x: number; y: number; width: number; height: number };
   finding_id?: string;
   explanation: string;
@@ -368,41 +394,182 @@ export interface ApiRiskMapItem {
 export interface ApiRiskMapResponse {
   product_id: string;
   inspection_id: string;
-  total_findings?: number;
-  issue_count?: number;
-  review_count?: number;
-  pass_count?: number;
-  high_density_count?: number;
-  medium_density_count?: number;
-  low_density_count?: number;
-  overall_risk_score?: number;
-  high_risk_count?: number;
-  medium_risk_count?: number;
-  low_risk_count?: number;
+  total_findings: number;
+  issue_count: number;
+  review_count: number;
+  pass_count: number;
+  high_density_count: number;
+  medium_density_count: number;
+  low_density_count: number;
   risk_items: ApiRiskMapItem[];
 }
 
+export interface ApiPassportVersion {
+  version_id: string;
+  version_number: number;
+  version_label: string;
+  storage_key: string;
+  created_at: string;
+  verification_status: string;
+  source_type: string;
+  file_hash?: string;
+}
+
+export interface ApiPassportInspection {
+  inspection_id: string;
+  version_label: string;
+  status: string;
+  created_at: string;
+  completed_at?: string;
+  pass_count: number;
+  issue_count: number;
+  review_count: number;
+  na_count: number;
+}
+
+export interface ApiPassportResponse {
+  product_id: string;
+  product_name: string;
+  brand: string;
+  sku: string;
+  category: string;
+  packaging_type: string;
+  net_quantity: string;
+  created_at: string;
+  versions: ApiPassportVersion[];
+  inspections: ApiPassportInspection[];
+  human_reviews: ApiHumanReview[];
+  audit_events: Array<{
+    id: string;
+    event_type: string;
+    actor_id: string;
+    actor_role: string;
+    entity_type: string;
+    entity_id: string;
+    details?: any;
+    created_at: string;
+  }>;
+  disclaimer: string;
+}
+
+// Token management helpers
+export const setAuthToken = (token: string) => {
+  localStorage.setItem('niyamora_token', token);
+};
+
+export const getAuthToken = (): string | null => {
+  return localStorage.getItem('niyamora_token');
+};
+
+export const clearAuthToken = () => {
+  localStorage.removeItem('niyamora_token');
+  localStorage.removeItem('niyamora_user');
+};
+
+// Authenticated fetch helper
+async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = getAuthToken();
+  const headers = new Headers(options.headers || {});
+  
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+
+  const res = await fetch(url, {
+    ...options,
+    headers,
+  });
+
+  if (res.status === 401) {
+    // If unauthorized, clear stale token
+    clearAuthToken();
+  }
+
+  return res;
+}
+
 export const api = {
-  async getHealth() {
-    const res = await fetch(`${API_BASE_URL}/api/health`);
-    if (!res.ok) throw new Error('Health check failed');
+  // Authentication
+  async signup(payload: {
+    name: string;
+    email: string;
+    company_name: string;
+    password: string;
+    role?: string;
+  }): Promise<ApiTokenResponse> {
+    const res = await fetch(`${API_BASE_URL}/api/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to sign up');
+    }
+    const data: ApiTokenResponse = await res.json();
+    if (data.access_token) {
+      setAuthToken(data.access_token);
+      localStorage.setItem('niyamora_user', JSON.stringify(data.user));
+    }
+    return data;
+  },
+
+  async login(payload: { email: string; password: string }): Promise<ApiTokenResponse> {
+    const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Incorrect email or password');
+    }
+    const data: ApiTokenResponse = await res.json();
+    if (data.access_token) {
+      setAuthToken(data.access_token);
+      localStorage.setItem('niyamora_user', JSON.stringify(data.user));
+    }
+    return data;
+  },
+
+  async getMe(): Promise<ApiUser> {
+    const res = await authFetch(`${API_BASE_URL}/api/auth/me`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Authentication required');
+    }
     return res.json();
   },
 
-  async getProducts(params?: { search?: string; packaging_type?: string }): Promise<ApiProduct[]> {
-    const query = new URLSearchParams();
-    if (params?.search) query.set('search', params.search);
-    if (params?.packaging_type && params.packaging_type !== 'ALL') {
-      query.set('packaging_type', params.packaging_type);
+  async logout(): Promise<void> {
+    try {
+      await authFetch(`${API_BASE_URL}/api/auth/logout`, { method: 'POST' });
+    } catch {
+      // Ignore network errors on logout
+    } finally {
+      clearAuthToken();
     }
-    const res = await fetch(`${API_BASE_URL}/api/products?${query.toString()}`);
-    if (!res.ok) throw new Error('Failed to fetch products');
+  },
+
+  // Products
+  async getProducts(search?: string, type?: string): Promise<ApiProduct[]> {
+    const query = new URLSearchParams();
+    if (search) query.set('search', search);
+    if (type && type !== 'ALL') query.set('packaging_type', type);
+    const res = await authFetch(`${API_BASE_URL}/api/products?${query.toString()}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch products');
+    }
     return res.json();
   },
 
   async getProduct(id: string): Promise<ApiProduct> {
-    const res = await fetch(`${API_BASE_URL}/api/products/${id}`);
-    if (!res.ok) throw new Error('Failed to fetch product');
+    const res = await authFetch(`${API_BASE_URL}/api/products/${id}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch product');
+    }
     return res.json();
   },
 
@@ -415,7 +582,7 @@ export const api = {
     net_quantity?: string;
     description?: string;
   }): Promise<ApiProduct> {
-    const res = await fetch(`${API_BASE_URL}/api/products`, {
+    const res = await authFetch(`${API_BASE_URL}/api/products`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -427,8 +594,19 @@ export const api = {
     return res.json();
   },
 
+  async deleteProduct(id: string): Promise<void> {
+    const res = await authFetch(`${API_BASE_URL}/api/products/${id}`, {
+      method: 'DELETE',
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to delete product');
+    }
+  },
+
+  // Inspection & Upload Check
   async uploadCheck(formData: FormData): Promise<ApiUploadCheckResponse> {
-    const res = await fetch(`${API_BASE_URL}/api/upload-check`, {
+    const res = await authFetch(`${API_BASE_URL}/api/upload-check`, {
       method: 'POST',
       body: formData,
     });
@@ -439,27 +617,50 @@ export const api = {
     return res.json();
   },
 
-  async getInspections(): Promise<ApiInspection[]> {
-    const res = await fetch(`${API_BASE_URL}/api/inspections`);
-    if (!res.ok) throw new Error('Failed to fetch inspections');
+  async getInspections(productId?: string): Promise<ApiInspection[]> {
+    const query = new URLSearchParams();
+    if (productId) query.set('product_id', productId);
+    const res = await authFetch(`${API_BASE_URL}/api/inspections?${query.toString()}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch inspections');
+    }
     return res.json();
   },
 
   async getInspection(id: string): Promise<ApiInspection> {
-    const res = await fetch(`${API_BASE_URL}/api/inspections/${id}`);
-    if (!res.ok) throw new Error('Failed to fetch inspection');
+    const res = await authFetch(`${API_BASE_URL}/api/inspections/${id}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch inspection');
+    }
     return res.json();
   },
 
   async getEvaluations(inspectionId: string): Promise<ApiEvaluation[]> {
-    const res = await fetch(`${API_BASE_URL}/api/inspections/${inspectionId}/evaluations`);
-    if (!res.ok) throw new Error('Failed to fetch evaluations');
+    const res = await authFetch(`${API_BASE_URL}/api/inspections/${inspectionId}/evaluations`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch evaluations');
+    }
     return res.json();
   },
 
   async getFindings(inspectionId: string): Promise<ApiFinding[]> {
-    const res = await fetch(`${API_BASE_URL}/api/inspections/${inspectionId}/findings`);
-    if (!res.ok) throw new Error('Failed to fetch findings');
+    const res = await authFetch(`${API_BASE_URL}/api/inspections/${inspectionId}/findings`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch findings');
+    }
+    return res.json();
+  },
+
+  async getEvidence(inspectionId: string): Promise<ApiEvidence[]> {
+    const res = await authFetch(`${API_BASE_URL}/api/inspections/${inspectionId}/evidence`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch evidence');
+    }
     return res.json();
   },
 
@@ -467,11 +668,15 @@ export const api = {
     const query = new URLSearchParams();
     if (category && category !== 'ALL') query.set('category', category);
     if (search) query.set('search', search);
-    const res = await fetch(`${API_BASE_URL}/api/rules?${query.toString()}`);
-    if (!res.ok) throw new Error('Failed to fetch rules');
+    const res = await authFetch(`${API_BASE_URL}/api/rules?${query.toString()}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch rules');
+    }
     return res.json();
   },
 
+  // Human Review Workflow
   async submitReview(payload: {
     inspection_id?: string;
     finding_id?: string;
@@ -479,7 +684,7 @@ export const api = {
     decision: string;
     notes?: string;
   }): Promise<ApiHumanReview> {
-    const res = await fetch(`${API_BASE_URL}/api/reviews`, {
+    const res = await authFetch(`${API_BASE_URL}/api/reviews`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
@@ -494,14 +699,17 @@ export const api = {
   async getReviews(inspectionId?: string): Promise<ApiHumanReview[]> {
     const query = new URLSearchParams();
     if (inspectionId) query.set('inspection_id', inspectionId);
-    const res = await fetch(`${API_BASE_URL}/api/reviews?${query.toString()}`);
-    if (!res.ok) throw new Error('Failed to fetch reviews');
+    const res = await authFetch(`${API_BASE_URL}/api/reviews?${query.toString()}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch reviews');
+    }
     return res.json();
   },
 
   // Phase 4 Suggested Design APIs
   async suggestDesign(productId: string, versionId: string): Promise<ApiSuggestedDesign> {
-    const res = await fetch(`${API_BASE_URL}/api/products/${productId}/artworks/${versionId}/suggest`, {
+    const res = await authFetch(`${API_BASE_URL}/api/products/${productId}/artworks/${versionId}/suggest`, {
       method: 'POST',
     });
     if (!res.ok) {
@@ -512,32 +720,44 @@ export const api = {
   },
 
   async getSuggestedDesign(id: string): Promise<ApiSuggestedDesign> {
-    const res = await fetch(`${API_BASE_URL}/api/suggested-designs/${id}`);
-    if (!res.ok) throw new Error('Failed to fetch suggested design');
+    const res = await authFetch(`${API_BASE_URL}/api/suggested-designs/${id}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch suggested design');
+    }
     return res.json();
   },
 
   async listSuggestedDesigns(productId?: string): Promise<ApiSuggestedDesign[]> {
     const query = new URLSearchParams();
     if (productId) query.set('product_id', productId);
-    const res = await fetch(`${API_BASE_URL}/api/suggested-designs?${query.toString()}`);
-    if (!res.ok) throw new Error('Failed to list suggested designs');
+    const res = await authFetch(`${API_BASE_URL}/api/suggested-designs?${query.toString()}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to list suggested designs');
+    }
     return res.json();
   },
 
   async renderSuggestedDesign(id: string): Promise<ApiSuggestedDesign> {
-    const res = await fetch(`${API_BASE_URL}/api/suggested-designs/${id}/render`, {
+    const res = await authFetch(`${API_BASE_URL}/api/suggested-designs/${id}/render`, {
       method: 'POST',
     });
-    if (!res.ok) throw new Error('Failed to render suggested design');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to render suggested design');
+    }
     return res.json();
   },
 
   async verifySuggestedDesign(id: string): Promise<ApiSuggestedDesign> {
-    const res = await fetch(`${API_BASE_URL}/api/suggested-designs/${id}/verify`, {
+    const res = await authFetch(`${API_BASE_URL}/api/suggested-designs/${id}/verify`, {
       method: 'POST',
     });
-    if (!res.ok) throw new Error('Failed to verify suggested design');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to verify suggested design');
+    }
     return res.json();
   },
 
@@ -545,13 +765,16 @@ export const api = {
     return `${API_BASE_URL}/api/suggested-designs/${id}/pdf`;
   },
 
-  // Phase 4 Comparison, Regression, Simulator & Risk Map APIs
+  // Comparison, Regression, Simulator & Risk Map
   async compareVersions(productId: string, versionAId?: string, versionBId?: string): Promise<ApiComparisonResult> {
     const query = new URLSearchParams();
     if (versionAId) query.set('version_a_id', versionAId);
     if (versionBId) query.set('version_b_id', versionBId);
-    const res = await fetch(`${API_BASE_URL}/api/products/${productId}/compare?${query.toString()}`);
-    if (!res.ok) throw new Error('Failed to compare versions');
+    const res = await authFetch(`${API_BASE_URL}/api/products/${productId}/compare?${query.toString()}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to compare versions');
+    }
     return res.json();
   },
 
@@ -559,26 +782,45 @@ export const api = {
     const query = new URLSearchParams();
     if (versionAId) query.set('version_a_id', versionAId);
     if (versionBId) query.set('version_b_id', versionBId);
-    const res = await fetch(`${API_BASE_URL}/api/products/${productId}/regression?${query.toString()}`);
-    if (!res.ok) throw new Error('Failed to fetch regression');
+    const res = await authFetch(`${API_BASE_URL}/api/products/${productId}/regression?${query.toString()}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch regression analysis');
+    }
     return res.json();
   },
 
   async simulateRule(productId: string, payload: ApiSimulationRequest): Promise<ApiSimulationResponse> {
-    const res = await fetch(`${API_BASE_URL}/api/products/${productId}/simulate`, {
+    const res = await authFetch(`${API_BASE_URL}/api/products/${productId}/simulate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
-    if (!res.ok) throw new Error('Failed to execute simulation');
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to execute simulation');
+    }
     return res.json();
   },
 
   async getRiskMap(productId: string, inspectionId?: string): Promise<ApiRiskMapResponse> {
     const query = new URLSearchParams();
     if (inspectionId) query.set('inspection_id', inspectionId);
-    const res = await fetch(`${API_BASE_URL}/api/products/${productId}/risk-map?${query.toString()}`);
-    if (!res.ok) throw new Error('Failed to fetch risk map');
+    const res = await authFetch(`${API_BASE_URL}/api/products/${productId}/risk-map?${query.toString()}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch risk map');
+    }
+    return res.json();
+  },
+
+  // Label Passport
+  async getPassport(productId: string): Promise<ApiPassportResponse> {
+    const res = await authFetch(`${API_BASE_URL}/api/products/${productId}/passport`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch label passport');
+    }
     return res.json();
   },
 

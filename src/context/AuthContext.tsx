@@ -1,23 +1,16 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { User } from '../types';
+import { api, getAuthToken, clearAuthToken } from '../services/api';
 
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
+  isLoading: boolean;
   login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   signup: (name: string, email: string, company: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => void;
   updateProfile: (data: Partial<User>) => void;
 }
-
-const DEFAULT_USER: User = {
-  id: 'usr_01',
-  name: 'Devin Vance',
-  email: 'devin@aurapackaging.com',
-  company: 'Aura Packaging Labs',
-  role: 'COMPANY_USER',
-  avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -28,70 +21,105 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         return JSON.parse(saved);
       } catch {
-        return DEFAULT_USER;
+        return null;
       }
     }
-    return DEFAULT_USER; // Default logged in for smooth exploration
+    return null;
   });
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
+  // Validate stored session with backend on initial mount
   useEffect(() => {
-    if (user) {
-      localStorage.setItem('niyamora_user', JSON.stringify(user));
-    } else {
-      localStorage.removeItem('niyamora_user');
+    async function verifySession() {
+      const token = getAuthToken();
+      if (token) {
+        try {
+          const me = await api.getMe();
+          const liveUser: User = {
+            id: me.id,
+            name: me.name,
+            email: me.email,
+            company: me.company_name || 'Packaging Works Co.',
+            role: me.role,
+          };
+          setUser(liveUser);
+          localStorage.setItem('niyamora_user', JSON.stringify(liveUser));
+        } catch {
+          // Token expired or invalid
+          clearAuthToken();
+          setUser(null);
+        }
+      }
+      setIsLoading(false);
     }
-  }, [user]);
+    verifySession();
+  }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    // Basic validation
     if (!email || !password) {
       return { success: false, error: 'Please enter both email and password' };
     }
-    if (password.length < 6) {
-      return { success: false, error: 'Password must be at least 6 characters' };
-    }
 
-    const newUser: User = {
-      id: 'usr_' + Math.random().toString(36).substr(2, 6),
-      name: email.split('@')[0].replace('.', ' ').replace(/\b\w/g, (c) => c.toUpperCase()),
-      email,
-      company: 'Packaging Works Co.',
-      role: 'COMPANY_USER',
-    };
-    setUser(newUser);
-    return { success: true };
+    try {
+      const res = await api.login({ email, password });
+      const authenticatedUser: User = {
+        id: res.user.id,
+        name: res.user.name,
+        email: res.user.email,
+        company: res.user.company_name || 'Company',
+        role: res.user.role,
+      };
+      setUser(authenticatedUser);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Login failed. Please check your credentials.' };
+    }
   };
 
   const signup = async (name: string, email: string, company: string, password: string): Promise<{ success: boolean; error?: string }> => {
     if (!name || !email || !company || !password) {
       return { success: false, error: 'All fields are required' };
     }
-    if (password.length < 8) {
-      return { success: false, error: 'Password must be at least 8 characters long' };
+    if (password.length < 6) {
+      return { success: false, error: 'Password must be at least 6 characters long' };
     }
 
-    const newUser: User = {
-      id: 'usr_' + Math.random().toString(36).substr(2, 6),
-      name,
-      email,
-      company,
-      role: 'COMPANY_USER', // Strict default role for public signup
-    };
-    setUser(newUser);
-    return { success: true };
+    try {
+      const res = await api.signup({
+        name,
+        email,
+        company_name: company,
+        password,
+      });
+      const registeredUser: User = {
+        id: res.user.id,
+        name: res.user.name,
+        email: res.user.email,
+        company: res.user.company_name || company,
+        role: res.user.role,
+      };
+      setUser(registeredUser);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Signup failed. Please try again.' };
+    }
   };
 
   const logout = () => {
-    setUser(null);
+    api.logout().finally(() => {
+      setUser(null);
+    });
   };
 
   const updateProfile = (data: Partial<User>) => {
     if (!user) return;
-    setUser({ ...user, ...data });
+    const updated = { ...user, ...data };
+    setUser(updated);
+    localStorage.setItem('niyamora_user', JSON.stringify(updated));
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated: !!user, login, signup, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, isAuthenticated: !!user, isLoading, login, signup, logout, updateProfile }}>
       {children}
     </AuthContext.Provider>
   );

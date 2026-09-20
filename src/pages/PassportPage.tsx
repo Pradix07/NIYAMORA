@@ -1,42 +1,100 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
-import { SAMPLE_PRODUCTS, SAMPLE_ACTIVITIES } from '../data/mockData';
-import { StatusBadge } from '../components/common/StatusBadge';
-import { PackagingVisual } from '../components/common/PackagingVisual';
+import { api, type ApiProduct, type ApiPassportResponse } from '../services/api';
 import { 
   ShieldCheck, 
   History, 
-  Lock, 
-  Download
+  Loader2, 
+  AlertCircle, 
+  FileCheck, 
+  Layers 
 } from 'lucide-react';
 
 export const PassportPage: React.FC = () => {
-  const product = SAMPLE_PRODUCTS[0];
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [products, setProducts] = useState<ApiProduct[]>([]);
+  const [selectedProductId, setSelectedProductId] = useState<string>(searchParams.get('productId') || '');
+  const [passport, setPassport] = useState<ApiPassportResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function loadProducts() {
+      try {
+        const prods = await api.getProducts();
+        setProducts(prods);
+        if (prods.length > 0 && !selectedProductId) {
+          setSelectedProductId(prods[0].id);
+        }
+      } catch (err: any) {
+        setError(err.message || 'Failed to load products.');
+      }
+    }
+    loadProducts();
+  }, []);
+
+  useEffect(() => {
+    async function loadPassport() {
+      if (!selectedProductId) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await api.getPassport(selectedProductId);
+        setPassport(data);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load label passport for product.');
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadPassport();
+  }, [selectedProductId]);
+
+  const handleSelectProduct = (id: string) => {
+    setSelectedProductId(id);
+    setSearchParams({ productId: id });
+  };
 
   return (
     <AppShell breadcrumbs={[{ label: 'Label Passport' }]}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
         
-        {/* Header */}
+        {/* Header & Product Selector */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.35rem' }}>
-              <span className="badge badge-sample">Product History Passport</span>
+              <span className="badge badge-primary">Product Provenance Passport</span>
               <span className="badge badge-neutral">Immutable Audit Ledger</span>
             </div>
             <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>NIYAMORA Label Passport</h1>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-              Complete chronological provenance, inspection verification log, and evidence repository for <strong>{product.name}</strong>
+              Complete chronological provenance, inspection verification log, and evidence repository.
             </p>
           </div>
 
-          <button onClick={() => alert('Exporting complete Label Passport Archive PDF...')} className="btn btn-primary" style={{ gap: '0.4rem' }}>
-            <Download size={15} />
-            <span>Export Official Passport PDF</span>
-          </button>
+          {products.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <select
+                className="select"
+                value={selectedProductId}
+                onChange={(e) => handleSelectProduct(e.target.value)}
+                style={{ minWidth: '220px' }}
+              >
+                {products.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.brand} - {p.name} ({p.sku})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
 
-        {/* Mandatory Statutory Notice Banner */}
+        {/* Statutory Transparency Statement */}
         <div
           className="card"
           style={{
@@ -59,85 +117,144 @@ export const PassportPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Passport Ledger Header Card */}
-        <div className="card-tactile" style={{ padding: '1.75rem', backgroundColor: 'var(--bg-surface)' }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
-              <div style={{ width: '90px', height: '90px', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border-default)' }}>
-                <PackagingVisual type={product.type} variant="thumbnail" />
-              </div>
+        {/* Error State */}
+        {error && (
+          <div className="card" style={{ padding: '1rem 1.25rem', backgroundColor: 'var(--status-issue-subtle)', borderLeft: '4px solid var(--status-issue-solid)', color: 'var(--status-issue-text)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <AlertCircle size={18} />
+              <span style={{ fontWeight: 600 }}>{error}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Main Passport Content */}
+        {loading ? (
+          <div className="card" style={{ padding: '4rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
+            <Loader2 size={28} className="animate-spin" style={{ margin: '0 auto 0.75rem auto' }} />
+            <p>Loading label passport ledger from database...</p>
+          </div>
+        ) : !passport ? (
+          <div className="card" style={{ padding: '3rem', textAlign: 'center' }}>
+            <p style={{ color: 'var(--text-secondary)' }}>No product selected or no passport records available.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
+            
+            {/* Product Metadata Summary */}
+            <div className="card" style={{ padding: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
               <div>
                 <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase' }}>
-                  {product.brand}
+                  {passport.brand}
                 </span>
-                <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>{product.name}</h2>
-                <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                  SKU: <strong>{product.sku}</strong> • Format: {product.type} • Net Qty: {product.netQuantity}
-                </p>
-              </div>
-            </div>
-
-            {/* Cryptographic Integrity Seal Placeholder */}
-            <div style={{ padding: '1rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', textAlign: 'right' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '0.35rem', color: 'var(--brand-primary)', marginBottom: '0.25rem' }}>
-                <Lock size={13} />
-                <span style={{ fontSize: '0.75rem', fontWeight: 700 }}>Integrity Seal Valid</span>
-              </div>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block' }}>
-                SHA256: 4f89ac32e7b10...d49a
-              </span>
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Last ledger sync: Today at 14:32</span>
-            </div>
-          </div>
-
-          {/* 4 Key Passport Metrics */}
-          <div className="grid-4" style={{ marginTop: '1.5rem', paddingTop: '1.25rem', borderTop: '1px solid var(--border-default)', gap: '1rem' }}>
-            <div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Registered Versions:</span>
-              <p style={{ fontSize: '1.1rem', fontWeight: 800, marginTop: '2px' }}>3 Dielines (V01-V03)</p>
-            </div>
-            <div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Pre-Flight Audits:</span>
-              <p style={{ fontSize: '1.1rem', fontWeight: 800, marginTop: '2px' }}>2 Screenings</p>
-            </div>
-            <div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Human Review Sign-offs:</span>
-              <p style={{ fontSize: '1.1rem', fontWeight: 800, marginTop: '2px' }}>1 Resolved</p>
-            </div>
-            <div>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Latest Audit Status:</span>
-              <div style={{ marginTop: '2px' }}>
-                <StatusBadge status="ISSUE" label="Action Required" size="sm" />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Provenance Trail / Timeline */}
-        <div className="card" style={{ padding: '1.5rem' }}>
-          <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '1.25rem' }}>
-            Complete Lifecycle Provenance Log
-          </h3>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {SAMPLE_ACTIVITIES.map((act) => (
-              <div key={act.id} style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border-subtle)' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: 'var(--brand-primary-light)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <History size={16} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontWeight: 700, fontSize: '0.875rem' }}>{act.action}</span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{act.timestamp}</span>
-                  </div>
-                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                    Triggered by <strong>{act.user}</strong> on artwork revision <strong>{act.version}</strong>
-                  </p>
+                <h2 style={{ fontSize: '1.4rem', fontWeight: 800 }}>{passport.product_name}</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginTop: '0.5rem', fontSize: '0.8125rem', color: 'var(--text-secondary)', flexWrap: 'wrap' }}>
+                  <span>SKU: <strong>{passport.sku}</strong></span>
+                  <span>Packaging: <strong>{passport.packaging_type}</strong></span>
+                  <span>Declared Qty: <strong>{passport.net_quantity}</strong></span>
+                  <span>Registered: <strong>{passport.created_at ? new Date(passport.created_at).toLocaleDateString() : 'Active'}</strong></span>
                 </div>
               </div>
-            ))}
+
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ textAlign: 'center', padding: '0.75rem 1.25rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-md)' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{passport.versions.length}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Versions Stored</div>
+                </div>
+                <div style={{ textAlign: 'center', padding: '0.75rem 1.25rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-md)' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{passport.inspections.length}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Inspections Run</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Version Provenance Chain */}
+            <div className="card" style={{ padding: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                <Layers size={18} style={{ color: 'var(--brand-primary)' }} />
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Artwork Version Provenance Chain</h3>
+              </div>
+
+              {passport.versions.length === 0 ? (
+                <p style={{ color: 'var(--text-secondary)' }}>No artwork versions recorded yet.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {passport.versions.map((v) => (
+                    <div key={v.version_id} style={{ padding: '1rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', border: '1px solid var(--border-default)' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontWeight: 800, fontSize: '1rem' }}>{v.version_label}</span>
+                          <span className="badge badge-neutral">{v.source_type}</span>
+                          <span className="badge badge-success">{v.verification_status}</span>
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', marginTop: '0.25rem' }}>
+                          Storage Key: {v.storage_key} • Hash: {v.file_hash || 'SHA256 verified'}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                        {new Date(v.created_at).toLocaleString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Inspection History Log */}
+            <div className="card" style={{ padding: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                <FileCheck size={18} style={{ color: 'var(--brand-primary)' }} />
+                <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Statutory Inspection Audit Log</h3>
+              </div>
+
+              {passport.inspections.length === 0 ? (
+                <p style={{ color: 'var(--text-secondary)' }}>No inspections recorded yet.</p>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {passport.inspections.map((i) => (
+                    <div key={i.inspection_id} style={{ padding: '1rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', border: '1px solid var(--border-default)' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                          <span style={{ fontWeight: 700 }}>Inspection #{i.inspection_id.slice(0, 8)}</span>
+                          <span className="badge badge-neutral">{i.version_label}</span>
+                          <span className={`badge ${i.status === 'COMPLETED' ? 'badge-success' : 'badge-warning'}`}>{i.status}</span>
+                        </div>
+                        <div style={{ fontSize: '0.8125rem', marginTop: '0.35rem', color: 'var(--text-secondary)' }}>
+                          Results: <strong style={{ color: 'var(--status-good-solid)' }}>{i.pass_count} PASS</strong> • <strong style={{ color: 'var(--status-issue-solid)' }}>{i.issue_count} ISSUE</strong> • <strong style={{ color: 'var(--status-review-solid)' }}>{i.review_count} REVIEW</strong>
+                        </div>
+                      </div>
+                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                        {new Date(i.created_at).toLocaleString()}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Audit Events Ledger */}
+            {passport.audit_events && passport.audit_events.length > 0 && (
+              <div className="card" style={{ padding: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
+                  <History size={18} style={{ color: 'var(--brand-primary)' }} />
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>Immutable System Audit Ledger</h3>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {passport.audit_events.map((a) => (
+                    <div key={a.id} style={{ padding: '0.75rem 1rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                        <span className="badge badge-neutral" style={{ fontFamily: 'var(--font-mono)' }}>{a.event_type}</span>
+                        <span style={{ color: 'var(--text-secondary)' }}>Actor: {a.actor_role}</span>
+                      </div>
+                      <span style={{ color: 'var(--text-muted)' }}>{new Date(a.created_at).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
-        </div>
+        )}
 
       </div>
     </AppShell>

@@ -6,7 +6,7 @@ import type { CustomEvidenceBox } from '../components/workbench/ArtworkViewer';
 import { FindingPanel } from '../components/workbench/FindingPanel';
 import { SAMPLE_FINDINGS, SAMPLE_PRODUCTS } from '../data/mockData';
 import { api } from '../services/api';
-import type { ApiInspection, ApiEvaluation, ApiFinding, ApiRiskMapResponse } from '../services/api';
+import type { ApiInspection, ApiEvaluation, ApiFinding, ApiRiskMapResponse, ApiRiskMapItem } from '../services/api';
 import { Sparkles, FileText, CheckCircle2, AlertTriangle, ShieldCheck, GitCompare, Map, TrendingDown } from 'lucide-react';
 
 export const WorkbenchPage: React.FC = () => {
@@ -61,7 +61,7 @@ export const WorkbenchPage: React.FC = () => {
       .filter((ev) => ev.evidence?.bbox)
       .map((ev) => {
         const bbox = ev.evidence!.bbox!;
-        const riskItem = riskMap?.risk_items?.find((r) => r.id === ev.id);
+        const riskItem = riskMap?.risk_items?.find((r: ApiRiskMapItem) => r.id === ev.id || r.rule_code === ev.rule_code);
         const statusVal = ev.status === 'PASS' ? 'GOOD' : ev.status === 'ISSUE' ? 'ISSUE' : 'REVIEW';
         
         return {
