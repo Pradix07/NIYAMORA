@@ -89,15 +89,33 @@ export const ProductDetailPage: React.FC = () => {
             </div>
 
             {/* Status Badge & Actions */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
               <StatusBadge status={product.status} size="lg" />
+              
               <button
-                onClick={() => navigate('/new-check')}
+                onClick={() => navigate(`/improve?productId=${product.id}`)}
                 className="btn btn-primary"
                 style={{ gap: '0.4rem' }}
               >
+                <span>Improve Design</span>
+              </button>
+
+              <button
+                onClick={() => navigate(`/compare?productId=${product.id}`)}
+                className="btn btn-secondary"
+                style={{ gap: '0.4rem' }}
+              >
+                <GitCompare size={15} />
+                <span>Compare</span>
+              </button>
+
+              <button
+                onClick={() => navigate('/new-check')}
+                className="btn btn-outline"
+                style={{ gap: '0.4rem' }}
+              >
                 <Plus size={15} />
-                <span>Upload New Version</span>
+                <span>New Version</span>
               </button>
             </div>
           </div>

@@ -6,8 +6,8 @@ import type { CustomEvidenceBox } from '../components/workbench/ArtworkViewer';
 import { FindingPanel } from '../components/workbench/FindingPanel';
 import { SAMPLE_FINDINGS, SAMPLE_PRODUCTS } from '../data/mockData';
 import { api } from '../services/api';
-import type { ApiInspection, ApiEvaluation, ApiFinding } from '../services/api';
-import { Sparkles, FileText, CheckCircle2, AlertTriangle, ShieldCheck } from 'lucide-react';
+import type { ApiInspection, ApiEvaluation, ApiFinding, ApiRiskMapResponse } from '../services/api';
+import { Sparkles, FileText, CheckCircle2, AlertTriangle, ShieldCheck, GitCompare, Map, TrendingDown } from 'lucide-react';
 
 export const WorkbenchPage: React.FC = () => {
   const navigate = useNavigate();
@@ -18,6 +18,8 @@ export const WorkbenchPage: React.FC = () => {
   const [evaluations, setEvaluations] = useState<ApiEvaluation[]>([]);
   const [findings, setFindings] = useState<ApiFinding[]>([]);
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null);
+  const [riskMap, setRiskMap] = useState<ApiRiskMapResponse | null>(null);
+  const [showRiskMap, setShowRiskMap] = useState<boolean>(false);
 
   const fallbackProduct = SAMPLE_PRODUCTS[0];
   const fallbackFindings = SAMPLE_FINDINGS;
@@ -30,11 +32,13 @@ export const WorkbenchPage: React.FC = () => {
           return Promise.all([
             api.getEvaluations(inspectionId).catch(() => []),
             api.getFindings(inspectionId).catch(() => []),
+            api.getRiskMap(data.product_id, inspectionId).catch(() => null),
           ]);
         })
-        .then(([evals, fnds]) => {
+        .then(([evals, fnds, risk]) => {
           setEvaluations(evals);
           setFindings(fnds);
+          if (risk) setRiskMap(risk);
           if (evals.length > 0) {
             setSelectedFindingId(evals[0].id);
           } else if (fnds.length > 0) {
@@ -57,15 +61,18 @@ export const WorkbenchPage: React.FC = () => {
       .filter((ev) => ev.evidence?.bbox)
       .map((ev) => {
         const bbox = ev.evidence!.bbox!;
+        const riskItem = riskMap?.risk_items?.find((r) => r.id === ev.id);
+        const statusVal = ev.status === 'PASS' ? 'GOOD' : ev.status === 'ISSUE' ? 'ISSUE' : 'REVIEW';
+        
         return {
           id: ev.id,
           x: typeof bbox.x === 'number' ? bbox.x : 10,
           y: typeof bbox.y === 'number' ? bbox.y : 10,
           width: typeof bbox.width === 'number' ? bbox.width : 20,
           height: typeof bbox.height === 'number' ? bbox.height : 10,
-          label: ev.rule_title,
+          label: showRiskMap && riskItem ? `[DENSITY: ${riskItem.density_level || 'EVALUATED'}] ${ev.rule_title}` : ev.rule_title,
           text: ev.observed_value || undefined,
-          status: ev.status === 'PASS' ? 'GOOD' : ev.status === 'ISSUE' ? 'ISSUE' : 'REVIEW',
+          status: statusVal,
         };
       });
   } else if (inspection?.extracted_data?.fields) {
@@ -88,9 +95,11 @@ export const WorkbenchPage: React.FC = () => {
   const versionLabel = inspection?.version_label || fallbackProduct.latestVersion;
   const previewUrl = inspection?.preview_url ? api.getFileUrl(inspection.preview_url) : null;
   const complianceVerdict = inspection?.compliance_verdict;
+  const productId = inspection?.product_id || fallbackProduct.id;
+  const versionId = inspection?.artwork_version_id;
 
   return (
-    <AppShell breadcrumbs={[{ label: 'Products', path: '/products' }, { label: productName, path: `/products/${fallbackProduct.id}` }, { label: 'Results & Workbench' }]}>
+    <AppShell breadcrumbs={[{ label: 'Products', path: '/products' }, { label: productName, path: `/products/${productId}` }, { label: 'Results & Workbench' }]}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', height: 'calc(100vh - 110px)' }}>
         
         {/* Top Product Context & Action Bar */}
@@ -109,7 +118,7 @@ export const WorkbenchPage: React.FC = () => {
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--brand-primary)', textTransform: 'uppercase' }}>
                   {brandName}
                 </span>
@@ -132,9 +141,19 @@ export const WorkbenchPage: React.FC = () => {
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button
-              onClick={() => navigate('/improve')}
+              onClick={() => setShowRiskMap(!showRiskMap)}
+              className={`btn btn-sm ${showRiskMap ? 'btn-primary' : 'btn-secondary'}`}
+              style={{ gap: '0.35rem' }}
+              title="Toggle spatial finding density overlay"
+            >
+              <Map size={13} />
+              <span>{showRiskMap ? 'Hide Attention Map' : 'Attention Map Overlay'}</span>
+            </button>
+
+            <button
+              onClick={() => navigate(`/improve?productId=${productId}${versionId ? `&versionId=${versionId}` : ''}`)}
               className="btn btn-primary btn-sm"
               style={{ gap: '0.35rem', boxShadow: '0 2px 8px rgba(79, 70, 229, 0.3)' }}
             >
@@ -143,12 +162,30 @@ export const WorkbenchPage: React.FC = () => {
             </button>
 
             <button
-              onClick={() => navigate('/reports')}
+              onClick={() => navigate(`/compare?productId=${productId}`)}
               className="btn btn-secondary btn-sm"
               style={{ gap: '0.35rem' }}
             >
+              <GitCompare size={14} />
+              <span>Compare</span>
+            </button>
+
+            <button
+              onClick={() => navigate(`/regression?productId=${productId}`)}
+              className="btn btn-secondary btn-sm"
+              style={{ gap: '0.35rem' }}
+            >
+              <TrendingDown size={14} />
+              <span>View Regression</span>
+            </button>
+
+            <button
+              onClick={() => navigate('/reports')}
+              className="btn btn-outline btn-sm"
+              style={{ gap: '0.35rem' }}
+            >
               <FileText size={14} />
-              <span>Export Audit PDF</span>
+              <span>Audit PDF</span>
             </button>
           </div>
         </div>
@@ -181,7 +218,7 @@ export const WorkbenchPage: React.FC = () => {
             extractedFields={inspection?.extracted_data?.fields}
             selectedFindingId={selectedFindingId}
             onSelectFinding={(id) => setSelectedFindingId(id)}
-            onOpenImprove={() => navigate('/improve')}
+            onOpenImprove={() => navigate(`/improve?productId=${productId}${versionId ? `&versionId=${versionId}` : ''}`)}
             complianceVerdict={complianceVerdict}
           />
         </div>

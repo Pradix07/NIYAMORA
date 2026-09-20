@@ -14,6 +14,7 @@ from backend.app.models.compliance import (
     Finding,
     HumanReview,
 )
+from backend.app.models.suggested_design import SuggestedDesign, AuditEvent
 
 __all__ = [
     "Company",
@@ -30,4 +31,6 @@ __all__ = [
     "Evaluation",
     "Finding",
     "HumanReview",
+    "SuggestedDesign",
+    "AuditEvent",
 ]

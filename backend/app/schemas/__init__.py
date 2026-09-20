@@ -10,6 +10,16 @@ from backend.app.schemas.inspection import (
     ExtractedField,
     ExtractionResult,
 )
+from backend.app.schemas.suggested_design import (
+    SuggestedDesignChange,
+    SuggestedDesignRead,
+    ComparisonResultRead,
+    RegressionResultRead,
+    SimulationRequest,
+    SimulationResponse,
+    RiskMapResponse,
+    RiskMapItem,
+)
 
 __all__ = [
     "ProductCreate",
@@ -26,4 +36,12 @@ __all__ = [
     "TextBlock",
     "ExtractedField",
     "ExtractionResult",
+    "SuggestedDesignChange",
+    "SuggestedDesignRead",
+    "ComparisonResultRead",
+    "RegressionResultRead",
+    "SimulationRequest",
+    "SimulationResponse",
+    "RiskMapResponse",
+    "RiskMapItem",
 ]

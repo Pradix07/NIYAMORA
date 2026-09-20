@@ -1,16 +1,31 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { SAMPLE_VERSIONS, SAMPLE_PRODUCTS } from '../data/mockData';
 import { StatusBadge } from '../components/common/StatusBadge';
-import { GitCompare, Plus, ArrowRight, Clock, User, HardDrive } from 'lucide-react';
+import { GitCompare, Plus, ArrowRight, Clock, User, HardDrive, Sparkles, TrendingDown } from 'lucide-react';
+import { api } from '../services/api';
+import type { ApiProduct } from '../services/api';
 
 export const VersionsPage: React.FC = () => {
   const navigate = useNavigate();
-  const product = SAMPLE_PRODUCTS[0];
+  const [searchParams] = useSearchParams();
+  const queryProductId = searchParams.get('productId');
+
+  const [product, setProduct] = useState<ApiProduct | null>(null);
+  const fallbackProduct = SAMPLE_PRODUCTS[0];
+
+  useEffect(() => {
+    if (queryProductId) {
+      api.getProduct(queryProductId).then(setProduct).catch(() => null);
+    }
+  }, [queryProductId]);
+
+  const productName = product?.name || fallbackProduct.name;
+  const prodId = product?.id || fallbackProduct.id;
 
   return (
-    <AppShell breadcrumbs={[{ label: 'Products', path: '/products' }, { label: product.name, path: `/products/${product.id}` }, { label: 'Versions' }]}>
+    <AppShell breadcrumbs={[{ label: 'Products', path: '/products' }, { label: productName, path: `/products/${prodId}` }, { label: 'Versions' }]}>
       <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
         
         {/* Header */}
@@ -19,17 +34,27 @@ export const VersionsPage: React.FC = () => {
             <span className="badge badge-sample" style={{ marginBottom: '0.35rem' }}>Version Control Ledger</span>
             <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Artwork Version History</h1>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
-              Tracking chronological pre-press artwork revisions for <strong>{product.name}</strong>
+              Tracking chronological pre-press artwork revisions for <strong>{productName}</strong>
             </p>
           </div>
 
-          <div style={{ display: 'flex', gap: '0.75rem' }}>
-            <button onClick={() => navigate('/compare')} className="btn btn-secondary" style={{ gap: '0.4rem' }}>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <button onClick={() => navigate(`/improve?productId=${prodId}`)} className="btn btn-primary" style={{ gap: '0.4rem' }}>
+              <Sparkles size={15} />
+              <span>Improve Design</span>
+            </button>
+
+            <button onClick={() => navigate(`/compare?productId=${prodId}`)} className="btn btn-secondary" style={{ gap: '0.4rem' }}>
               <GitCompare size={15} />
               <span>Compare Versions</span>
             </button>
 
-            <button onClick={() => navigate('/new-check')} className="btn btn-primary" style={{ gap: '0.4rem' }}>
+            <button onClick={() => navigate(`/regression?productId=${prodId}`)} className="btn btn-outline" style={{ gap: '0.4rem' }}>
+              <TrendingDown size={15} />
+              <span>Regression</span>
+            </button>
+
+            <button onClick={() => navigate('/new-check')} className="btn btn-secondary" style={{ gap: '0.4rem' }}>
               <Plus size={15} />
               <span>Upload New Version</span>
             </button>
@@ -65,7 +90,7 @@ export const VersionsPage: React.FC = () => {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
                       <h3 style={{ fontSize: '1.15rem', fontWeight: 700 }}>Revision {v.versionLabel}</h3>
                       <StatusBadge status={v.status} />
-                      {index === 0 && <span className="badge badge-neutral">Active Production Target</span>}
+                      {index === 0 && <span className="badge badge-neutral">Active Target</span>}
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
@@ -88,12 +113,12 @@ export const VersionsPage: React.FC = () => {
 
                 {/* Card Actions */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <button onClick={() => navigate('/workbench')} className="btn btn-secondary btn-sm" style={{ gap: '0.35rem' }}>
+                  <button onClick={() => navigate(`/workbench?productId=${prodId}`)} className="btn btn-secondary btn-sm" style={{ gap: '0.35rem' }}>
                     <span>Inspect</span>
                     <ArrowRight size={13} />
                   </button>
 
-                  <button onClick={() => navigate('/compare')} className="btn btn-outline btn-sm" style={{ gap: '0.35rem' }}>
+                  <button onClick={() => navigate(`/compare?productId=${prodId}`)} className="btn btn-outline btn-sm" style={{ gap: '0.35rem' }}>
                     <GitCompare size={13} />
                     <span>Compare</span>
                   </button>

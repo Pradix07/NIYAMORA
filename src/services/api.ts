@@ -208,6 +208,180 @@ export interface ApiInspection {
   completed_at?: string;
 }
 
+// Phase 4 Interfaces
+export interface ApiStructuredUSP {
+  quantity_basis: string;
+  quantity_value: number;
+  quantity_unit: string;
+  usp_basis: string;
+  usp_value?: number;
+  usp_unit: string;
+  mrp_value?: number;
+  rounding_rule?: string;
+  rule_version?: string;
+  applicability?: string;
+  evaluation_status?: string;
+  scope_note?: string;
+}
+
+export interface ApiSuggestedDesignChange {
+  change_id: string;
+  finding_id?: string;
+  field_key: string;
+  field_name: string;
+  original_value?: string;
+  suggested_value: string;
+  original_location?: { x: number; y: number; width: number; height: number };
+  suggested_location?: { x: number; y: number; width: number; height: number };
+  original_style?: Record<string, any>;
+  suggested_style?: Record<string, any>;
+  reason: string;
+  rule_code: string;
+  rule_reference?: string;
+  evidence_reference?: string;
+  change_type: 'CORRECTION' | 'ADDITION' | 'REPOSITION' | 'REFORMAT' | 'REVIEW_REQUIRED';
+  status: 'FIXED' | 'IMPROVED' | 'REVIEW' | 'REVIEW_REQUIRED';
+  structured_usp?: ApiStructuredUSP | null;
+}
+
+export interface ApiSuggestedDesign {
+  id: string;
+  product_id: string;
+  product_name?: string;
+  source_artwork_version_id: string;
+  source_inspection_id: string;
+  suggested_artwork_version_id?: string;
+  version_label: string;
+  status: 'GENERATED' | 'RENDERED' | 'VERIFIED' | 'APPLIED';
+  change_set: ApiSuggestedDesignChange[];
+  rendered_artwork_reference?: string;
+  preview_url?: string;
+  source_preview_url?: string;
+  validation_status: 'PENDING' | 'IMPROVED' | 'NO_CHANGE' | 'NEW_ISSUES_FOUND' | 'REVIEW_REQUIRED';
+  validation_inspection_id?: string;
+  report_reference?: string;
+  created_by: string;
+  created_at: string;
+}
+
+export interface ApiComparisonDetail {
+  category: string;
+  field: string;
+  status_a: string;
+  status_b: string;
+  change_type: string;
+  detail: string;
+  rule_code: string;
+}
+
+export interface ApiComparisonResult {
+  product_id: string;
+  product_name: string;
+  version_a_id: string;
+  version_b_id: string;
+  version_a_label: string;
+  version_b_label: string;
+  version_a_preview_url?: string;
+  version_b_preview_url?: string;
+  fixed_count: number;
+  improved_count: number;
+  unchanged_count: number;
+  new_issue_count: number;
+  review_count: number;
+  version_a_summary?: Record<string, number>;
+  version_b_summary?: Record<string, number>;
+  details: ApiComparisonDetail[];
+}
+
+export interface ApiRegressionIssue {
+  rule_code: string;
+  field: string;
+  description: string;
+  old_status: string;
+  new_status: string;
+  severity: string;
+  suggested_action?: string;
+}
+
+export interface ApiRegressionResult {
+  product_id: string;
+  product_name: string;
+  comparison_title: string;
+  version_a_label: string;
+  version_b_label: string;
+  regression_detected: boolean;
+  regression_verdict: 'NO_REGRESSION' | 'REGRESSION_DETECTED' | 'IMPROVED';
+  fixed_issues: ApiRegressionIssue[];
+  new_issues_introduced: ApiRegressionIssue[];
+  improved_issues: ApiRegressionIssue[];
+  unchanged_issues: ApiRegressionIssue[];
+  review_changed_issues?: ApiRegressionIssue[];
+  version_a_summary?: Record<string, number>;
+  version_b_summary?: Record<string, number>;
+}
+
+export interface ApiSimulationRequest {
+  rule_code?: string;
+  font_height_mm?: number;
+  pack_weight_g?: number;
+  pdp_area_sqcm?: number;
+  packaging_type?: string;
+  mrp?: string;
+  unit_sale_price?: string;
+  category?: string;
+  date_str?: string;
+}
+
+export interface ApiSimulationResponse {
+  rule_code: string;
+  rule_title: string;
+  source_reference: string;
+  current_parameter: Record<string, any>;
+  hypothetical_parameter: Record<string, any>;
+  current_verdict: string;
+  hypothetical_verdict: string;
+  explanation: string;
+  difference_label: string;
+  threshold_matrix?: Array<{
+    tier: string;
+    min_numeral_mm?: number;
+    min_letter_mm?: number;
+    pdp_area?: string;
+    rule?: string;
+  }>;
+}
+
+export interface ApiRiskMapItem {
+  id: string;
+  category: string;
+  field: string;
+  rule_code: string;
+  status?: string;
+  density_level?: 'HIGH' | 'MEDIUM' | 'LOW';
+  risk_level?: 'HIGH' | 'MEDIUM' | 'LOW' | 'NONE';
+  risk_score?: number;
+  bbox?: { x: number; y: number; width: number; height: number };
+  finding_id?: string;
+  explanation: string;
+}
+
+export interface ApiRiskMapResponse {
+  product_id: string;
+  inspection_id: string;
+  total_findings?: number;
+  issue_count?: number;
+  review_count?: number;
+  pass_count?: number;
+  high_density_count?: number;
+  medium_density_count?: number;
+  low_density_count?: number;
+  overall_risk_score?: number;
+  high_risk_count?: number;
+  medium_risk_count?: number;
+  low_risk_count?: number;
+  risk_items: ApiRiskMapItem[];
+}
+
 export const api = {
   async getHealth() {
     const res = await fetch(`${API_BASE_URL}/api/health`);
@@ -322,6 +496,89 @@ export const api = {
     if (inspectionId) query.set('inspection_id', inspectionId);
     const res = await fetch(`${API_BASE_URL}/api/reviews?${query.toString()}`);
     if (!res.ok) throw new Error('Failed to fetch reviews');
+    return res.json();
+  },
+
+  // Phase 4 Suggested Design APIs
+  async suggestDesign(productId: string, versionId: string): Promise<ApiSuggestedDesign> {
+    const res = await fetch(`${API_BASE_URL}/api/products/${productId}/artworks/${versionId}/suggest`, {
+      method: 'POST',
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to generate suggested design');
+    }
+    return res.json();
+  },
+
+  async getSuggestedDesign(id: string): Promise<ApiSuggestedDesign> {
+    const res = await fetch(`${API_BASE_URL}/api/suggested-designs/${id}`);
+    if (!res.ok) throw new Error('Failed to fetch suggested design');
+    return res.json();
+  },
+
+  async listSuggestedDesigns(productId?: string): Promise<ApiSuggestedDesign[]> {
+    const query = new URLSearchParams();
+    if (productId) query.set('product_id', productId);
+    const res = await fetch(`${API_BASE_URL}/api/suggested-designs?${query.toString()}`);
+    if (!res.ok) throw new Error('Failed to list suggested designs');
+    return res.json();
+  },
+
+  async renderSuggestedDesign(id: string): Promise<ApiSuggestedDesign> {
+    const res = await fetch(`${API_BASE_URL}/api/suggested-designs/${id}/render`, {
+      method: 'POST',
+    });
+    if (!res.ok) throw new Error('Failed to render suggested design');
+    return res.json();
+  },
+
+  async verifySuggestedDesign(id: string): Promise<ApiSuggestedDesign> {
+    const res = await fetch(`${API_BASE_URL}/api/suggested-designs/${id}/verify`, {
+      method: 'POST',
+    });
+    if (!res.ok) throw new Error('Failed to verify suggested design');
+    return res.json();
+  },
+
+  getSuggestedDesignPdfUrl(id: string): string {
+    return `${API_BASE_URL}/api/suggested-designs/${id}/pdf`;
+  },
+
+  // Phase 4 Comparison, Regression, Simulator & Risk Map APIs
+  async compareVersions(productId: string, versionAId?: string, versionBId?: string): Promise<ApiComparisonResult> {
+    const query = new URLSearchParams();
+    if (versionAId) query.set('version_a_id', versionAId);
+    if (versionBId) query.set('version_b_id', versionBId);
+    const res = await fetch(`${API_BASE_URL}/api/products/${productId}/compare?${query.toString()}`);
+    if (!res.ok) throw new Error('Failed to compare versions');
+    return res.json();
+  },
+
+  async getRegression(productId: string, versionAId?: string, versionBId?: string): Promise<ApiRegressionResult> {
+    const query = new URLSearchParams();
+    if (versionAId) query.set('version_a_id', versionAId);
+    if (versionBId) query.set('version_b_id', versionBId);
+    const res = await fetch(`${API_BASE_URL}/api/products/${productId}/regression?${query.toString()}`);
+    if (!res.ok) throw new Error('Failed to fetch regression');
+    return res.json();
+  },
+
+  async simulateRule(productId: string, payload: ApiSimulationRequest): Promise<ApiSimulationResponse> {
+    const res = await fetch(`${API_BASE_URL}/api/products/${productId}/simulate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) throw new Error('Failed to execute simulation');
+    return res.json();
+  },
+
+  async getRiskMap(productId: string, inspectionId?: string): Promise<ApiRiskMapResponse> {
+    const query = new URLSearchParams();
+    if (inspectionId) query.set('inspection_id', inspectionId);
+    const res = await fetch(`${API_BASE_URL}/api/products/${productId}/risk-map?${query.toString()}`);
+    if (!res.ok) throw new Error('Failed to fetch risk map');
     return res.json();
   },
 

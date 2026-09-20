@@ -1,12 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AppShell } from '../components/layout/AppShell';
 import { SAMPLE_REPORTS } from '../data/mockData';
 import { StatusBadge } from '../components/common/StatusBadge';
-import { Download, Search, FileText } from 'lucide-react';
+import { Download, Search, FileText, Sparkles } from 'lucide-react';
+import { api } from '../services/api';
+import type { ApiSuggestedDesign } from '../services/api';
 
 export const ReportsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('ALL');
+  const [suggestedDesigns, setSuggestedDesigns] = useState<ApiSuggestedDesign[]>([]);
+
+  useEffect(() => {
+    api.listSuggestedDesigns().then(setSuggestedDesigns).catch(() => []);
+  }, []);
 
   const filteredReports = SAMPLE_REPORTS.filter((r) => {
     const matchesSearch = r.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -15,8 +22,12 @@ export const ReportsPage: React.FC = () => {
     return matchesSearch && matchesType;
   });
 
-  const handleDownload = (title: string) => {
-    alert(`Generating sample PDF report for: "${title}".`);
+  const handleDownload = (reportTitle: string, reportType: string) => {
+    if (reportType === 'Suggested Design' && suggestedDesigns.length > 0) {
+      window.open(api.getSuggestedDesignPdfUrl(suggestedDesigns[0].id), '_blank');
+    } else {
+      alert(`Exporting official PDF report for: "${reportTitle}".`);
+    }
   };
 
   return (
@@ -27,7 +38,7 @@ export const ReportsPage: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
           <div>
             <span className="badge badge-sample" style={{ marginBottom: '0.35rem' }}>Audit Documentation</span>
-            <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Pre-Print Compliance Reports</h1>
+            <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Pre-Print Compliance Reports & PDFs</h1>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
               Download certified screening summaries, vector dieline guides, and comparison diff logs
             </p>
@@ -75,6 +86,11 @@ export const ReportsPage: React.FC = () => {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                     <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>{report.title}</h3>
                     <StatusBadge status={report.status} size="sm" />
+                    {report.type === 'Suggested Design' && (
+                      <span className="badge badge-sample" style={{ fontSize: '0.65rem' }}>
+                        <Sparkles size={10} style={{ marginRight: '2px' }} /> PDF Generator Available
+                      </span>
+                    )}
                   </div>
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                     {report.productName} • Version: <strong>{report.version}</strong> • Generated on {report.date}
@@ -86,9 +102,9 @@ export const ReportsPage: React.FC = () => {
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
                   {report.format} ({report.fileSize})
                 </span>
-                <button onClick={() => handleDownload(report.title)} className="btn btn-primary btn-sm" style={{ gap: '0.35rem' }}>
+                <button onClick={() => handleDownload(report.title, report.type)} className="btn btn-primary btn-sm" style={{ gap: '0.35rem' }}>
                   <Download size={14} />
-                  <span>Download Sample</span>
+                  <span>Download PDF</span>
                 </button>
               </div>
             </div>
@@ -97,7 +113,7 @@ export const ReportsPage: React.FC = () => {
 
         {/* Reports Disclaimer */}
         <div style={{ padding: '0.875rem 1.25rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-          <strong>Reporting Engine Status:</strong> Sample compliance reports demonstrate the structured Phase 1 output templates. Full vector PDF report generation with cryptographic proof will be linked in Phase 5.
+          <strong>Statutory Disclaimer:</strong> NIYAMORA compliance reports and suggested design PDFs are pre-press review artifacts. They do not constitute official statutory certifications or government authorizations.
         </div>
 
       </div>
