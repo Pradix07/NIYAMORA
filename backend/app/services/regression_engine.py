@@ -1,11 +1,11 @@
 import logging
 from typing import Optional, List
 from sqlalchemy.orm import Session
-from backend.app.models.product import Product
-from backend.app.models.artwork_version import ArtworkVersion
-from backend.app.models.inspection import Inspection
-from backend.app.models.compliance import Evaluation
-from backend.app.schemas.suggested_design import RegressionResultRead, RegressionIssueItem
+from app.models.product import Product
+from app.models.artwork_version import ArtworkVersion
+from app.models.inspection import Inspection
+from app.models.compliance import Evaluation
+from app.schemas.suggested_design import RegressionResultRead, RegressionIssueItem
 
 logger = logging.getLogger("niyamora.regression_engine")
 

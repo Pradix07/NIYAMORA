@@ -9,9 +9,9 @@ from PIL import Image, ImageDraw
 os.environ["DATABASE_URL"] = "sqlite:///./test_niyamora.db"
 os.environ["STORAGE_DIR"] = "./test_storage/uploads"
 
-from backend.app.main import app
-from backend.app.db.session import Base, engine
-from backend.app.processors.quality import ImageQualityAnalyzer
+from app.main import app
+from app.db.session import Base, engine
+from app.processors.quality import ImageQualityAnalyzer
 
 client = TestClient(app)
 
@@ -210,8 +210,8 @@ def test_cross_company_ownership_isolation():
     Verifies that Company A's products, artworks, inspections, and files cannot be accessed by Company B.
     """
     # 1. Create Company A and Company B
-    from backend.app.db.session import SessionLocal
-    from backend.app.models.company import Company
+    from app.db.session import SessionLocal
+    from app.models.company import Company
     db = SessionLocal()
     comp_a = Company(name="Company A - Alpha Naturals")
     comp_b = Company(name="Company B - Beta Foods")

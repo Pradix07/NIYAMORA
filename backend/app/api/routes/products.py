@@ -1,14 +1,14 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from backend.app.db.session import get_db
-from backend.app.models.product import Product
-from backend.app.models.company import Company
-from backend.app.models.artwork import Artwork
-from backend.app.models.artwork_version import ArtworkVersion
-from backend.app.models.inspection import Inspection
-from backend.app.schemas.product import ProductCreate, ProductRead, ProductUpdate
-from backend.app.api.deps import get_current_company, verify_product_ownership
+from app.db.session import get_db
+from app.models.product import Product
+from app.models.company import Company
+from app.models.artwork import Artwork
+from app.models.artwork_version import ArtworkVersion
+from app.models.inspection import Inspection
+from app.schemas.product import ProductCreate, ProductRead, ProductUpdate
+from app.api.deps import get_current_company, verify_product_ownership
 
 router = APIRouter(prefix="/products", tags=["Products"])
 

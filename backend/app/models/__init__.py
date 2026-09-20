@@ -1,11 +1,11 @@
-from backend.app.models.company import Company
-from backend.app.models.user import User
-from backend.app.models.product import Product
-from backend.app.models.artwork import Artwork
-from backend.app.models.artwork_version import ArtworkVersion
-from backend.app.models.artwork_panel import ArtworkPanel
-from backend.app.models.inspection import Inspection
-from backend.app.models.compliance import (
+from app.models.company import Company
+from app.models.user import User
+from app.models.product import Product
+from app.models.artwork import Artwork
+from app.models.artwork_version import ArtworkVersion
+from app.models.artwork_panel import ArtworkPanel
+from app.models.inspection import Inspection
+from app.models.compliance import (
     RuleSource,
     Rule,
     RuleVersion,
@@ -14,7 +14,7 @@ from backend.app.models.compliance import (
     Finding,
     HumanReview,
 )
-from backend.app.models.suggested_design import SuggestedDesign, AuditEvent
+from app.models.suggested_design import SuggestedDesign, AuditEvent
 
 __all__ = [
     "Company",

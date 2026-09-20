@@ -8,13 +8,13 @@ from PIL import Image, ImageDraw
 os.environ["DATABASE_URL"] = "sqlite:///./test_niyamora_phase3.db"
 os.environ["STORAGE_DIR"] = "./test_storage/uploads_phase3"
 
-import backend.app.models
-from backend.app.main import app
-from backend.app.db.session import Base, engine, SessionLocal
-from backend.app.models.company import Company
-from backend.app.models.product import Product
-from backend.app.models.compliance import RuleSource, Rule, RuleVersion, Evaluation, Finding, Evidence, HumanReview
-from backend.app.rules.engine import ComplianceEngine
+import app.models
+from app.main import app
+from app.db.session import Base, engine, SessionLocal
+from app.models.company import Company
+from app.models.product import Product
+from app.models.compliance import RuleSource, Rule, RuleVersion, Evaluation, Finding, Evidence, HumanReview
+from app.rules.engine import ComplianceEngine
 
 client = TestClient(app)
 
@@ -258,7 +258,7 @@ def test_deterministic_reproducibility():
     score1 = client.get(f"/api/inspections/{insp1_id}").json()["compliance_score"]
 
     # Re-evaluating inspection directly
-    from backend.app.services.pipeline import InspectionPipelineService
+    from app.services.pipeline import InspectionPipelineService
     db = SessionLocal()
     InspectionPipelineService.execute_inspection(db, insp1_id)
     db.close()

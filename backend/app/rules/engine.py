@@ -1,19 +1,19 @@
 import logging
 from typing import Dict, Any, List, Optional
 from sqlalchemy.orm import Session
-from backend.app.models.compliance import RuleSource, Rule, RuleVersion, Evidence, Evaluation, Finding
-from backend.app.models.inspection import Inspection
-from backend.app.models.artwork_version import ArtworkVersion
-from backend.app.models.product import Product
-from backend.app.rules.definitions import VERIFIED_RULE_SOURCES, VERIFIED_RULES_CATALOG
-from backend.app.rules.evaluators.mfg_evaluator import ManufacturerAddressEvaluator
-from backend.app.rules.evaluators.generic_name_evaluator import GenericNameEvaluator
-from backend.app.rules.evaluators.net_quantity_evaluator import NetQuantityEvaluator
-from backend.app.rules.evaluators.date_evaluator import DateDeclarationEvaluator
-from backend.app.rules.evaluators.mrp_evaluator import MRPEvaluator
-from backend.app.rules.evaluators.usp_evaluator import UnitSalePriceEvaluator
-from backend.app.rules.evaluators.consumer_care_evaluator import ConsumerCareEvaluator
-from backend.app.rules.evaluators.country_origin_evaluator import CountryOfOriginEvaluator
+from app.models.compliance import RuleSource, Rule, RuleVersion, Evidence, Evaluation, Finding
+from app.models.inspection import Inspection
+from app.models.artwork_version import ArtworkVersion
+from app.models.product import Product
+from app.rules.definitions import VERIFIED_RULE_SOURCES, VERIFIED_RULES_CATALOG
+from app.rules.evaluators.mfg_evaluator import ManufacturerAddressEvaluator
+from app.rules.evaluators.generic_name_evaluator import GenericNameEvaluator
+from app.rules.evaluators.net_quantity_evaluator import NetQuantityEvaluator
+from app.rules.evaluators.date_evaluator import DateDeclarationEvaluator
+from app.rules.evaluators.mrp_evaluator import MRPEvaluator
+from app.rules.evaluators.usp_evaluator import UnitSalePriceEvaluator
+from app.rules.evaluators.consumer_care_evaluator import ConsumerCareEvaluator
+from app.rules.evaluators.country_origin_evaluator import CountryOfOriginEvaluator
 
 logger = logging.getLogger("niyamora.compliance_engine")
 

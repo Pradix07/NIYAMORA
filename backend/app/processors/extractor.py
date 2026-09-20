@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import List, Tuple, Optional
 import pymupdf  # PyMuPDF
 from PIL import Image
-from backend.app.schemas.inspection import TextBlock, BoundingBoxCoord
+from app.schemas.inspection import TextBlock, BoundingBoxCoord
 
 TESSDATA_DIR = Path(__file__).resolve().parent / "tessdata"
 TESSDATA_DIR.mkdir(parents=True, exist_ok=True)

@@ -1,13 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from backend.app.db.session import get_db
-from backend.app.models.inspection import Inspection
-from backend.app.models.artwork_version import ArtworkVersion
-from backend.app.models.product import Product
-from backend.app.models.company import Company
-from backend.app.schemas.inspection import InspectionRead, InspectionCreate
-from backend.app.services.pipeline import InspectionPipelineService
-from backend.app.api.deps import get_current_company, verify_product_ownership, verify_inspection_ownership
+from app.db.session import get_db
+from app.models.inspection import Inspection
+from app.models.artwork_version import ArtworkVersion
+from app.models.product import Product
+from app.models.company import Company
+from app.schemas.inspection import InspectionRead, InspectionCreate
+from app.services.pipeline import InspectionPipelineService
+from app.api.deps import get_current_company, verify_product_ownership, verify_inspection_ownership
 
 from typing import List, Optional
 

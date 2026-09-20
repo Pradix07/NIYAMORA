@@ -1,6 +1,6 @@
 import re
 from typing import Dict, Any, Optional, Tuple
-from backend.app.rules.evaluators.base import BaseRuleEvaluator
+from app.rules.evaluators.base import BaseRuleEvaluator
 
 class UnitSalePriceEvaluator(BaseRuleEvaluator):
     """

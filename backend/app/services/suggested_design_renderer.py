@@ -7,12 +7,12 @@ from typing import Optional, List, Dict, Any
 from PIL import Image, ImageDraw, ImageFont
 import fitz # PyMuPDF
 from sqlalchemy.orm import Session
-from backend.app.models.suggested_design import SuggestedDesign, AuditEvent
-from backend.app.models.artwork import Artwork
-from backend.app.models.artwork_version import ArtworkVersion
-from backend.app.models.artwork_panel import ArtworkPanel
-from backend.app.models.product import Product
-from backend.app.storage.local import storage
+from app.models.suggested_design import SuggestedDesign, AuditEvent
+from app.models.artwork import Artwork
+from app.models.artwork_version import ArtworkVersion
+from app.models.artwork_panel import ArtworkPanel
+from app.models.product import Product
+from app.storage.local import storage
 
 logger = logging.getLogger("niyamora.suggested_design_renderer")
 

@@ -1,10 +1,10 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from backend.app.db.session import get_db
-from backend.app.models.compliance import Rule, RuleVersion, RuleSource
-from backend.app.schemas.compliance import RuleRead, RuleVersionRead, RuleSourceRead
-from backend.app.rules.engine import ComplianceEngine
+from app.db.session import get_db
+from app.models.compliance import Rule, RuleVersion, RuleSource
+from app.schemas.compliance import RuleRead, RuleVersionRead, RuleSourceRead
+from app.rules.engine import ComplianceEngine
 
 router = APIRouter(prefix="/rules", tags=["Statutory Rule Library"])
 

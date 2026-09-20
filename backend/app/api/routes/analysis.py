@@ -1,21 +1,21 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from backend.app.db.session import get_db
-from backend.app.models.product import Product
-from backend.app.models.company import Company
-from backend.app.schemas.suggested_design import (
+from app.db.session import get_db
+from app.models.product import Product
+from app.models.company import Company
+from app.schemas.suggested_design import (
     ComparisonResultRead,
     RegressionResultRead,
     SimulationRequest,
     SimulationResponse,
     RiskMapResponse,
 )
-from backend.app.services.comparison_engine import ComparisonEngine
-from backend.app.services.regression_engine import RegressionEngine
-from backend.app.services.simulator_service import SimulatorService
-from backend.app.services.risk_map_service import RiskMapService
-from backend.app.api.deps import get_current_company, verify_product_ownership
+from app.services.comparison_engine import ComparisonEngine
+from app.services.regression_engine import RegressionEngine
+from app.services.simulator_service import SimulatorService
+from app.services.risk_map_service import RiskMapService
+from app.api.deps import get_current_company, verify_product_ownership
 
 router = APIRouter(tags=["Compliance Diff, Regression & Simulation"])
 
@@ -139,11 +139,11 @@ def get_product_label_passport(
     verify_product_ownership(product, company)
 
     # 1. Versions
-    from backend.app.models.artwork import Artwork
-    from backend.app.models.artwork_version import ArtworkVersion
-    from backend.app.models.inspection import Inspection
-    from backend.app.models.compliance import Evaluation, Finding, HumanReview
-    from backend.app.models.suggested_design import AuditEvent
+    from app.models.artwork import Artwork
+    from app.models.artwork_version import ArtworkVersion
+    from app.models.inspection import Inspection
+    from app.models.compliance import Evaluation, Finding, HumanReview
+    from app.models.suggested_design import AuditEvent
 
     artworks = db.query(Artwork).filter(Artwork.product_id == product_id).all()
     artwork_ids = [a.id for a in artworks]

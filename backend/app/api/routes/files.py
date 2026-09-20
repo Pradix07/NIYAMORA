@@ -2,13 +2,13 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
-from backend.app.db.session import get_db
-from backend.app.models.artwork_version import ArtworkVersion
-from backend.app.models.artwork import Artwork
-from backend.app.models.product import Product
-from backend.app.models.company import Company
-from backend.app.storage.local import storage
-from backend.app.api.deps import get_current_company, verify_product_ownership
+from app.db.session import get_db
+from app.models.artwork_version import ArtworkVersion
+from app.models.artwork import Artwork
+from app.models.product import Product
+from app.models.company import Company
+from app.storage.local import storage
+from app.api.deps import get_current_company, verify_product_ownership
 
 router = APIRouter(prefix="/files", tags=["Files & Previews"])
 

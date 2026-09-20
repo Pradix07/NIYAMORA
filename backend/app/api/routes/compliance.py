@@ -1,18 +1,18 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from backend.app.db.session import get_db
-from backend.app.models.inspection import Inspection
-from backend.app.models.compliance import Evaluation, Finding, Evidence, HumanReview, RuleVersion
-from backend.app.models.company import Company
-from backend.app.schemas.compliance import (
+from app.db.session import get_db
+from app.models.inspection import Inspection
+from app.models.compliance import Evaluation, Finding, Evidence, HumanReview, RuleVersion
+from app.models.company import Company
+from app.schemas.compliance import (
     EvaluationRead,
     FindingRead,
     EvidenceRead,
     HumanReviewCreate,
     HumanReviewRead
 )
-from backend.app.api.deps import get_current_company, verify_inspection_ownership
+from app.api.deps import get_current_company, verify_inspection_ownership
 
 router = APIRouter(tags=["Compliance Evaluations & Review"])
 

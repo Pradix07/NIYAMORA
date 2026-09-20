@@ -1,17 +1,17 @@
 from typing import Optional, List
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from backend.app.db.session import get_db
-from backend.app.models.product import Product
-from backend.app.models.artwork import Artwork
-from backend.app.models.artwork_version import ArtworkVersion
-from backend.app.models.artwork_panel import ArtworkPanel
-from backend.app.models.inspection import Inspection
-from backend.app.models.company import Company
-from backend.app.schemas.artwork import ArtworkVersionRead, ArtworkRead, ArtworkPanelRead
-from backend.app.storage.local import storage
-from backend.app.services.pipeline import InspectionPipelineService
-from backend.app.api.deps import get_current_company, verify_product_ownership
+from app.db.session import get_db
+from app.models.product import Product
+from app.models.artwork import Artwork
+from app.models.artwork_version import ArtworkVersion
+from app.models.artwork_panel import ArtworkPanel
+from app.models.inspection import Inspection
+from app.models.company import Company
+from app.schemas.artwork import ArtworkVersionRead, ArtworkRead, ArtworkPanelRead
+from app.storage.local import storage
+from app.services.pipeline import InspectionPipelineService
+from app.api.deps import get_current_company, verify_product_ownership
 
 router = APIRouter(tags=["Artworks & Upload"])
 

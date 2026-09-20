@@ -1,17 +1,17 @@
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Response, Query
 from sqlalchemy.orm import Session
-from backend.app.db.session import get_db
-from backend.app.models.suggested_design import SuggestedDesign
-from backend.app.models.product import Product
-from backend.app.models.artwork_version import ArtworkVersion
-from backend.app.models.company import Company
-from backend.app.schemas.suggested_design import SuggestedDesignRead
-from backend.app.services.suggested_design_engine import SuggestedDesignEngine
-from backend.app.services.suggested_design_renderer import SuggestedDesignRenderer
-from backend.app.services.validation_service import ValidationService
-from backend.app.services.pdf_generator import PDFReportGenerator
-from backend.app.api.deps import get_current_company, verify_product_ownership
+from app.db.session import get_db
+from app.models.suggested_design import SuggestedDesign
+from app.models.product import Product
+from app.models.artwork_version import ArtworkVersion
+from app.models.company import Company
+from app.schemas.suggested_design import SuggestedDesignRead
+from app.services.suggested_design_engine import SuggestedDesignEngine
+from app.services.suggested_design_renderer import SuggestedDesignRenderer
+from app.services.validation_service import ValidationService
+from app.services.pdf_generator import PDFReportGenerator
+from app.api.deps import get_current_company, verify_product_ownership
 
 router = APIRouter(tags=["Suggested Designs & Improvement"])
 

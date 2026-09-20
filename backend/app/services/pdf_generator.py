@@ -6,11 +6,11 @@ from datetime import datetime
 from typing import Tuple, Optional, Dict, Any
 import fitz # PyMuPDF
 from sqlalchemy.orm import Session
-from backend.app.models.suggested_design import SuggestedDesign, AuditEvent
-from backend.app.models.product import Product
-from backend.app.models.artwork_version import ArtworkVersion
-from backend.app.models.inspection import Inspection
-from backend.app.models.compliance import Evaluation, Finding
+from app.models.suggested_design import SuggestedDesign, AuditEvent
+from app.models.product import Product
+from app.models.artwork_version import ArtworkVersion
+from app.models.inspection import Inspection
+from app.models.compliance import Evaluation, Finding
 
 logger = logging.getLogger("niyamora.pdf_generator")
 

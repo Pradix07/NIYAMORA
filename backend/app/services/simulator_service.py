@@ -2,7 +2,7 @@ import logging
 import re
 from typing import Dict, Any, Optional
 from sqlalchemy.orm import Session
-from backend.app.schemas.suggested_design import SimulationRequest, SimulationResponse
+from app.schemas.suggested_design import SimulationRequest, SimulationResponse
 
 logger = logging.getLogger("niyamora.simulator_service")
 

@@ -2,12 +2,12 @@ from typing import Optional, List
 from fastapi import Header, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from backend.app.db.session import get_db
-from backend.app.models.user import User
-from backend.app.models.company import Company
-from backend.app.models.product import Product
-from backend.app.models.inspection import Inspection
-from backend.app.core.security import decode_access_token
+from app.db.session import get_db
+from app.models.user import User
+from app.models.company import Company
+from app.models.product import Product
+from app.models.inspection import Inspection
+from app.core.security import decode_access_token
 
 security_bearer = HTTPBearer(auto_error=False)
 

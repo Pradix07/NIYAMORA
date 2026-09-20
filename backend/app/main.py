@@ -2,14 +2,14 @@ import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from backend.app.core.config import settings
-from backend.app.db.session import engine, Base, SessionLocal
-from backend.app.models.company import Company
-from backend.app.models.user import User
-from backend.app.models.product import Product
-from backend.app.models.artwork import Artwork
-from backend.app.models.artwork_version import ArtworkVersion
-from backend.app.api.router import api_router
+from app.core.config import settings
+from app.db.session import engine, Base, SessionLocal
+from app.models.company import Company
+from app.models.user import User
+from app.models.product import Product
+from app.models.artwork import Artwork
+from app.models.artwork_version import ArtworkVersion
+from app.api.router import api_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -99,7 +99,7 @@ def init_db_and_seed():
             logger.info("Default seed records initialized.")
             
         # Ensure statutory compliance rules and sources are seeded
-        from backend.app.rules.engine import ComplianceEngine
+        from app.rules.engine import ComplianceEngine
         ComplianceEngine.ensure_rules_seeded(db)
         logger.info("Statutory compliance rule catalog verified & seeded.")
     finally:

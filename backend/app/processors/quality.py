@@ -4,7 +4,7 @@ import numpy as np
 from PIL import Image
 import fitz  # PyMuPDF
 from typing import Dict, Any, List
-from backend.app.schemas.inspection import QualityReport, QualityDetail
+from app.schemas.inspection import QualityReport, QualityDetail
 
 class ImageQualityAnalyzer:
     """

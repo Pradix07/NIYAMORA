@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from backend.app.api.routes import (
+from app.api.routes import (
     health,
     auth,
     products,

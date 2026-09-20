@@ -1,6 +1,6 @@
-from backend.app.schemas.product import ProductCreate, ProductUpdate, ProductRead
-from backend.app.schemas.artwork import ArtworkCreate, ArtworkRead, ArtworkVersionRead
-from backend.app.schemas.inspection import (
+from app.schemas.product import ProductCreate, ProductUpdate, ProductRead
+from app.schemas.artwork import ArtworkCreate, ArtworkRead, ArtworkVersionRead
+from app.schemas.inspection import (
     InspectionCreate,
     InspectionRead,
     QualityReport,
@@ -10,7 +10,7 @@ from backend.app.schemas.inspection import (
     ExtractedField,
     ExtractionResult,
 )
-from backend.app.schemas.suggested_design import (
+from app.schemas.suggested_design import (
     SuggestedDesignChange,
     SuggestedDesignRead,
     ComparisonResultRead,
@@ -20,7 +20,7 @@ from backend.app.schemas.suggested_design import (
     RiskMapResponse,
     RiskMapItem,
 )
-from backend.app.schemas.auth import (
+from app.schemas.auth import (
     UserSignup,
     UserLogin,
     UserResponse,

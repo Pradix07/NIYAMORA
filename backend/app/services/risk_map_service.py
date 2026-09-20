@@ -1,10 +1,10 @@
 import logging
 from typing import Optional, List
 from sqlalchemy.orm import Session
-from backend.app.models.product import Product
-from backend.app.models.inspection import Inspection
-from backend.app.models.compliance import Evaluation, Finding, Evidence
-from backend.app.schemas.suggested_design import RiskMapResponse, RiskMapItem
+from app.models.product import Product
+from app.models.inspection import Inspection
+from app.models.compliance import Evaluation, Finding, Evidence
+from app.schemas.suggested_design import RiskMapResponse, RiskMapItem
 
 logger = logging.getLogger("niyamora.risk_map_service")
 

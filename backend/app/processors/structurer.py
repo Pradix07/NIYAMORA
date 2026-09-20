@@ -1,6 +1,6 @@
 import re
 from typing import Dict, List, Optional
-from backend.app.schemas.inspection import TextBlock, ExtractedField, BoundingBoxCoord
+from app.schemas.inspection import TextBlock, ExtractedField, BoundingBoxCoord
 
 class PackagingFieldStructurer:
     """

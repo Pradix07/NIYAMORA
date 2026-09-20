@@ -1,14 +1,14 @@
 import logging
 from datetime import datetime
 from sqlalchemy.orm import Session
-from backend.app.models.inspection import Inspection
-from backend.app.models.artwork_version import ArtworkVersion
-from backend.app.models.product import Product
-from backend.app.processors.quality import ImageQualityAnalyzer
-from backend.app.processors.extractor import ContentExtractor
-from backend.app.processors.structurer import PackagingFieldStructurer
-from backend.app.schemas.inspection import ExtractionResult
-from backend.app.rules.engine import ComplianceEngine
+from app.models.inspection import Inspection
+from app.models.artwork_version import ArtworkVersion
+from app.models.product import Product
+from app.processors.quality import ImageQualityAnalyzer
+from app.processors.extractor import ContentExtractor
+from app.processors.structurer import PackagingFieldStructurer
+from app.schemas.inspection import ExtractionResult
+from app.rules.engine import ComplianceEngine
 
 logger = logging.getLogger("niyamora.pipeline")
 

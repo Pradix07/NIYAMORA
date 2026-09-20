@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Tuple
 import aiofiles
 from fastapi import UploadFile, HTTPException
-from backend.app.core.config import settings
+from app.core.config import settings
 
 class LocalStorage:
     def __init__(self, base_dir: str = settings.STORAGE_DIR):

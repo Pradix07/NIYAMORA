@@ -1,11 +1,11 @@
 import logging
 from typing import Optional, Dict, Any, List
 from sqlalchemy.orm import Session
-from backend.app.models.product import Product
-from backend.app.models.artwork_version import ArtworkVersion
-from backend.app.models.inspection import Inspection
-from backend.app.models.compliance import Evaluation, RuleVersion
-from backend.app.schemas.suggested_design import ComparisonResultRead, ComparisonDetailItem
+from app.models.product import Product
+from app.models.artwork_version import ArtworkVersion
+from app.models.inspection import Inspection
+from app.models.compliance import Evaluation, RuleVersion
+from app.schemas.suggested_design import ComparisonResultRead, ComparisonDetailItem
 
 logger = logging.getLogger("niyamora.comparison_engine")
 

@@ -9,19 +9,19 @@ from PIL import Image
 os.environ["DATABASE_URL"] = "sqlite:///./test_niyamora_phase5.db"
 os.environ["STORAGE_DIR"] = "./test_storage/uploads_phase5"
 
-import backend.app.models
-from backend.app.main import app
-from backend.app.db.session import Base, engine, SessionLocal
-from backend.app.models.user import User
-from backend.app.models.company import Company
-from backend.app.models.product import Product
-from backend.app.models.artwork import Artwork
-from backend.app.models.artwork_version import ArtworkVersion
-from backend.app.models.inspection import Inspection
-from backend.app.models.compliance import Evaluation, Finding, Evidence, HumanReview
-from backend.app.models.suggested_design import AuditEvent
-from backend.app.rules.engine import ComplianceEngine
-from backend.app.core.security import hash_password, verify_password, decode_access_token
+import app.models
+from app.main import app
+from app.db.session import Base, engine, SessionLocal
+from app.models.user import User
+from app.models.company import Company
+from app.models.product import Product
+from app.models.artwork import Artwork
+from app.models.artwork_version import ArtworkVersion
+from app.models.inspection import Inspection
+from app.models.compliance import Evaluation, Finding, Evidence, HumanReview
+from app.models.suggested_design import AuditEvent
+from app.rules.engine import ComplianceEngine
+from app.core.security import hash_password, verify_password, decode_access_token
 
 client = TestClient(app)
 
@@ -407,7 +407,7 @@ def test_secure_file_access_boundary():
 # PHASE 5 TEST 9: Role-Based Access Control (RBAC) Server-Side Enforcement
 # ============================================================
 def test_rbac_require_role_enforcement():
-    from backend.app.api.deps import require_role
+    from app.api.deps import require_role
     from fastapi import Depends
 
     # Define a temporary test endpoint in the FastAPI app to verify server-side role enforcement
@@ -509,7 +509,7 @@ def test_cross_company_report_pdf_download_isolation():
 # PHASE 5 TEST 11: Production JWT Secret Fail-Closed Hardening
 # ============================================================
 def test_production_jwt_secret_fail_closed(monkeypatch):
-    from backend.app.core.security import get_jwt_secret
+    from app.core.security import get_jwt_secret
 
     # 1. In production with no JWT_SECRET_KEY -> Must fail fast
     monkeypatch.setenv("ENVIRONMENT", "production")
@@ -534,7 +534,7 @@ def test_production_jwt_secret_fail_closed(monkeypatch):
 # PHASE 5 TEST 12: Production Database Safety & PostgreSQL Enforcement
 # ============================================================
 def test_production_database_safety_postgresql_enforced():
-    from backend.app.db.session import validate_database_configuration
+    from app.db.session import validate_database_configuration
 
     # 1. Production with SQLite -> Must fail fast
     with pytest.raises(RuntimeError) as exc_info:

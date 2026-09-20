@@ -2,7 +2,7 @@ import os
 from typing import Optional
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-from backend.app.core.config import settings
+from app.core.config import settings
 
 def validate_database_configuration(db_url: Optional[str] = None, environment: Optional[str] = None) -> None:
     """

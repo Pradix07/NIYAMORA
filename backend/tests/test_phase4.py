@@ -8,25 +8,25 @@ from PIL import Image
 os.environ["DATABASE_URL"] = "sqlite:///./test_niyamora_phase4.db"
 os.environ["STORAGE_DIR"] = "./test_storage/uploads_phase4"
 
-import backend.app.models
-from backend.app.main import app
-from backend.app.db.session import Base, engine, SessionLocal
-from backend.app.models.company import Company
-from backend.app.models.product import Product
-from backend.app.models.artwork import Artwork
-from backend.app.models.artwork_version import ArtworkVersion
-from backend.app.models.inspection import Inspection
-from backend.app.models.compliance import Evaluation, Finding, Evidence
-from backend.app.models.suggested_design import SuggestedDesign
-from backend.app.rules.engine import ComplianceEngine
-from backend.app.services.suggested_design_engine import SuggestedDesignEngine
-from backend.app.services.suggested_design_renderer import SuggestedDesignRenderer
-from backend.app.services.validation_service import ValidationService
-from backend.app.services.comparison_engine import ComparisonEngine
-from backend.app.services.regression_engine import RegressionEngine
-from backend.app.services.simulator_service import SimulatorService
-from backend.app.services.risk_map_service import RiskMapService
-from backend.app.services.pdf_generator import PDFReportGenerator
+import app.models
+from app.main import app
+from app.db.session import Base, engine, SessionLocal
+from app.models.company import Company
+from app.models.product import Product
+from app.models.artwork import Artwork
+from app.models.artwork_version import ArtworkVersion
+from app.models.inspection import Inspection
+from app.models.compliance import Evaluation, Finding, Evidence
+from app.models.suggested_design import SuggestedDesign
+from app.rules.engine import ComplianceEngine
+from app.services.suggested_design_engine import SuggestedDesignEngine
+from app.services.suggested_design_renderer import SuggestedDesignRenderer
+from app.services.validation_service import ValidationService
+from app.services.comparison_engine import ComparisonEngine
+from app.services.regression_engine import RegressionEngine
+from app.services.simulator_service import SimulatorService
+from app.services.risk_map_service import RiskMapService
+from app.services.pdf_generator import PDFReportGenerator
 
 client = TestClient(app)
 

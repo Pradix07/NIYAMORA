@@ -2,7 +2,7 @@ from datetime import datetime
 import uuid
 from sqlalchemy import Column, String, Integer, Float, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
-from backend.app.db.session import Base
+from app.db.session import Base
 
 class ArtworkVersion(Base):
     __tablename__ = "artwork_versions"
