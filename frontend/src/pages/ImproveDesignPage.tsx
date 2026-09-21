@@ -3,8 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import { DiffVisualizer } from '../components/improve/DiffVisualizer';
 import { api } from '../services/api';
-import type { ApiSuggestedDesign, ApiProduct } from '../services/api';
-import { Sparkles, Loader2, AlertCircle, Plus } from 'lucide-react';
+import type { ApiSuggestedDesign, ApiProduct, ApiInspection, ApiPanel } from '../services/api';
+import { Sparkles, Loader2, AlertCircle, Wand2 } from 'lucide-react';
 
 export const ImproveDesignPage: React.FC = () => {
   const navigate = useNavigate();
@@ -15,8 +15,11 @@ export const ImproveDesignPage: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
+  const [isCreating, setIsCreating] = useState<boolean>(false);
   const [product, setProduct] = useState<ApiProduct | null>(null);
   const [suggestedDesign, setSuggestedDesign] = useState<ApiSuggestedDesign | null>(null);
+  const [panels, setPanels] = useState<ApiPanel[]>([]);
+  const [activeInspection, setActiveInspection] = useState<ApiInspection | null>(null);
 
   useEffect(() => {
     async function loadData() {
@@ -38,29 +41,24 @@ export const ImproveDesignPage: React.FC = () => {
         setProduct(currentProduct);
 
         if (currentProduct) {
-          // Check for existing suggested designs
+          const inspections = await api.getInspections().catch(() => []);
+          const prodInsp = inspections.find((i) => i.product_id === currentProduct!.id);
+          setActiveInspection(prodInsp || null);
+
+          if (prodInsp?.panels) {
+            setPanels(prodInsp.panels);
+          }
+
+          // Check for existing suggested designs ONLY (do NOT auto-create V02 on page load)
           const existingDesigns = await api.listSuggestedDesigns(currentProduct.id).catch(() => []);
           if (existingDesigns.length > 0) {
             setSuggestedDesign(existingDesigns[0]);
           } else {
-            // Find latest inspection or version to trigger suggest
-            const inspections = await api.getInspections().catch(() => []);
-            const prodInsp = inspections.find((i) => i.product_id === currentProduct!.id);
-            const versionId = queryVersionId || prodInsp?.artwork_version_id;
-
-            if (versionId) {
-              const created = await api.suggestDesign(currentProduct.id, versionId).catch((err) => {
-                console.warn('Could not generate live suggestion:', err);
-                return null;
-              });
-              if (created) {
-                setSuggestedDesign(created);
-              }
-            }
+            setSuggestedDesign(null);
           }
         }
       } catch (err: any) {
-        console.warn('Failed to load live improve design data:', err);
+        console.warn('Failed to load improve design data:', err);
         setError(err.message || 'Failed to load suggested improvement plan.');
       } finally {
         setLoading(false);
@@ -70,9 +68,33 @@ export const ImproveDesignPage: React.FC = () => {
     loadData();
   }, [queryProductId, queryVersionId]);
 
-  const handleDownloadPdf = () => {
+  const handleCreateSuggestedDesign = async () => {
+    if (!product) return;
+    setIsCreating(true);
+    setError(null);
+    try {
+      const versionId = queryVersionId || activeInspection?.artwork_version_id;
+      if (!versionId) {
+        throw new Error('No uploaded artwork version found for this product. Run an initial check first.');
+      }
+      const created = await api.suggestDesign(product.id, versionId);
+      setSuggestedDesign(created);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create suggested design.');
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleDownloadPdf = async () => {
     if (suggestedDesign?.id) {
-      window.open(api.getSuggestedDesignPdfUrl(suggestedDesign.id), '_blank');
+      const safe = (product?.name || 'Product').replace(/[^a-zA-Z0-9_\-]/g, '_');
+      const filename = `${safe}_NIYAMORA_Suggested_Design_${suggestedDesign.version_label || 'V02'}.pdf`;
+      try {
+        await api.downloadSuggestedDesignPdf(suggestedDesign.id, filename);
+      } catch (err: any) {
+        alert(`Download failed: ${err.message || 'Unknown error'}`);
+      }
     }
   };
 
@@ -114,7 +136,7 @@ export const ImproveDesignPage: React.FC = () => {
       <AppShell breadcrumbs={[{ label: 'Products', path: '/products' }, { label: 'Improve Design' }]}>
         <div style={{ maxWidth: '1400px', margin: '4rem auto', textAlign: 'center' }}>
           <Loader2 size={32} className="animate-spin" style={{ color: 'var(--brand-primary)', margin: '0 auto 1rem' }} />
-          <p style={{ color: 'var(--text-secondary)' }}>Generating compliance improvement dieline...</p>
+          <p style={{ color: 'var(--text-secondary)' }}>Loading design suggestions...</p>
         </div>
       </AppShell>
     );
@@ -145,16 +167,22 @@ export const ImproveDesignPage: React.FC = () => {
             <div style={{ width: '48px', height: '48px', borderRadius: '50%', backgroundColor: 'var(--brand-primary-light)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.25rem' }}>
               <Sparkles size={24} />
             </div>
-            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, marginBottom: '0.5rem' }}>No Active Improvement Plan Found</h2>
+            <h2 style={{ fontSize: '1.35rem', fontWeight: 700, marginBottom: '0.5rem' }}>No Suggested Design Created Yet</h2>
             <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', fontSize: '0.9rem' }}>
-              Upload packaging artwork and run an automated pre-flight inspection check to generate deterministic dieline corrections and layout suggestions.
+              Generate deterministic, compliance-verified packaging adjustments (V02) based on statutory findings. Original branding and layout are preserved.
             </p>
             <div style={{ display: 'flex', justifyContent: 'center', gap: '0.75rem' }}>
-              <button onClick={() => navigate('/new-check')} className="btn btn-primary" style={{ gap: '0.4rem' }}>
-                <Plus size={16} /> Run New Packaging Check
+              <button
+                onClick={handleCreateSuggestedDesign}
+                disabled={isCreating}
+                className="btn btn-primary"
+                style={{ gap: '0.4rem' }}
+              >
+                {isCreating ? <Loader2 size={16} className="animate-spin" /> : <Wand2 size={16} />}
+                <span>{isCreating ? 'Creating Suggested Design (V02)...' : 'Create Suggested Design (V02)'}</span>
               </button>
-              <button onClick={() => navigate('/products')} className="btn btn-secondary">
-                View Products
+              <button onClick={() => navigate('/workbench')} className="btn btn-secondary">
+                Back to Workbench
               </button>
             </div>
           </div>
@@ -177,6 +205,7 @@ export const ImproveDesignPage: React.FC = () => {
           sourcePreviewUrl={sourcePreview}
           suggestedPreviewUrl={sugPreview}
           changes={suggestedDesign.change_set || []}
+          panels={panels}
           validationStatus={suggestedDesign.validation_status || 'IMPROVED'}
           status={suggestedDesign.status || 'RENDERED'}
           onDownloadPdf={handleDownloadPdf}

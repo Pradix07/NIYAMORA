@@ -280,6 +280,8 @@ export interface ApiSuggestedDesignChange {
   evidence_reference?: string;
   change_type: 'SCALE' | 'REFORMAT' | 'ADDITION' | 'RELOCATE' | 'CORRECTION' | 'REVIEW_REQUIRED';
   status: 'FIXED' | 'IMPROVED' | 'REVIEW';
+  target_panel?: string;
+  original_panel?: string;
   structured_usp?: ApiStructuredUSP;
 }
 
@@ -807,7 +809,61 @@ export const api = {
   },
 
   getSuggestedDesignPdfUrl(id: string): string {
-    return `${API_BASE_URL}/api/suggested-designs/${id}/pdf`;
+    const token = localStorage.getItem('niyamora_token');
+    const base = `${API_BASE_URL}/api/suggested-designs/${id}/pdf`;
+    return token ? `${base}?token=${encodeURIComponent(token)}` : base;
+  },
+
+  getInspectionPdfUrl(id: string): string {
+    const token = localStorage.getItem('niyamora_token');
+    const base = `${API_BASE_URL}/api/inspections/${id}/pdf`;
+    return token ? `${base}?token=${encodeURIComponent(token)}` : base;
+  },
+
+  async downloadInspectionPdf(id: string, customFilename?: string): Promise<void> {
+    const res = await authFetch(`${API_BASE_URL}/api/inspections/${id}/pdf`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to download inspection PDF report');
+    }
+    const blob = await res.blob();
+    const contentDisposition = res.headers.get('Content-Disposition') || '';
+    let filename = customFilename || 'NIYAMORA_Inspection_Report.pdf';
+    const match = contentDisposition.match(/filename="?([^"]+)"?/);
+    if (match && match[1]) {
+      filename = match[1];
+    }
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
+  },
+
+  async downloadSuggestedDesignPdf(id: string, customFilename?: string): Promise<void> {
+    const res = await authFetch(`${API_BASE_URL}/api/suggested-designs/${id}/pdf`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to download suggested design PDF');
+    }
+    const blob = await res.blob();
+    const contentDisposition = res.headers.get('Content-Disposition') || '';
+    let filename = customFilename || 'NIYAMORA_Suggested_Design.pdf';
+    const match = contentDisposition.match(/filename="?([^"]+)"?/);
+    if (match && match[1]) {
+      filename = match[1];
+    }
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
   },
 
   // Comparison, Regression, Simulator & Risk Map

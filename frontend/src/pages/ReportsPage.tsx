@@ -10,6 +10,7 @@ export const ReportsPage: React.FC = () => {
   const [suggestedDesigns, setSuggestedDesigns] = useState<ApiSuggestedDesign[]>([]);
   const [inspections, setInspections] = useState<ApiInspection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -32,14 +33,40 @@ export const ReportsPage: React.FC = () => {
     loadReportsData();
   }, []);
 
-  const handleDownloadSuggestedDesignPdf = (designId: string) => {
-    window.open(api.getSuggestedDesignPdfUrl(designId), '_blank');
+  const handleDownloadSuggestedDesignPdf = async (designId: string, versionLabel: string = 'V02') => {
+    setDownloadingId(designId);
+    try {
+      await api.downloadSuggestedDesignPdf(designId, `NIYAMORA_Suggested_Design_${versionLabel}.pdf`);
+    } catch (err: any) {
+      alert(`Download failed: ${err.message || 'Could not download report'}`);
+    } finally {
+      setDownloadingId(null);
+    }
+  };
+
+  const handleDownloadInspectionPdf = async (inspId: string, prodName: string = 'Artwork', versionLabel: string = 'V01') => {
+    setDownloadingId(inspId);
+    try {
+      const safe = prodName.replace(/[^a-zA-Z0-9_\-]/g, '_');
+      await api.downloadInspectionPdf(inspId, `${safe}_NIYAMORA_Inspection_${versionLabel}.pdf`);
+    } catch (err: any) {
+      alert(`Download failed: ${err.message || 'Could not download report'}`);
+    } finally {
+      setDownloadingId(null);
+    }
   };
 
   const filteredDesigns = suggestedDesigns.filter((d) => {
     const matchesSearch = d.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (d.target_version_label || '').toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = typeFilter === 'ALL' || typeFilter === 'Suggested Design';
+    return matchesSearch && matchesType;
+  });
+
+  const filteredInspections = inspections.filter((insp) => {
+    const matchesSearch = insp.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      insp.product_name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesType = typeFilter === 'ALL' || typeFilter === 'Compliance Report';
     return matchesSearch && matchesType;
   });
 
@@ -77,7 +104,7 @@ export const ReportsPage: React.FC = () => {
             <Search size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
             <input
               type="text"
-              placeholder="Search reports by ID or version label..."
+              placeholder="Search reports by ID or product name..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="input"
@@ -93,8 +120,8 @@ export const ReportsPage: React.FC = () => {
               className="select"
             >
               <option value="ALL">All Report Types</option>
-              <option value="Suggested Design">Suggested Design Report</option>
-              <option value="Compliance Report">Compliance Review Report</option>
+              <option value="Compliance Report">Inspection Report (V01)</option>
+              <option value="Suggested Design">Suggested Design Report (V02)</option>
             </select>
           </div>
         </div>
@@ -105,17 +132,17 @@ export const ReportsPage: React.FC = () => {
             <Loader2 size={28} className="animate-spin" style={{ margin: '0 auto 0.75rem auto' }} />
             <p>Loading generated compliance reports from database...</p>
           </div>
-        ) : filteredDesigns.length === 0 && inspections.length === 0 ? (
+        ) : filteredDesigns.length === 0 && filteredInspections.length === 0 ? (
           <div className="card" style={{ padding: '4rem 2rem', textAlign: 'center' }}>
             <FileText size={42} style={{ color: 'var(--text-muted)', margin: '0 auto 0.75rem auto' }} />
             <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>No reports generated yet</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', maxWidth: '400px', margin: '0.25rem auto 0 auto' }}>
-              Run an artwork inspection and generate a suggested design in "Improve Design" to export PDF compliance reports.
+              Run an artwork inspection on your packaging artwork to export PDF compliance reports.
             </p>
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {/* Suggested Design PDF Reports */}
+            {/* Suggested Design PDF Reports (Only if explicitly created) */}
             {filteredDesigns.map((design) => (
               <div key={design.id} className="card-tactile" style={{ padding: '1.25rem 1.5rem', backgroundColor: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -136,18 +163,19 @@ export const ReportsPage: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => handleDownloadSuggestedDesignPdf(design.id)}
+                  onClick={() => handleDownloadSuggestedDesignPdf(design.id, design.target_version_label || 'V02')}
+                  disabled={downloadingId === design.id}
                   className="btn btn-primary btn-sm"
                   style={{ gap: '0.4rem' }}
                 >
-                  <Download size={14} />
-                  <span>Download PDF Report</span>
+                  {downloadingId === design.id ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                  <span>{downloadingId === design.id ? 'Downloading...' : 'Download Suggested Design PDF'}</span>
                 </button>
               </div>
             ))}
 
-            {/* Inspection Review Logs */}
-            {inspections.map((insp) => (
+            {/* Inspection Review Reports (V01) */}
+            {filteredInspections.map((insp) => (
               <div key={insp.id} className="card" style={{ padding: '1.25rem 1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <div style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--bg-surface-subtle)', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -155,19 +183,25 @@ export const ReportsPage: React.FC = () => {
                   </div>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                      <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Inspection Audit #{insp.id.slice(0, 8)}</h3>
+                      <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Statutory Inspection Report ({insp.version_label || 'V01'})</h3>
                       <span className="badge badge-neutral">{insp.version_label}</span>
-                      <StatusBadge status={insp.status === 'COMPLETED' ? 'GOOD' : 'REVIEW'} size="sm" />
+                      <StatusBadge status={insp.status === 'COMPLETED' ? (insp.compliance_verdict === 'PASS' ? 'GOOD' : insp.compliance_verdict === 'ISSUE' ? 'ISSUE' : 'REVIEW') : 'REVIEW'} size="sm" />
                     </div>
                     <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      {insp.product_name} • Findings: {insp.findings_summary?.pass_count || 0} PASS, {insp.findings_summary?.issue_count || 0} ISSUE, {insp.findings_summary?.review_count || 0} REVIEW
+                      {insp.product_name} • Findings: {insp.findings_summary?.pass_count || 0} PASS, {insp.findings_summary?.issue_count || 0} ISSUE, {insp.findings_summary?.review_count || 0} REVIEW • Inspected {new Date(insp.created_at).toLocaleString()}
                     </p>
                   </div>
                 </div>
 
-                <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                  {new Date(insp.created_at).toLocaleString()}
-                </span>
+                <button
+                  onClick={() => handleDownloadInspectionPdf(insp.id, insp.product_name, insp.version_label || 'V01')}
+                  disabled={downloadingId === insp.id}
+                  className="btn btn-secondary btn-sm"
+                  style={{ gap: '0.4rem' }}
+                >
+                  {downloadingId === insp.id ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                  <span>{downloadingId === insp.id ? 'Downloading...' : 'Download Inspection PDF'}</span>
+                </button>
               </div>
             ))}
           </div>

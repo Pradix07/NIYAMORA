@@ -310,7 +310,7 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
 
             {filteredEvaluations.map((ev) => {
               const isSelected = ev.id === selectedFindingId || ev.rule_code === selectedFindingId;
-              const isExpanded = isSelected || expandedDetails[ev.id];
+              const isExpanded = !!expandedDetails[ev.id];
               const relatedFinding = findings.find((f) => f.rule_code === ev.rule_code || f.evaluation_id === ev.id);
 
               const simpleTitle = getSimpleTitle(ev.rule_code, ev.rule_title);

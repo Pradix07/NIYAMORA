@@ -80,9 +80,26 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
   const standardPanels = [
     { key: 'FRONT', label: 'Front' },
     { key: 'BACK', label: 'Back' },
-    { key: 'SIDE_LEFT', label: 'Side Left' },
-    { key: 'SIDE_RIGHT', label: 'Side Right' },
+    { key: 'LEFT', label: 'Left', altKey: 'SIDE_LEFT' },
+    { key: 'RIGHT', label: 'Right', altKey: 'SIDE_RIGHT' },
+    { key: 'TOP', label: 'Top' },
+    { key: 'BOTTOM', label: 'Bottom' },
   ];
+
+  // Also include any extra custom panels that were uploaded
+  const allDisplayPanels = panels.length > 0 
+    ? panels.map((p) => ({
+        id: p.id,
+        key: p.panel_type.toUpperCase(),
+        label: p.panel_type.replace('SIDE_', '').replace('_', ' '),
+        panelObj: p,
+      }))
+    : standardPanels.map((std) => ({
+        id: std.key,
+        key: std.key,
+        label: std.label,
+        panelObj: undefined,
+      }));
 
   const issueCount = activeBoxes.filter((b) => b.status === 'ISSUE').length;
 
@@ -153,28 +170,46 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
           <button
             type="button"
             onClick={() => setShowMeasureGrid(!showMeasureGrid)}
-            className={`btn btn-sm ${showMeasureGrid ? 'btn-primary' : 'btn-ghost'}`}
-            title="Toggle measurement grid overlay"
+            className={`btn btn-sm ${showMeasureGrid ? 'btn-secondary' : 'btn-ghost'}`}
+            title="Toggle measurement guides"
             style={{ fontSize: '0.75rem', padding: '0.25rem 0.55rem' }}
           >
             <Ruler size={13} />
-            <span>Measure</span>
+            <span>Grid</span>
           </button>
 
-          <div style={{ height: '16px', width: '1px', backgroundColor: 'var(--border-default)', margin: '0 0.2rem' }} />
-
-          <button type="button" onClick={() => handleZoom(-25)} className="btn-icon" style={{ width: '26px', height: '26px' }} title="Zoom Out">
-            <ZoomOut size={14} />
-          </button>
-          <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', minWidth: '38px', textAlign: 'center', fontWeight: 600 }}>
-            {zoomLevel}%
-          </span>
-          <button type="button" onClick={() => handleZoom(25)} className="btn-icon" style={{ width: '26px', height: '26px' }} title="Zoom In">
-            <ZoomIn size={14} />
-          </button>
-          <button type="button" onClick={() => setZoomLevel(100)} className="btn-icon" style={{ width: '26px', height: '26px' }} title="Reset Zoom">
-            <Maximize2 size={13} />
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', borderLeft: '1px solid var(--border-default)', paddingLeft: '0.35rem', marginLeft: '0.2rem', gap: '2px' }}>
+            <button
+              type="button"
+              onClick={() => handleZoom(-15)}
+              className="btn btn-ghost btn-sm"
+              style={{ padding: '0.25rem 0.4rem', fontSize: '0.75rem' }}
+              title="Zoom out"
+            >
+              <ZoomOut size={13} />
+            </button>
+            <span style={{ fontSize: '0.72rem', fontFamily: 'var(--font-mono)', minWidth: '38px', textAlign: 'center' }}>
+              {zoomLevel}%
+            </span>
+            <button
+              type="button"
+              onClick={() => handleZoom(15)}
+              className="btn btn-ghost btn-sm"
+              style={{ padding: '0.25rem 0.4rem', fontSize: '0.75rem' }}
+              title="Zoom in"
+            >
+              <ZoomIn size={13} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setZoomLevel(100)}
+              className="btn btn-ghost btn-sm"
+              style={{ padding: '0.25rem 0.4rem', fontSize: '0.75rem' }}
+              title="Fit to 100%"
+            >
+              <Maximize2 size={13} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -193,28 +228,27 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
         <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)', marginRight: '0.25rem', whiteSpace: 'nowrap' }}>
           Panels:
         </span>
-        {standardPanels.map((std) => {
-          const uploadedPanel = panels.find((p) => p.panel_type.toUpperCase() === std.key);
-          const isUploaded = !!uploadedPanel || (panels.length === 0 && std.key === 'FRONT');
-          const isCurrentActive = uploadedPanel ? uploadedPanel.id === activePanelId : (std.key === 'FRONT');
+        {allDisplayPanels.map((dp) => {
+          const isCurrentActive = dp.panelObj ? dp.panelObj.id === activePanelId : (dp.key === 'FRONT');
+          const isUploaded = !!dp.panelObj;
 
           return (
             <button
-              key={std.key}
+              key={dp.id}
               type="button"
-              disabled={!uploadedPanel}
-              onClick={() => uploadedPanel && onSelectPanel && onSelectPanel(uploadedPanel.id)}
+              disabled={!dp.panelObj}
+              onClick={() => dp.panelObj && onSelectPanel && onSelectPanel(dp.panelObj.id)}
               className={`badge ${isUploaded ? (isCurrentActive ? 'badge-sample' : 'badge-neutral') : 'badge-ghost'}`}
               style={{
                 fontSize: '0.72rem',
                 padding: '3px 9px',
                 fontWeight: 600,
-                cursor: uploadedPanel ? 'pointer' : 'default',
+                cursor: dp.panelObj ? 'pointer' : 'default',
                 opacity: isUploaded ? 1 : 0.45,
                 border: isCurrentActive ? '1px solid var(--brand-primary)' : '1px solid transparent',
               }}
             >
-              {std.label} {isUploaded ? '✓' : '—'}
+              {dp.label} {isUploaded ? '✓' : '—'}
             </button>
           );
         })}

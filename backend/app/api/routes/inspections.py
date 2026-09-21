@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Response
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.inspection import Inspection
@@ -8,6 +8,7 @@ from app.models.product import Product
 from app.models.company import Company
 from app.schemas.inspection import InspectionRead, InspectionCreate
 from app.services.pipeline import InspectionPipelineService
+from app.services.pdf_generator import PDFReportGenerator
 from app.api.deps import get_current_company, verify_product_ownership, verify_inspection_ownership
 
 from typing import List, Optional
@@ -164,3 +165,26 @@ def get_inspection(
         "created_at": inspection.created_at,
         "completed_at": inspection.completed_at
     }
+
+@router.get("/{inspection_id}/pdf")
+def download_inspection_pdf(
+    inspection_id: str,
+    company: Company = Depends(get_current_company),
+    db: Session = Depends(get_db)
+):
+    inspection = db.query(Inspection).filter(Inspection.id == inspection_id).first()
+    if not inspection:
+        raise HTTPException(status_code=404, detail="Inspection not found.")
+
+    verify_inspection_ownership(inspection, company, db)
+
+    pdf_bytes, filename = PDFReportGenerator.generate_inspection_pdf(db, inspection_id)
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Type": "application/pdf"
+        }
+    )

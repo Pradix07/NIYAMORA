@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import type { ApiSuggestedDesignChange } from '../../services/api';
-import { Sparkles, Download, ArrowRight, ShieldCheck, CheckCircle2, RefreshCw, GitCompare, ZoomIn, ZoomOut } from 'lucide-react';
-import { StatusBadge } from '../common/StatusBadge';
+import type { ApiSuggestedDesignChange, ApiPanel } from '../../services/api';
+import { api } from '../../services/api';
+import { Sparkles, Download, ArrowRight, ShieldCheck, RefreshCw, GitCompare, ZoomIn, ZoomOut, Check } from 'lucide-react';
 
 interface DiffVisualizerProps {
   productName?: string;
@@ -11,6 +11,7 @@ interface DiffVisualizerProps {
   sourcePreviewUrl?: string | null;
   suggestedPreviewUrl?: string | null;
   changes: ApiSuggestedDesignChange[];
+  panels?: ApiPanel[];
   validationStatus?: string;
   status?: string;
   onDownloadPdf?: () => void;
@@ -22,12 +23,13 @@ interface DiffVisualizerProps {
 
 export const DiffVisualizer: React.FC<DiffVisualizerProps> = ({
   productName = 'Packaging Artwork',
-  brandName = 'Aura Botanicals',
+  brandName = 'Brand',
   sourceVersionLabel = 'V01',
   suggestedVersionLabel = 'V02',
   sourcePreviewUrl,
   suggestedPreviewUrl,
   changes,
+  panels = [],
   validationStatus = 'PENDING',
   status = 'GENERATED',
   onDownloadPdf,
@@ -36,21 +38,73 @@ export const DiffVisualizer: React.FC<DiffVisualizerProps> = ({
   onViewRegression,
   isVerifying = false,
 }) => {
+  const [selectedPanelType, setSelectedPanelType] = useState<string>('FRONT');
   const [selectedChangeId, setSelectedChangeId] = useState<string>(changes[0]?.change_id || '');
   const [zoomLevel, setZoomLevel] = useState<number>(1);
 
-  const selectedChange = changes.find((c) => c.change_id === selectedChangeId) || changes[0];
+  const standardPanels = [
+    { key: 'FRONT', label: 'Front' },
+    { key: 'BACK', label: 'Back' },
+    { key: 'LEFT', label: 'Left' },
+    { key: 'RIGHT', label: 'Right' },
+    { key: 'TOP', label: 'Top' },
+  ];
+
+  // Derive display panels from uploaded panels or standard list
+  const displayPanels = panels.length > 0
+    ? panels.map((p) => {
+        const normKey = p.panel_type.toUpperCase().replace('SIDE_', '');
+        const changesOnPanel = changes.filter(
+          (c) => (c.target_panel && c.target_panel.toUpperCase().includes(normKey)) ||
+                 (normKey === 'BACK' && !c.target_panel)
+        );
+        return {
+          id: p.id,
+          key: p.panel_type.toUpperCase(),
+          normKey: normKey,
+          label: p.panel_type.replace('SIDE_', '').replace('_', ' '),
+          changeCount: changesOnPanel.length,
+          previewUrl: api.getFileUrl(p.preview_url),
+        };
+      })
+    : standardPanels.map((std) => {
+        const changesOnPanel = changes.filter(
+          (c) => (c.target_panel && c.target_panel.toUpperCase() === std.key) ||
+                 (std.key === 'BACK' && !c.target_panel)
+        );
+        return {
+          id: std.key,
+          key: std.key,
+          normKey: std.key,
+          label: std.label,
+          changeCount: changesOnPanel.length,
+          previewUrl: std.key === 'FRONT' ? sourcePreviewUrl : null,
+        };
+      });
+
+  const activePanel = displayPanels.find(
+    (dp) => dp.key === selectedPanelType || dp.normKey === selectedPanelType
+  ) || displayPanels[0];
+
+  const panelChanges = changes.filter(
+    (c) => (c.target_panel && c.target_panel.toUpperCase().includes(activePanel.normKey)) ||
+           (activePanel.normKey === 'BACK' && !c.target_panel)
+  );
 
   const handleZoomIn = () => setZoomLevel((z) => Math.min(z + 0.15, 1.6));
   const handleZoomOut = () => setZoomLevel((z) => Math.max(z - 0.15, 0.7));
 
+  // Determine active panel images
+  const activeOriginalImage = activePanel.previewUrl || sourcePreviewUrl;
+  const activeSuggestedImage = panelChanges.length > 0 ? (suggestedPreviewUrl || activeOriginalImage) : activeOriginalImage;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
       {/* Top Banner & Control Deck */}
       <div
         className="card-tactile"
         style={{
-          padding: '1.5rem',
+          padding: '1.25rem 1.5rem',
           background: 'linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-surface-subtle) 100%)',
           display: 'flex',
           alignItems: 'center',
@@ -66,46 +120,114 @@ export const DiffVisualizer: React.FC<DiffVisualizerProps> = ({
               className={`badge ${validationStatus === 'IMPROVED' || validationStatus === 'VERIFIED' ? 'badge-good' : validationStatus === 'NEW_ISSUES_FOUND' ? 'badge-issue' : 'badge-review'}`}
             >
               {validationStatus === 'IMPROVED' ? <ShieldCheck size={12} /> : <Sparkles size={12} />}
-              {validationStatus === 'IMPROVED' ? 'Verified: Evaluated Checks Improved' : `Validation: ${validationStatus}`}
+              <span>{validationStatus === 'IMPROVED' ? 'Verified: Evaluated Checks Improved' : `Validation: ${validationStatus}`}</span>
             </span>
             <span className="badge badge-neutral">Status: {status}</span>
           </div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 800 }}>
-            Review compliance suggestions before the package goes to print.
+          <h2 style={{ fontSize: '1.35rem', fontWeight: 800 }}>
+            {brandName} — {productName}
           </h2>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', maxWidth: '700px', marginTop: '0.25rem' }}>
-            Compare original artwork with NIYAMURA's structured compliance suggestions. Critical statutory values (MRP, net quantity, manufacturer address) are preserved deterministically.
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', maxWidth: '700px', marginTop: '0.2rem' }}>
+            Compare original ({sourceVersionLabel}) artwork with suggested ({suggestedVersionLabel}) compliance adjustments. Statutory declarations are preserved and corrected deterministically.
           </p>
         </div>
 
         {/* Action Controls */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
-          <button
-            onClick={onRunVerification}
-            disabled={isVerifying}
-            className="btn btn-secondary"
-            style={{ gap: '0.4rem' }}
-          >
-            <RefreshCw size={15} className={isVerifying ? 'animate-spin' : ''} />
-            <span>{isVerifying ? 'Re-Validating Engine...' : 'Verify Changes (Re-Inspect)'}</span>
-          </button>
-
-          <button onClick={onDownloadPdf} className="btn btn-primary" style={{ gap: '0.4rem' }}>
-            <Download size={15} />
-            <span>Download Suggested PDF</span>
-          </button>
-
-          <button onClick={onCompareVersions} className="btn btn-outline" style={{ gap: '0.4rem' }}>
-            <GitCompare size={15} />
-            <span>Compare Versions</span>
-          </button>
-
-          {onViewRegression && (
-            <button onClick={onViewRegression} className="btn btn-ghost" style={{ gap: '0.4rem' }}>
-              <span>View Regression</span>
-              <ArrowRight size={14} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {onRunVerification && (
+            <button
+              onClick={onRunVerification}
+              disabled={isVerifying}
+              className="btn btn-secondary btn-sm"
+              style={{ gap: '0.35rem' }}
+            >
+              <RefreshCw size={14} className={isVerifying ? 'animate-spin' : ''} />
+              <span>{isVerifying ? 'Re-Validating...' : 'Verify Changes (Re-Inspect)'}</span>
             </button>
           )}
+
+          {onDownloadPdf && (
+            <button onClick={onDownloadPdf} className="btn btn-primary btn-sm" style={{ gap: '0.35rem' }}>
+              <Download size={14} />
+              <span>Download Suggested PDF</span>
+            </button>
+          )}
+
+          {onCompareVersions && (
+            <button onClick={onCompareVersions} className="btn btn-outline btn-sm" style={{ gap: '0.35rem' }}>
+              <GitCompare size={14} />
+              <span>Compare</span>
+            </button>
+          )}
+
+          {onViewRegression && (
+            <button onClick={onViewRegression} className="btn btn-ghost btn-sm" style={{ gap: '0.35rem' }}>
+              <span>Regression</span>
+              <ArrowRight size={13} />
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Multi-Panel Clean Navigation Bar */}
+      <div
+        className="card"
+        style={{
+          padding: '0.625rem 1rem',
+          backgroundColor: 'var(--bg-surface)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '0.75rem',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', overflowX: 'auto' }}>
+          <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-secondary)', marginRight: '0.25rem' }}>
+            Select Panel:
+          </span>
+          {displayPanels.map((dp) => {
+            const isSelected = dp.key === selectedPanelType || dp.normKey === selectedPanelType;
+            return (
+              <button
+                key={dp.id}
+                type="button"
+                onClick={() => setSelectedPanelType(dp.normKey)}
+                className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-secondary'}`}
+                style={{
+                  fontSize: '0.75rem',
+                  padding: '0.3rem 0.75rem',
+                  fontWeight: 600,
+                  gap: '0.35rem',
+                }}
+              >
+                <span>{dp.label.toUpperCase()}</span>
+                <span
+                  style={{
+                    fontSize: '0.6875rem',
+                    padding: '1px 5px',
+                    borderRadius: '10px',
+                    backgroundColor: isSelected ? 'rgba(255,255,255,0.25)' : dp.changeCount > 0 ? 'var(--status-review-bg)' : 'var(--bg-surface-subtle)',
+                    color: isSelected ? '#FFF' : dp.changeCount > 0 ? 'var(--status-review-text)' : 'var(--text-muted)',
+                  }}
+                >
+                  {dp.changeCount > 0 ? `${dp.changeCount} change${dp.changeCount > 1 ? 's' : ''}` : 'No changes'}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Panel Status Summary */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8125rem' }}>
+          <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
+            {activePanel.label}:
+          </span>
+          <span style={{ color: panelChanges.length > 0 ? 'var(--brand-primary)' : 'var(--text-muted)', fontWeight: 500 }}>
+            {panelChanges.length > 0
+              ? `${panelChanges.length} statutory adjustment${panelChanges.length > 1 ? 's' : ''} applied`
+              : 'Preserved without changes'}
+          </span>
         </div>
       </div>
 
@@ -126,8 +248,8 @@ export const DiffVisualizer: React.FC<DiffVisualizerProps> = ({
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <span style={{ fontWeight: 700, fontSize: '0.875rem' }}>ORIGINAL DESIGN ({sourceVersionLabel})</span>
-              <span className="badge badge-issue" style={{ fontSize: '0.7rem' }}>
-                {changes.length} Finding{changes.length !== 1 ? 's' : ''} Observed
+              <span className="badge badge-neutral" style={{ fontSize: '0.7rem' }}>
+                {activePanel.label}
               </span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
@@ -153,7 +275,7 @@ export const DiffVisualizer: React.FC<DiffVisualizerProps> = ({
               overflow: 'hidden',
             }}
           >
-            {sourcePreviewUrl ? (
+            {activeOriginalImage ? (
               <div
                 style={{
                   position: 'relative',
@@ -164,98 +286,14 @@ export const DiffVisualizer: React.FC<DiffVisualizerProps> = ({
                 }}
               >
                 <img
-                  src={sourcePreviewUrl}
-                  alt="Original Artwork"
+                  src={activeOriginalImage}
+                  alt={`${activePanel.label} Original Artwork`}
                   style={{ maxHeight: '400px', objectFit: 'contain', borderRadius: '4px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}
                 />
-                {/* Highlight Selected Change Bounding Box on Original */}
-                {selectedChange?.original_location && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      left: `${selectedChange.original_location.x}%`,
-                      top: `${selectedChange.original_location.y}%`,
-                      width: `${selectedChange.original_location.width}%`,
-                      height: `${selectedChange.original_location.height}%`,
-                      border: '2px solid var(--status-issue-solid)',
-                      backgroundColor: 'rgba(239, 68, 68, 0.25)',
-                      borderRadius: '3px',
-                      pointerEvents: 'none',
-                      boxShadow: '0 0 10px rgba(239, 68, 68, 0.6)',
-                    }}
-                  >
-                    <span
-                      style={{
-                        position: 'absolute',
-                        top: '-16px',
-                        left: '0',
-                        backgroundColor: 'var(--status-issue-solid)',
-                        color: '#FFF',
-                        fontSize: '0.625rem',
-                        fontWeight: 700,
-                        padding: '1px 5px',
-                        borderRadius: '2px',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      Observed Deficit
-                    </span>
-                  </div>
-                )}
               </div>
             ) : (
-              <div
-                style={{
-                  width: '280px',
-                  height: '380px',
-                  backgroundColor: '#CBB593',
-                  borderRadius: '8px',
-                  position: 'relative',
-                  padding: '16px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-                  transform: `scale(${zoomLevel})`,
-                }}
-              >
-                <div>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#333' }}>{brandName.toUpperCase()}</span>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#111' }}>{productName.toUpperCase()}</h3>
-                </div>
-
-                <div style={{ height: '80px', backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#666' }}>Original Master Dieline</span>
-                </div>
-
-                <div
-                  style={{
-                    backgroundColor: 'rgba(255,255,255,0.9)',
-                    padding: '8px',
-                    borderRadius: '4px',
-                    border: '2px solid var(--status-issue-solid)',
-                    position: 'relative',
-                  }}
-                >
-                  <span style={{ fontSize: '0.65rem', fontWeight: 500, color: '#444' }}>
-                    {selectedChange?.original_value || 'Observed Declaration Value'}
-                  </span>
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '-12px',
-                      right: '6px',
-                      backgroundColor: 'var(--status-issue-solid)',
-                      color: '#FFF',
-                      fontSize: '0.6rem',
-                      fontWeight: 700,
-                      padding: '1px 5px',
-                      borderRadius: '3px',
-                    }}
-                  >
-                    Finding
-                  </div>
-                </div>
+              <div style={{ textAlign: 'center', color: '#94A3B8' }}>
+                <p style={{ fontSize: '0.875rem' }}>Original artwork preview available.</p>
               </div>
             )}
           </div>
@@ -278,12 +316,12 @@ export const DiffVisualizer: React.FC<DiffVisualizerProps> = ({
               <span style={{ fontWeight: 800, fontSize: '0.875rem', color: 'var(--brand-primary)' }}>
                 SUGGESTED DESIGN ({suggestedVersionLabel})
               </span>
-              <span className="badge badge-fixed" style={{ fontSize: '0.7rem' }}>
-                {validationStatus === 'IMPROVED' ? 'Verified Candidate Design' : 'Suggested Adjustments'}
+              <span className="badge badge-neutral" style={{ fontSize: '0.7rem' }}>
+                {activePanel.label}
               </span>
             </div>
             <span style={{ fontSize: '0.75rem', color: 'var(--brand-primary)', fontWeight: 600 }}>
-              {selectedChange?.field_name || 'Structured Sizing'}
+              {panelChanges.length > 0 ? `${panelChanges.length} adjustment(s)` : 'Preserved'}
             </span>
           </div>
 
@@ -300,7 +338,7 @@ export const DiffVisualizer: React.FC<DiffVisualizerProps> = ({
               overflow: 'hidden',
             }}
           >
-            {suggestedPreviewUrl ? (
+            {activeSuggestedImage ? (
               <div
                 style={{
                   position: 'relative',
@@ -311,99 +349,14 @@ export const DiffVisualizer: React.FC<DiffVisualizerProps> = ({
                 }}
               >
                 <img
-                  src={suggestedPreviewUrl}
-                  alt="Suggested Artwork"
+                  src={activeSuggestedImage}
+                  alt={`${activePanel.label} Suggested Design`}
                   style={{ maxHeight: '400px', objectFit: 'contain', borderRadius: '4px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)' }}
                 />
-                {/* Highlight Selected Change on Suggested */}
-                {selectedChange?.suggested_location && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      left: `${selectedChange.suggested_location.x}%`,
-                      top: `${selectedChange.suggested_location.y}%`,
-                      width: `${selectedChange.suggested_location.width}%`,
-                      height: `${selectedChange.suggested_location.height}%`,
-                      border: '2px solid var(--status-good-solid)',
-                      backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                      borderRadius: '3px',
-                      pointerEvents: 'none',
-                      boxShadow: '0 0 12px rgba(16, 185, 129, 0.7)',
-                    }}
-                  >
-                    <span
-                      style={{
-                        position: 'absolute',
-                        top: '-16px',
-                        left: '0',
-                        backgroundColor: 'var(--status-good-solid)',
-                        color: '#FFF',
-                        fontSize: '0.625rem',
-                        fontWeight: 700,
-                        padding: '1px 5px',
-                        borderRadius: '2px',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
-                      ✓ Suggested Layout
-                    </span>
-                  </div>
-                )}
               </div>
             ) : (
-              <div
-                style={{
-                  width: '280px',
-                  height: '380px',
-                  backgroundColor: '#CBB593',
-                  borderRadius: '8px',
-                  position: 'relative',
-                  padding: '16px',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
-                  transform: `scale(${zoomLevel})`,
-                }}
-              >
-                <div>
-                  <span style={{ fontSize: '0.7rem', fontWeight: 800, color: '#333' }}>{brandName.toUpperCase()}</span>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 800, color: '#111' }}>{productName.toUpperCase()}</h3>
-                </div>
-
-                <div style={{ height: '80px', backgroundColor: 'rgba(255,255,255,0.7)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#666' }}>NIYAMURA Suggested Overlay</span>
-                </div>
-
-                <div
-                  style={{
-                    backgroundColor: '#FFFFFF',
-                    padding: '8px',
-                    borderRadius: '4px',
-                    border: '2px solid var(--status-good-solid)',
-                    position: 'relative',
-                    boxShadow: '0 0 10px rgba(16, 185, 129, 0.4)',
-                  }}
-                >
-                  <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#000', letterSpacing: '0.02em', whiteSpace: 'pre-line' }}>
-                    {selectedChange?.suggested_value || 'Compliant Declaration Specification'}
-                  </span>
-                  <div
-                    style={{
-                      position: 'absolute',
-                      top: '-12px',
-                      right: '6px',
-                      backgroundColor: 'var(--status-good-solid)',
-                      color: '#FFF',
-                      fontSize: '0.6rem',
-                      fontWeight: 700,
-                      padding: '1px 5px',
-                      borderRadius: '3px',
-                    }}
-                  >
-                    ✓ Suggested
-                  </div>
-                </div>
+              <div style={{ textAlign: 'center', color: '#94A3B8' }}>
+                <p style={{ fontSize: '0.875rem' }}>Suggested artwork preview available.</p>
               </div>
             )}
           </div>
@@ -411,75 +364,72 @@ export const DiffVisualizer: React.FC<DiffVisualizerProps> = ({
 
       </div>
 
-      {/* Structured Changes Detail Section */}
-      <div className="card" style={{ padding: '1.5rem' }}>
-        <h3 style={{ fontSize: '1.125rem', fontWeight: 700, marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <CheckCircle2 size={18} style={{ color: 'var(--brand-primary)' }} />
-          <span>Structured Suggested Adjustments ({changes.length})</span>
+      {/* Structured Changes Breakdown for Selected Panel */}
+      <div className="card" style={{ padding: '1.25rem 1.5rem' }}>
+        <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.75rem' }}>
+          Adjustments on {activePanel.label} Panel ({panelChanges.length})
         </h3>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.875rem' }}>
-          {changes.map((change) => {
-            const isSelected = selectedChangeId === change.change_id;
-            return (
-              <div
-                key={change.change_id}
-                onClick={() => setSelectedChangeId(change.change_id)}
-                className="card"
-                style={{
-                  padding: '1.125rem',
-                  backgroundColor: isSelected ? 'var(--brand-primary-light)' : 'var(--bg-surface-subtle)',
-                  border: isSelected ? '1.5px solid var(--brand-primary)' : '1px solid var(--border-default)',
-                  cursor: 'pointer',
-                  transition: 'all var(--transition-fast)',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.5rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+        {panelChanges.length === 0 ? (
+          <div style={{ padding: '1.25rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-md)', textAlign: 'center', color: 'var(--text-secondary)' }}>
+            <Check size={18} style={{ color: 'var(--status-good-solid)', margin: '0 auto 0.35rem auto' }} />
+            <p style={{ margin: 0, fontSize: '0.875rem', fontWeight: 600 }}>No changes required on this panel.</p>
+            <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.78rem', color: 'var(--text-muted)' }}>Original packaging dieline and declarations are preserved.</p>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {panelChanges.map((change) => {
+              const isSelected = change.change_id === selectedChangeId;
+              return (
+                <div
+                  key={change.change_id}
+                  onClick={() => setSelectedChangeId(change.change_id)}
+                  style={{
+                    padding: '1rem',
+                    backgroundColor: isSelected ? 'var(--bg-surface)' : 'var(--bg-surface-subtle)',
+                    borderRadius: 'var(--radius-md)',
+                    border: isSelected ? '1.5px solid var(--brand-primary)' : '1px solid var(--border-default)',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.4rem',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <StatusBadge status={change.status === 'FIXED' ? 'FIXED' : change.status === 'IMPROVED' ? 'GOOD' : 'REVIEW'} size="sm" />
-                    <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{change.field_name}</span>
-                    <span style={{ fontSize: '0.75rem', fontFamily: 'var(--font-mono)', color: 'var(--text-muted)' }}>({change.rule_code})</span>
+                    <span style={{ fontWeight: 700, fontSize: '0.875rem' }}>{change.field_name}</span>
+                    <span className="badge badge-neutral" style={{ fontSize: '0.6875rem' }}>{change.rule_code}</span>
                   </div>
-                  <span className="badge badge-neutral" style={{ fontSize: '0.7rem' }}>{change.change_type}</span>
+                  <span className="badge badge-good" style={{ fontSize: '0.6875rem' }}>{change.status || 'IMPROVED'}</span>
                 </div>
 
-                <div className="grid-2" style={{ gap: '1rem', fontSize: '0.8125rem', marginBottom: '0.625rem' }}>
-                  <div style={{ backgroundColor: 'var(--bg-surface)', padding: '0.625rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)' }}>
-                    <span style={{ color: 'var(--status-issue-text)', fontWeight: 600, display: 'block', fontSize: '0.7rem', textTransform: 'uppercase' }}>
-                      Original Observed Specification:
-                    </span>
-                    <p style={{ marginTop: '3px', color: 'var(--text-secondary)', fontFamily: 'var(--font-mono)' }}>
-                      {change.original_value || 'Not Detected'}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.25rem' }}>
+                  <div style={{ padding: '0.5rem 0.75rem', backgroundColor: 'var(--bg-surface)', borderRadius: '4px', border: '1px solid var(--border-subtle)' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600 }}>Original:</span>
+                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8125rem', color: 'var(--text-secondary)', margin: '2px 0 0 0' }}>
+                      {change.original_value || 'Not clearly detected'}
                     </p>
                   </div>
 
-                  <div style={{ backgroundColor: 'var(--bg-surface)', padding: '0.625rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--status-good-border)' }}>
-                    <span style={{ color: 'var(--status-good-text)', fontWeight: 600, display: 'block', fontSize: '0.7rem', textTransform: 'uppercase' }}>
-                      NIYAMURA Suggested Specification:
-                    </span>
-                    <p style={{ marginTop: '3px', color: 'var(--text-primary)', fontWeight: 700, fontFamily: 'var(--font-mono)', whiteSpace: 'pre-line' }}>
+                  <div style={{ padding: '0.5rem 0.75rem', backgroundColor: 'var(--brand-primary-light)', borderRadius: '4px', border: '1px solid rgba(79, 70, 229, 0.2)' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--brand-primary)', textTransform: 'uppercase', fontWeight: 600 }}>Suggested:</span>
+                    <p style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8125rem', color: 'var(--brand-primary)', fontWeight: 700, margin: '2px 0 0 0' }}>
                       {change.suggested_value}
                     </p>
                   </div>
                 </div>
 
-                <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                  <strong>Statutory Rationale:</strong> {change.reason}
-                </p>
-                {change.rule_reference && (
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
-                    <strong>Legal Reference:</strong> {change.rule_reference}
+                {change.reason && (
+                  <p style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', margin: '0.25rem 0 0 0' }}>
+                    <strong style={{ color: 'var(--text-primary)' }}>Rationale: </strong>{change.reason}
                   </p>
                 )}
               </div>
             );
           })}
-        </div>
-      </div>
-
-      {/* Mandatory Statutory Advisory Disclaimer */}
-      <div style={{ padding: '0.875rem 1.25rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-        <strong>Regulatory & Legal Disclaimer:</strong> This document is a design assistance and compliance review artifact. It is not a government certificate, approval, or legal certification. Final regulatory and production decisions remain with the responsible product owner and relevant authorities.
+          </div>
+        )}
       </div>
     </div>
   );
