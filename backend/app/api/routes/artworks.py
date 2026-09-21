@@ -1,5 +1,5 @@
 from typing import Optional, List
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, Request
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.product import Product
@@ -17,28 +17,43 @@ router = APIRouter(tags=["Artworks & Upload"])
 
 @router.post("/upload-check", status_code=201)
 async def upload_artwork_and_start_check(
-    file: UploadFile = File(...),
-    panel_type: str = Form("FRONT"),
-    product_name: str = Form("Packaging Artwork"),
-    brand: str = Form("Brand"),
-    category: str = Form("Food & Beverage"),
-    packaging_type: str = Form("Stand-Up Pouch"),
-    sku: Optional[str] = Form(None),
-    net_quantity: Optional[str] = Form(None),
-    source_type: str = Form("PACKAGING_ARTWORK"),
-    product_id: Optional[str] = Form(None),
+    request: Request,
     company: Company = Depends(get_current_company),
     db: Session = Depends(get_db)
 ):
     """
-    Core Phase 2 Ingestion Workflow:
-    1. Validate uploaded file format & size
-    2. Store original file in structured company/product/artwork storage
+    Core Ingestion Workflow (Single or Multi-Panel Artwork):
+    1. Collect and validate uploaded artwork files (supports single file or multi-panel files)
+    2. Store original files in structured company/product/artwork storage
     3. Generate next sequential version number (V01, V02...)
-    4. Create ArtworkVersion entity & register ArtworkPanel (e.g. FRONT, BACK, SIDE)
-    5. Create Inspection record
-    6. Execute processing pipeline (Quality precheck -> Extraction -> Structuring)
+    4. Create ArtworkVersion entity & register all ArtworkPanels (FRONT, BACK, SIDES, TOP, etc.)
+    5. Create a SINGLE Inspection record for the version
+    6. Execute processing pipeline across all panels (Quality -> Extraction -> Structuring -> Rules)
     """
+    form = await request.form()
+
+    # 0. Collect and validate uploaded files
+    uploaded_files: List[UploadFile] = []
+    for key in form.keys():
+        for item in form.getlist(key):
+            if hasattr(item, "filename") and getattr(item, "filename", None) and item not in uploaded_files:
+                uploaded_files.append(item)
+
+    if not uploaded_files:
+        raise HTTPException(status_code=400, detail="At least one packaging artwork file is required.")
+
+    # Form parameters
+    product_name = str(form.get("product_name") or "Packaging Artwork")
+    brand = str(form.get("brand") or "Brand")
+    category = str(form.get("category") or "Food & Beverage")
+    packaging_type = str(form.get("packaging_type") or "Stand-Up Pouch")
+    sku = str(form.get("sku")) if form.get("sku") else None
+    net_quantity = str(form.get("net_quantity")) if form.get("net_quantity") else None
+    source_type = str(form.get("source_type") or "PACKAGING_ARTWORK")
+    product_id = str(form.get("product_id")) if form.get("product_id") else None
+    panel_type = str(form.get("panel_type") or "FRONT")
+    panel_types = form.getlist("panel_types")
+
     # 1. Resolve or Create Product with Ownership Verification
     product = None
     if product_id:
@@ -48,7 +63,7 @@ async def upload_artwork_and_start_check(
         verify_product_ownership(product, company)
     
     if not product:
-        generated_sku = sku or f"SKU-{brand[:3].upper()}-{abs(hash(product_name)) % 10000:04d}"
+        generated_sku = sku or f"SKU-{brand[:3].upper() if brand else 'SKU'}-{abs(hash(product_name)) % 10000:04d}"
         product = Product(
             company_id=company.id,
             name=product_name,
@@ -57,7 +72,7 @@ async def upload_artwork_and_start_check(
             packaging_type=packaging_type,
             sku=generated_sku,
             net_quantity=net_quantity,
-            description="Created via pre-print upload check."
+            description="Created via pre-print packaging check."
         )
         db.add(product)
         db.commit()
@@ -84,9 +99,10 @@ async def upload_artwork_and_start_check(
     )
     next_version_num = (latest_version.version_number + 1) if latest_version else 1
 
-    # 4. Save file to storage
-    file_path, storage_key, file_size, orig_name = await storage.save_upload(
-        file=file,
+    # 4. Save primary file to storage
+    primary_file = uploaded_files[0]
+    primary_path, primary_storage_key, primary_size, primary_orig_name = await storage.save_upload(
+        file=primary_file,
         company_id=company.id,
         product_id=product.id,
         artwork_id=artwork.id,
@@ -97,29 +113,72 @@ async def upload_artwork_and_start_check(
     version = ArtworkVersion(
         artwork_id=artwork.id,
         version_number=next_version_num,
-        file_path=file_path,
-        original_filename=orig_name,
-        mime_type=file.content_type or "application/octet-stream",
-        file_size_bytes=file_size,
+        file_path=primary_path,
+        original_filename=primary_orig_name,
+        mime_type=primary_file.content_type or "application/octet-stream",
+        file_size_bytes=primary_size,
         processing_status="QUEUED"
     )
     db.add(version)
     db.commit()
     db.refresh(version)
 
-    # 6. Register initial panel for the logical version (FRONT, BACK, SIDE, etc.)
-    primary_panel = ArtworkPanel(
-        artwork_version_id=version.id,
-        panel_type=panel_type,
-        file_path=file_path,
-        original_filename=orig_name,
-        mime_type=file.content_type or "application/octet-stream",
-        file_size_bytes=file_size
-    )
-    db.add(primary_panel)
-    db.commit()
+    # 6. Register panels for all uploaded files (FRONT, BACK, SIDE, TOP, etc.)
+    for idx, f in enumerate(uploaded_files):
+        if idx == 0:
+            p_path, p_key, p_size, p_name = primary_path, primary_storage_key, primary_size, primary_orig_name
+        else:
+            p_path, p_key, p_size, p_name = await storage.save_upload(
+                file=f,
+                company_id=company.id,
+                product_id=product.id,
+                artwork_id=artwork.id,
+                version_number=next_version_num
+            )
 
-    # 7. Create Inspection record
+        # Determine panel type
+        p_type = "FRONT"
+        if panel_types and idx < len(panel_types) and panel_types[idx]:
+            p_type = panel_types[idx].strip().upper()
+        elif idx == 0 and panel_type:
+            p_type = panel_type.strip().upper()
+        else:
+            fname_lower = (p_name or "").lower()
+            if "back" in fname_lower or "rear" in fname_lower:
+                p_type = "BACK"
+            elif "side_left" in fname_lower or "left" in fname_lower:
+                p_type = "SIDE_LEFT"
+            elif "side_right" in fname_lower or "right" in fname_lower:
+                p_type = "SIDE_RIGHT"
+            elif "side" in fname_lower:
+                p_type = "SIDE"
+            elif "top" in fname_lower or "seal" in fname_lower:
+                p_type = "TOP"
+            elif "bottom" in fname_lower or "base" in fname_lower:
+                p_type = "BOTTOM"
+            elif "front" in fname_lower:
+                p_type = "FRONT"
+            elif idx == 0:
+                p_type = "FRONT"
+            elif idx == 1:
+                p_type = "BACK"
+            else:
+                p_type = "OTHER"
+
+        panel = ArtworkPanel(
+            artwork_version_id=version.id,
+            panel_type=p_type,
+            file_path=p_path,
+            original_filename=p_name,
+            mime_type=f.content_type or "application/octet-stream",
+            file_size_bytes=p_size
+        )
+        db.add(panel)
+
+    db.commit()
+    db.refresh(version)
+
+    # 7. Create Inspection record (ONE inspection for the entire artwork revision)
     inspection = Inspection(
         product_id=product.id,
         artwork_version_id=version.id,
@@ -130,7 +189,7 @@ async def upload_artwork_and_start_check(
     db.commit()
     db.refresh(inspection)
 
-    # 8. Execute processing pipeline synchronously
+    # 8. Execute processing pipeline synchronously across all panels
     InspectionPipelineService.execute_inspection(db, inspection.id)
     db.refresh(inspection)
     db.refresh(version)
@@ -146,8 +205,8 @@ async def upload_artwork_and_start_check(
         "inspection_id": inspection.id,
         "inspection_status": inspection.status,
         "quality_verdict": inspection.quality_verdict,
-        "storage_key": storage_key,
-        "preview_url": f"/api/files/{storage_key}"
+        "storage_key": primary_storage_key,
+        "preview_url": f"/api/files/{primary_storage_key}"
     }
 
 @router.post("/artworks/versions/{version_id}/panels", response_model=ArtworkPanelRead, status_code=201)

@@ -87,7 +87,7 @@ export const ProcessingPage: React.FC = () => {
         <div style={{ textAlign: 'center' }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.35rem 0.85rem', borderRadius: 'var(--radius-full)', backgroundColor: 'var(--brand-primary-light)', color: 'var(--brand-primary)', fontSize: '0.8125rem', fontWeight: 700, marginBottom: '0.75rem' }}>
             <ShieldCheck size={14} />
-            <span>Pre-Print Ingestion & Extraction</span>
+            <span>Packaging Compliance & Extraction</span>
           </div>
           <h1 style={{ fontSize: '1.85rem', fontWeight: 800 }}>
             {inspection ? inspection.product_name : 'Analyzing Packaging Artwork'}

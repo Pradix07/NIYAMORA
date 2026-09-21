@@ -82,7 +82,7 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
           <span style={{ fontSize: '0.875rem', fontWeight: 700 }}>Artwork Canvas</span>
           <span className="badge badge-neutral" style={{ fontFamily: 'var(--font-mono)' }}>
-            {versionLabel} • {previewImageUrl ? 'Live Ingested Vector/Scan' : '160×240mm (300 DPI)'}
+            {versionLabel} • {previewImageUrl ? 'Live Uploaded Artwork/Scan' : '160×240mm (300 DPI)'}
           </span>
           {selectedBox && (
             <span className="badge badge-sample" style={{ fontSize: '0.7rem' }}>

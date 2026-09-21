@@ -171,7 +171,7 @@ export const VersionsPage: React.FC = () => {
                       </div>
 
                       <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                        Artwork revision {v.version_label} ingested for statutory packaging compliance ({v.source_type}).
+                        Artwork revision {v.version_label} uploaded for statutory packaging compliance ({v.source_type}).
                       </p>
                     </div>
                   </div>

@@ -314,3 +314,67 @@ def test_multi_panel_artwork_support():
     assert "BACK" in panel_types
     assert "SIDE_LEFT" in panel_types
 
+def test_multi_file_simultaneous_upload_check():
+    """
+    Verification Area 5: Simultaneous Multi-File Upload under ONE Inspection.
+    Tests uploading Front, Back, Left, Right, Top panels in a single request.
+    Verifies that all 5 panels belong to 1 ArtworkVersion and 1 Inspection,
+    and text extraction combines declarations across panels.
+    """
+    front_img = create_sample_image_bytes()
+    back_img = create_sample_image_bytes()
+    left_img = create_sample_image_bytes()
+    right_img = create_sample_image_bytes()
+    top_img = create_sample_image_bytes()
+
+    res = client.post(
+        "/api/upload-check",
+        files=[
+            ("files", ("01_front.png", front_img.getvalue(), "image/png")),
+            ("files", ("02_back.png", back_img.getvalue(), "image/png")),
+            ("files", ("03_left.png", left_img.getvalue(), "image/png")),
+            ("files", ("04_right.png", right_img.getvalue(), "image/png")),
+            ("files", ("05_top_seal.png", top_img.getvalue(), "image/png")),
+        ],
+        data={
+            "product_name": "Nutriva Roasted Almonds",
+            "brand": "Nutriva",
+            "packaging_type": "Stand-Up Pouch",
+            "net_quantity": "250 g",
+            "panel_type": "FRONT"
+        }
+    )
+
+    if res.status_code != 201:
+        print("ERROR RESPONSE:", res.status_code, res.text)
+    assert res.status_code == 201
+    data = res.json()
+    assert data["success"] is True
+    insp_id = data["inspection_id"]
+    art_id = data["artwork_id"]
+    ver_id = data["version_id"]
+
+    # Verify that only 1 inspection was created
+    insps_res = client.get(f"/api/inspections?product_id={data['product_id']}")
+    assert insps_res.status_code == 200
+    inspections = insps_res.json()
+    assert len(inspections) == 1
+    assert inspections[0]["id"] == insp_id
+
+    # Verify that the ArtworkVersion contains all 5 panels
+    ver_res = client.get(f"/api/artworks/{art_id}/versions")
+    assert ver_res.status_code == 200
+    ver_data = ver_res.json()[0]
+    assert len(ver_data["panels"]) == 5
+    panel_types = [p["panel_type"] for p in ver_data["panels"]]
+    assert panel_types == ["FRONT", "BACK", "SIDE_LEFT", "SIDE_RIGHT", "TOP"]
+
+    # Verify inspection status and extraction across panels
+    insp_detail = client.get(f"/api/inspections/{insp_id}")
+    assert insp_detail.status_code == 200
+    insp_json = insp_detail.json()
+    assert insp_json["status"] == "COMPLETED"
+    assert insp_json["quality_details"]["panel_count"] == 5
+    assert insp_json["extracted_data"]["total_blocks"] > 0
+
+

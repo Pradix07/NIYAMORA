@@ -185,10 +185,19 @@ class ComplianceEngine:
             # 1. Create Evidence record if evidence data is present
             evidence_rec = None
             if evidence_info:
+                matched_panel_id = version.panels[0].id if version.panels else None
+                if version.panels and len(version.panels) > 1:
+                    bbox_data = evidence_info.get("bbox") or {}
+                    lbl = bbox_data.get("label", "") if isinstance(bbox_data, dict) else ""
+                    for p in version.panels:
+                        if f"[{p.panel_type}]" in lbl:
+                            matched_panel_id = p.id
+                            break
+
                 evidence_rec = Evidence(
                     inspection_id=inspection.id,
                     source_type=evidence_info.get("source_type", "OCR"),
-                    panel_id=version.panels[0].id if version.panels else None,
+                    panel_id=matched_panel_id,
                     page_number=1,
                     bbox=evidence_info.get("bbox"),
                     observed_text=evidence_info.get("observed_text"),

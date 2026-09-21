@@ -14,16 +14,32 @@ import {
   ArrowRight, 
   Info,
   Loader2,
-  AlertCircle
+  AlertCircle,
+  Plus
 } from 'lucide-react';
+
+interface UploadedPanelItem {
+  id: string;
+  file: File;
+  name: string;
+  size: string;
+  type: string;
+  panelType: 'FRONT' | 'BACK' | 'SIDE_LEFT' | 'SIDE_RIGHT' | 'TOP' | 'OTHER';
+  previewUrl?: string;
+}
 
 export const NewCheckPage: React.FC = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [uploadMode, setUploadMode] = useState<'artwork' | 'photo' | 'multi' | 'ecom'>('artwork');
+  
+  // Single file state (for artwork, photo, ecom modes)
   const [actualFile, setActualFile] = useState<File | null>(null);
   const [selectedFileMeta, setSelectedFileMeta] = useState<{ name: string; size: string; type: string } | null>(null);
+  
+  // Multi-panel state (for multi mode)
+  const [uploadedPanels, setUploadedPanels] = useState<UploadedPanelItem[]>([]);
   
   const [productName, setProductName] = useState('');
   const [productType, setProductType] = useState<PackagingType>('Stand-Up Pouch');
@@ -33,28 +49,122 @@ export const NewCheckPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleFileChange = (file: File) => {
-    setActualFile(file);
-    const sizeInMb = (file.size / (1024 * 1024)).toFixed(1);
-    setSelectedFileMeta({
-      name: file.name,
-      size: `${sizeInMb} MB`,
-      type: file.type || 'Artwork File',
-    });
-    setErrorMessage(null);
-    if (!productName) {
-      // derive clean product name from filename
-      const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
-      setProductName(cleanName.charAt(0).toUpperCase() + cleanName.slice(1));
+  const guessPanelType = (filename: string): 'FRONT' | 'BACK' | 'SIDE_LEFT' | 'SIDE_RIGHT' | 'TOP' | 'OTHER' => {
+    const lower = filename.toLowerCase();
+    if (lower.includes('front')) return 'FRONT';
+    if (lower.includes('back') || lower.includes('rear')) return 'BACK';
+    if (lower.includes('left')) return 'SIDE_LEFT';
+    if (lower.includes('right')) return 'SIDE_RIGHT';
+    if (lower.includes('side')) return 'SIDE_LEFT';
+    if (lower.includes('top') || lower.includes('seal') || lower.includes('cap') || lower.includes('lid')) return 'TOP';
+    if (lower.includes('bottom') || lower.includes('base')) return 'OTHER';
+    return 'FRONT';
+  };
+
+  const handleFilesAdded = (incomingFiles: FileList | File[]) => {
+    const fileArray = Array.from(incomingFiles);
+    if (fileArray.length === 0) return;
+
+    const validTypes = ['application/pdf', 'image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
+    const maxBytes = 100 * 1024 * 1024; // 100MB
+
+    const validFiles: File[] = [];
+    for (const f of fileArray) {
+      const ext = f.name.split('.').pop()?.toLowerCase();
+      const isValidExt = ['pdf', 'png', 'jpg', 'jpeg', 'webp'].includes(ext || '');
+      if (!isValidExt && !validTypes.includes(f.type)) {
+        setErrorMessage(`File "${f.name}" has an unsupported format. Supported: PDF, PNG, JPEG, WEBP.`);
+        continue;
+      }
+      if (f.size > maxBytes) {
+        setErrorMessage(`File "${f.name}" exceeds the 100MB size limit.`);
+        continue;
+      }
+      validFiles.push(f);
     }
+
+    if (validFiles.length === 0) return;
+
+    if (uploadMode === 'multi') {
+      setUploadedPanels((prev) => {
+        const existingKeys = new Set(prev.map((p) => `${p.name}_${p.file.size}`));
+        const newPanels: UploadedPanelItem[] = [];
+
+        for (const f of validFiles) {
+          const key = `${f.name}_${f.size}`;
+          if (existingKeys.has(key)) {
+            continue; // Skip exact duplicate
+          }
+          const sizeInMb = (f.size / (1024 * 1024)).toFixed(1);
+          const pType = guessPanelType(f.name);
+          newPanels.push({
+            id: `panel_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`,
+            file: f,
+            name: f.name,
+            size: `${sizeInMb} MB`,
+            type: f.type || 'Artwork Image',
+            panelType: pType,
+            previewUrl: f.type.startsWith('image/') ? URL.createObjectURL(f) : undefined,
+          });
+        }
+
+        const updated = [...prev, ...newPanels];
+        if (!productName && updated.length > 0) {
+          const cleanName = updated[0].name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+          setProductName(cleanName.charAt(0).toUpperCase() + cleanName.slice(1));
+        }
+        return updated;
+      });
+      setErrorMessage(null);
+    } else {
+      // Single file mode
+      const first = validFiles[0];
+      setActualFile(first);
+      const sizeInMb = (first.size / (1024 * 1024)).toFixed(1);
+      setSelectedFileMeta({
+        name: first.name,
+        size: `${sizeInMb} MB`,
+        type: first.type || 'Artwork File',
+      });
+      setErrorMessage(null);
+      if (!productName) {
+        const cleanName = first.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+        setProductName(cleanName.charAt(0).toUpperCase() + cleanName.slice(1));
+      }
+    }
+  };
+
+  const handleRemovePanel = (id: string) => {
+    setUploadedPanels((prev) => {
+      const item = prev.find((p) => p.id === id);
+      if (item?.previewUrl) {
+        URL.revokeObjectURL(item.previewUrl);
+      }
+      return prev.filter((p) => p.id !== id);
+    });
+  };
+
+  const handlePanelTypeChange = (id: string, newType: UploadedPanelItem['panelType']) => {
+    setUploadedPanels((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, panelType: newType } : p))
+    );
   };
 
   const handleStartCheck = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!actualFile && !selectedFileMeta) {
-      setErrorMessage('Please select or drag-and-drop a packaging artwork file (PDF, PNG, JPG).');
-      return;
+
+    if (uploadMode === 'multi') {
+      if (uploadedPanels.length === 0) {
+        setErrorMessage('Please select or upload at least one packaging panel image (Front, Back, Side, etc.).');
+        return;
+      }
+    } else {
+      if (!actualFile && !selectedFileMeta) {
+        setErrorMessage('Please select or drag-and-drop a packaging artwork file (PDF, PNG, JPG).');
+        return;
+      }
     }
+
     if (!productName.trim()) {
       setErrorMessage('Please provide a Product Master Name.');
       return;
@@ -65,19 +175,31 @@ export const NewCheckPage: React.FC = () => {
 
     try {
       const formData = new FormData();
-      if (actualFile) {
-        formData.append('file', actualFile);
+
+      if (uploadMode === 'multi') {
+        for (const panel of uploadedPanels) {
+          formData.append('files', panel.file);
+          formData.append('panel_types', panel.panelType);
+        }
+        // Primary file for backwards compatibility
+        formData.append('file', uploadedPanels[0].file);
+        formData.append('panel_type', uploadedPanels[0].panelType);
       } else {
-        const dummyContent = `%PDF-1.4\n1 0 obj\n<< /Title (${productName}) /Author (${brandName || 'Company'}) >>\nendobj\n%%EOF`;
-        const blob = new Blob([dummyContent], { type: 'application/pdf' });
-        const dummyFile = new File([blob], selectedFileMeta?.name || 'packaging_artwork.pdf', { type: 'application/pdf' });
-        formData.append('file', dummyFile);
+        if (actualFile) {
+          formData.append('file', actualFile);
+        } else {
+          const dummyContent = `%PDF-1.4\n1 0 obj\n<< /Title (${productName}) /Author (${brandName || 'Company'}) >>\nendobj\n%%EOF`;
+          const blob = new Blob([dummyContent], { type: 'application/pdf' });
+          const dummyFile = new File([blob], selectedFileMeta?.name || 'packaging_artwork.pdf', { type: 'application/pdf' });
+          formData.append('file', dummyFile);
+        }
+        formData.append('panel_type', 'FRONT');
       }
 
-      formData.append('product_name', productName);
-      formData.append('brand', brandName);
+      formData.append('product_name', productName.trim());
+      formData.append('brand', brandName.trim());
       formData.append('packaging_type', productType);
-      formData.append('net_quantity', netQuantity);
+      formData.append('net_quantity', netQuantity.trim());
       formData.append('source_type', uploadMode === 'photo' ? 'PRODUCT_PHOTO' : uploadMode === 'multi' ? 'MULTIPLE_IMAGES' : 'PACKAGING_ARTWORK');
 
       const response = await api.uploadCheck(formData);
@@ -96,9 +218,8 @@ export const NewCheckPage: React.FC = () => {
         
         {/* Header */}
         <div>
-          <span className="badge badge-sample" style={{ marginBottom: '0.35rem' }}>Pre-Print Screening</span>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Start a New Packaging Check</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '0.25rem' }}>
             Upload packaging dielines or high-resolution packshots to evaluate against Legal Metrology, FSSAI, and mandatory declaration rules.
           </p>
         </div>
@@ -112,7 +233,7 @@ export const NewCheckPage: React.FC = () => {
 
         <form onSubmit={handleStartCheck} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
           
-          {/* Section 1: Ingestion Source Selector */}
+          {/* Section 1: Input Source Selector */}
           <div className="card" style={{ padding: '1.5rem' }}>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.875rem' }}>
               1. Select Input Source
@@ -135,8 +256,8 @@ export const NewCheckPage: React.FC = () => {
                 }}
               >
                 <FileText size={22} style={{ color: uploadMode === 'artwork' ? 'var(--brand-primary)' : 'var(--text-secondary)', marginBottom: '0.5rem' }} />
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700 }}>Packaging Artwork (PDF / AI)</span>
-                <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '2px' }}>Vector Dielines</span>
+                <span style={{ fontSize: '0.8125rem', fontWeight: 700 }}>Packaging Artwork</span>
+                <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '2px' }}>Upload your packaging design file</span>
               </button>
 
               <button
@@ -176,7 +297,7 @@ export const NewCheckPage: React.FC = () => {
               >
                 <Layers size={22} style={{ color: uploadMode === 'multi' ? 'var(--brand-primary)' : 'var(--text-secondary)', marginBottom: '0.5rem' }} />
                 <span style={{ fontSize: '0.8125rem', fontWeight: 700 }}>Multiple Image Panels</span>
-                <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '2px' }}>Front / Back / Sides</span>
+                <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '2px' }}>Front / Back / Sides / Top</span>
               </button>
 
               <button
@@ -196,26 +317,36 @@ export const NewCheckPage: React.FC = () => {
               >
                 <Link2 size={22} style={{ color: uploadMode === 'ecom' ? 'var(--brand-primary)' : 'var(--text-secondary)', marginBottom: '0.5rem' }} />
                 <span style={{ fontSize: '0.8125rem', fontWeight: 700 }}>E-Commerce Listing</span>
-                <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '2px' }}>Catalog Ingest</span>
+                <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '2px' }}>Product Photo & Declarations</span>
               </button>
             </div>
           </div>
 
           {/* Section 2: Upload Drop Zone */}
           <div className="card" style={{ padding: '1.5rem' }}>
-            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.875rem' }}>
-              2. Upload Artwork File
-            </h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.875rem' }}>
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>
+                {uploadMode === 'multi' ? '2. Upload Packaging Panels (One Check)' : '2. Upload Artwork File'}
+              </h3>
+              {uploadMode === 'multi' && uploadedPanels.length > 0 && (
+                <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--brand-primary)' }}>
+                  {uploadedPanels.length} panel{uploadedPanels.length > 1 ? 's' : ''} added
+                </span>
+              )}
+            </div>
 
             {/* Hidden native file input */}
             <input
               type="file"
               ref={fileInputRef}
               style={{ display: 'none' }}
+              multiple={uploadMode === 'multi'}
               accept=".pdf,.png,.jpg,.jpeg,.webp"
               onChange={(e) => {
-                if (e.target.files && e.target.files[0]) {
-                  handleFileChange(e.target.files[0]);
+                if (e.target.files && e.target.files.length > 0) {
+                  handleFilesAdded(e.target.files);
+                  // Reset input value so re-selecting same file triggers onChange
+                  e.target.value = '';
                 }
               }}
             />
@@ -227,8 +358,8 @@ export const NewCheckPage: React.FC = () => {
               onDrop={(e) => {
                 e.preventDefault();
                 setIsDragging(false);
-                if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                  handleFileChange(e.dataTransfer.files[0]);
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                  handleFilesAdded(e.dataTransfer.files);
                 }
               }}
               style={{
@@ -246,18 +377,125 @@ export const NewCheckPage: React.FC = () => {
                 <UploadCloud size={24} />
               </div>
               <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.25rem' }}>
-                Drag and drop your packaging file here, or browse
+                {uploadMode === 'multi' 
+                  ? 'Drag and drop multiple panel images here, or browse' 
+                  : 'Drag and drop your packaging file here, or browse'}
               </h4>
-              <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', maxWidth: '400px', margin: '0 auto 1rem' }}>
-                Supports PDF (Vector / Dieline), PNG, JPEG, or WEBP up to 100MB.
+              <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', maxWidth: '440px', margin: '0 auto 1rem' }}>
+                {uploadMode === 'multi'
+                  ? 'Upload Front, Back, Left, Right, Top panels. Supported: PDF, PNG, JPEG, WEBP up to 100MB each.'
+                  : 'Supported: PDF, PNG, JPEG, WEBP up to 100MB.'}
               </p>
               <button type="button" className="btn btn-secondary btn-sm" onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}>
-                Browse Local Files
+                {uploadMode === 'multi' ? 'Browse & Select Panel Files' : 'Browse Local Files'}
               </button>
             </div>
 
-            {/* Selected File Preview */}
-            {selectedFileMeta && (
+            {/* MULTI-PANEL ITEMS LIST */}
+            {uploadMode === 'multi' && uploadedPanels.length > 0 && (
+              <div style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                    Uploaded Panels for this Inspection ({uploadedPanels.length})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="btn btn-secondary btn-sm"
+                    style={{ fontSize: '0.75rem', padding: '0.25rem 0.65rem', gap: '0.35rem' }}
+                  >
+                    <Plus size={14} />
+                    <span>Add Another Image</span>
+                  </button>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {uploadedPanels.map((panel) => (
+                    <div
+                      key={panel.id}
+                      style={{
+                        padding: '0.875rem 1rem',
+                        backgroundColor: 'var(--bg-surface)',
+                        border: '1px solid var(--border-default)',
+                        borderRadius: 'var(--radius-md)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: '1rem',
+                        boxShadow: 'var(--shadow-xs)'
+                      }}
+                    >
+                      {/* Left: Icon/Thumb + Name + Size */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, flex: 1 }}>
+                        <div style={{ width: '38px', height: '38px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--brand-primary-light)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                          {panel.previewUrl ? (
+                            <img src={panel.previewUrl} alt={panel.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <FileText size={18} />
+                          )}
+                        </div>
+                        <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                          <span style={{ fontWeight: 700, fontSize: '0.875rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {panel.name}
+                          </span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            {panel.size} • {panel.type}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Middle: Panel Identifier Dropdown */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                        <label style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                          Panel:
+                        </label>
+                        <select
+                          value={panel.panelType}
+                          onChange={(e) => handlePanelTypeChange(panel.id, e.target.value as any)}
+                          style={{
+                            padding: '0.35rem 0.65rem',
+                            fontSize: '0.8125rem',
+                            fontWeight: 600,
+                            borderRadius: 'var(--radius-sm)',
+                            border: '1px solid var(--border-default)',
+                            backgroundColor: 'var(--bg-surface-subtle)',
+                            color: 'var(--text-primary)',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <option value="FRONT">Front Panel</option>
+                          <option value="BACK">Back Panel</option>
+                          <option value="SIDE_LEFT">Left Side</option>
+                          <option value="SIDE_RIGHT">Right Side</option>
+                          <option value="TOP">Top / Seal</option>
+                          <option value="OTHER">Other / General</option>
+                        </select>
+                      </div>
+
+                      {/* Right: Status badge & Remove button */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
+                        <span className="badge badge-good" style={{ fontSize: '0.7rem' }}>
+                          <CheckCircle2 size={12} /> Ready to Analyze
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemovePanel(panel.id)}
+                          className="btn-icon"
+                          style={{ width: '28px', height: '28px', color: 'var(--text-muted)' }}
+                          aria-label={`Remove ${panel.name}`}
+                          title="Remove image"
+                        >
+                          <X size={15} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* SINGLE FILE PREVIEW (for artwork, photo, ecom modes) */}
+            {uploadMode !== 'multi' && selectedFileMeta && (
               <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <div style={{ width: '36px', height: '36px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--brand-primary-light)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -275,7 +513,7 @@ export const NewCheckPage: React.FC = () => {
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
                   <span className="badge badge-good" style={{ fontSize: '0.7rem' }}>
-                    <CheckCircle2 size={12} /> Ready for Ingestion
+                    <CheckCircle2 size={12} /> Ready to Analyze
                   </span>
                   <button type="button" onClick={() => { setSelectedFileMeta(null); setActualFile(null); }} className="btn-icon" style={{ width: '28px', height: '28px' }} aria-label="Remove file">
                     <X size={15} />
@@ -288,7 +526,7 @@ export const NewCheckPage: React.FC = () => {
             <div style={{ marginTop: '0.875rem', padding: '0.75rem 1rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
               <Info size={14} style={{ color: 'var(--brand-primary)', flexShrink: 0 }} />
               <span>
-                <strong>Pre-Flight Ingestion:</strong> Files are validated, stored in secure company storage, and analyzed for resolution, focus, and statutory typography.
+                Files are checked for quality and format before analysis.
               </span>
             </div>
           </div>
@@ -375,11 +613,11 @@ export const NewCheckPage: React.FC = () => {
               {isSubmitting ? (
                 <>
                   <Loader2 size={18} style={{ animation: 'spin 1s linear infinite' }} />
-                  <span>Uploading Artwork...</span>
+                  <span>Analyzing Packaging...</span>
                 </>
               ) : (
                 <>
-                  <span>Ingest & Extract Packaging</span>
+                  <span>Analyze Packaging →</span>
                   <ArrowRight size={18} />
                 </>
               )}

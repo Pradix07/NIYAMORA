@@ -34,8 +34,9 @@ class UnitSalePriceEvaluator(BaseRuleEvaluator):
         category = (product_context.get("category") or "").lower()
         desc = (product_context.get("description") or "").lower()
         name = (product_context.get("name") or "").lower()
-        liquor_keywords = ["liquor", "alcohol", "alcoholic", "spirituous", "beer", "wine", "whisky", "whiskey", "rum", "vodka", "gin", "brandy"]
-        if any(exc in category or exc in desc or exc in name or exc in raw_text.lower() for exc in liquor_keywords):
+        combined_text = f"{category} {desc} {name} {raw_text}".lower()
+        liquor_pattern = r"\b(?:liquor|alcohol|alcoholic|spirituous|beer|wine|whisky|whiskeys?|rum|vodka|gin|brandy)\b"
+        if re.search(liquor_pattern, combined_text):
             return (
                 "N/A",
                 None,
