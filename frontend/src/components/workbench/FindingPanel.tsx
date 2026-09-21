@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { ApiEvaluation, ApiFinding, ApiExtractedField } from '../../services/api';
-import { Wand2, BookOpen, AlertCircle, CheckCircle2, XCircle, HelpCircle, MinusCircle } from 'lucide-react';
+import { Wand2, BookOpen, AlertCircle, CheckCircle2, XCircle, HelpCircle, MinusCircle, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface FindingPanelProps {
   evaluations?: ApiEvaluation[];
@@ -23,6 +23,7 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
 }) => {
   const [filter, setFilter] = useState<'ALL' | 'ISSUE' | 'REVIEW' | 'PASS' | 'N/A'>('ALL');
   const [activeTab, setActiveTab] = useState<'RULES' | 'EXTRACTION'>('RULES');
+  const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
 
   const hasEvaluations = evaluations && evaluations.length > 0;
   const hasLiveFields = extractedFields && Object.keys(extractedFields).length > 0;
@@ -38,31 +39,36 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
     return e.status === filter;
   });
 
+  const toggleDetails = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedDetails((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'PASS':
         return (
           <span className="badge badge-good" style={{ fontSize: '0.7rem' }}>
-            <CheckCircle2 size={11} /> PASS
+            <CheckCircle2 size={11} /> Passed
           </span>
         );
       case 'ISSUE':
         return (
           <span className="badge badge-issue" style={{ fontSize: '0.7rem' }}>
-            <XCircle size={11} /> ISSUE
+            <XCircle size={11} /> Needs Attention
           </span>
         );
       case 'REVIEW':
         return (
           <span className="badge badge-review" style={{ fontSize: '0.7rem' }}>
-            <HelpCircle size={11} /> REVIEW
+            <HelpCircle size={11} /> Needs Review
           </span>
         );
       case 'N/A':
       default:
         return (
           <span className="badge badge-neutral" style={{ fontSize: '0.7rem' }}>
-            <MinusCircle size={11} /> N/A
+            <MinusCircle size={11} /> Not Applicable
           </span>
         );
     }
@@ -86,21 +92,39 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
               <h3 style={{ fontSize: '1.125rem', fontWeight: 700 }}>
-                {activeTab === 'RULES' ? 'Statutory Rule Checks' : 'Extracted Declarations'}
+                {activeTab === 'RULES' ? 'Packaging Check' : 'Packaging Details'}
               </h3>
               {complianceVerdict && (
                 <span
                   className={`badge ${complianceVerdict === 'PASS' ? 'badge-good' : complianceVerdict === 'ISSUE' ? 'badge-issue' : 'badge-review'}`}
                   style={{ fontSize: '0.75rem', fontWeight: 800 }}
                 >
-                  Verdict: {complianceVerdict}
+                  {complianceVerdict === 'PASS' ? 'Passed' : complianceVerdict === 'ISSUE' ? 'Action Required' : 'Review Required'}
                 </span>
               )}
             </div>
             <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-              {hasEvaluations
-                ? `${passCount} of ${evaluations.length} verified checks passed (${issueCount > 0 ? `${issueCount} Issues require attention` : reviewCount > 0 ? `${reviewCount} Awaiting review` : 'All Implemented Checks Passed'})`
-                : `${fieldList.length} packaging fields parsed`}
+              {hasEvaluations ? (
+                <>
+                  <span style={{ color: 'var(--status-good-text)', fontWeight: 600 }}>✓ {passCount} Passed</span>
+                  {' • '}
+                  <span style={{ color: 'var(--status-review-text)', fontWeight: 600 }}>⚠ {reviewCount} Need Review</span>
+                  {issueCount > 0 && (
+                    <>
+                      {' • '}
+                      <span style={{ color: 'var(--status-issue-text)', fontWeight: 600 }}>✕ {issueCount} Issue{issueCount > 1 ? 's' : ''}</span>
+                    </>
+                  )}
+                  {naCount > 0 && (
+                    <>
+                      {' • '}
+                      <span>— {naCount} N/A</span>
+                    </>
+                  )}
+                </>
+              ) : (
+                `${fieldList.length} packaging declarations identified`
+              )}
             </p>
           </div>
           {onOpenImprove && issueCount > 0 && (
@@ -115,25 +139,25 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
           )}
         </div>
 
-        {/* View Switch Tabs (Rules vs Raw Extractions) */}
+        {/* View Switch Tabs (Rules vs Extracted Details) */}
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
           <button
             onClick={() => setActiveTab('RULES')}
             className={`btn btn-sm ${activeTab === 'RULES' ? 'btn-primary' : 'btn-ghost'}`}
             style={{ fontSize: '0.75rem', padding: '0.3rem 0.75rem' }}
           >
-            Statutory Rule Checks ({evaluations.length})
+            Requirement Checks ({evaluations.length})
           </button>
           <button
             onClick={() => setActiveTab('EXTRACTION')}
             className={`btn btn-sm ${activeTab === 'EXTRACTION' ? 'btn-primary' : 'btn-ghost'}`}
             style={{ fontSize: '0.75rem', padding: '0.3rem 0.75rem' }}
           >
-            Raw Fields ({fieldList.length})
+            Packaging Details ({fieldList.length})
           </button>
         </div>
 
-        {/* Status Filter Pills for Rule Checks */}
+        {/* Status Filter Pills */}
         {activeTab === 'RULES' && (
           <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
             <button
@@ -143,26 +167,28 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
             >
               All ({evaluations.length})
             </button>
-            <button
-              onClick={() => setFilter('ISSUE')}
-              className={`btn btn-sm ${filter === 'ISSUE' ? 'btn-danger' : 'btn-secondary'}`}
-              style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem' }}
-            >
-              Issues ({issueCount})
-            </button>
+            {issueCount > 0 && (
+              <button
+                onClick={() => setFilter('ISSUE')}
+                className={`btn btn-sm ${filter === 'ISSUE' ? 'btn-danger' : 'btn-secondary'}`}
+                style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem' }}
+              >
+                Needs Attention ({issueCount})
+              </button>
+            )}
             <button
               onClick={() => setFilter('REVIEW')}
               className={`btn btn-sm ${filter === 'REVIEW' ? 'btn-secondary' : 'btn-ghost'}`}
               style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem', color: filter === 'REVIEW' ? 'var(--status-review-text)' : 'inherit' }}
             >
-              Review ({reviewCount})
+              Needs Review ({reviewCount})
             </button>
             <button
               onClick={() => setFilter('PASS')}
               className={`btn btn-sm ${filter === 'PASS' ? 'btn-secondary' : 'btn-ghost'}`}
               style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem', color: filter === 'PASS' ? 'var(--status-good-text)' : 'inherit' }}
             >
-              Pass ({passCount})
+              Passed ({passCount})
             </button>
             {naCount > 0 && (
               <button
@@ -180,20 +206,22 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
       {/* Main Content Area */}
       <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflowY: 'auto' }}>
         {activeTab === 'RULES' ? (
-          /* Deterministic Rule Evaluations List */
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {hasEvaluations && issueCount === 0 && reviewCount === 0 && (
               <div style={{ margin: '0.875rem 1.25rem', padding: '1rem', backgroundColor: 'var(--status-good-bg)', border: '1px solid var(--status-good-border)', borderRadius: 'var(--radius-md)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: 'var(--status-good-text)', fontSize: '0.875rem' }}>
-                  <CheckCircle2 size={17} /> COMPLIANCE VERIFICATION COMPLETE
+                  <CheckCircle2 size={17} /> ALL CHECKS PASSED
                 </div>
                 <p style={{ fontSize: '0.8125rem', color: 'var(--text-primary)', marginTop: '4px', lineHeight: 1.4 }}>
-                  No unresolved issues found. {passCount} of {evaluations.length} evaluated checks passed. Artwork complies with evaluated pre-print rules.
+                  All {evaluations.length} evaluated packaging checks passed statutory requirements.
                 </p>
               </div>
             )}
             {filteredEvaluations.map((ev) => {
               const isSelected = ev.id === selectedFindingId || ev.rule_code === selectedFindingId;
+              const isExpanded = isSelected || expandedDetails[ev.id];
+              const relatedFinding = findings.find((f) => f.rule_code === ev.rule_code || f.evaluation_id === ev.id);
+
               return (
                 <div
                   key={ev.id}
@@ -213,28 +241,46 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
                     transition: 'background-color var(--transition-fast)',
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {getStatusBadge(ev.status)}
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                        {ev.rule_code}
-                      </span>
-                    </div>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                      {ev.source_reference}
-                    </span>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                    <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                      {ev.rule_title}
+                    </h4>
+                    {getStatusBadge(ev.status)}
                   </div>
 
-                  <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                    {ev.rule_title}
-                  </h4>
-
-                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.4, margin: '0.25rem 0' }}>
                     {ev.explanation}
                   </p>
 
-                  {/* Expanded Finding Detail Card */}
-                  {isSelected && (
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+                    <button
+                      type="button"
+                      onClick={(e) => toggleDetails(ev.id, e)}
+                      className="btn-ghost"
+                      style={{
+                        padding: '0',
+                        fontSize: '0.75rem',
+                        color: 'var(--brand-primary)',
+                        fontWeight: 600,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <span>{isExpanded ? 'Hide details' : 'View details'}</span>
+                      {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                    </button>
+
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                      {ev.source_reference ? ev.source_reference.split('(')[0] : 'Legal Metrology'}
+                    </span>
+                  </div>
+
+                  {/* Expandable Secondary Detail Section */}
+                  {isExpanded && (
                     <div 
                       className="card animate-fade-in"
                       style={{ 
@@ -251,53 +297,36 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
                     >
                       <div>
                         <strong style={{ color: 'var(--text-primary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                          Observed Value:
+                          Observed on Package:
                         </strong>
                         <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', marginTop: '2px', backgroundColor: 'var(--bg-surface-subtle)', padding: '4px 8px', borderRadius: '4px' }}>
-                          {ev.observed_value || 'Not Detected in Artwork'}
+                          {ev.observed_value || 'Not clearly detected on packaging artwork'}
                         </p>
                       </div>
 
                       <div>
                         <strong style={{ color: 'var(--text-primary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                          Statutory Requirement:
+                          Why is this checked:
                         </strong>
                         <p style={{ color: 'var(--text-secondary)', marginTop: '2px', fontSize: '0.78rem' }}>
                           {ev.expected_condition}
                         </p>
                       </div>
 
-                      {ev.evidence?.bbox && (
-                        <div>
-                          <strong style={{ color: 'var(--text-primary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                            Spatial Evidence Box:
+                      {relatedFinding?.suggested_action && (
+                        <div style={{ padding: '0.5rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
+                          <strong style={{ color: 'var(--brand-primary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '2px' }}>
+                            How to fix:
                           </strong>
-                          <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--brand-primary)', marginTop: '2px', fontSize: '0.75rem' }}>
-                            X:{ev.evidence.bbox.x}% Y:{ev.evidence.bbox.y}% (W:{ev.evidence.bbox.width}% H:{ev.evidence.bbox.height}%)
+                          <p style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', margin: 0 }}>
+                            {relatedFinding.suggested_action}
                           </p>
                         </div>
                       )}
 
-                      {(() => {
-                        const relatedFinding = findings.find((f) => f.rule_code === ev.rule_code || f.evaluation_id === ev.id);
-                        if (relatedFinding?.suggested_action) {
-                          return (
-                            <div style={{ padding: '0.5rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
-                              <strong style={{ color: 'var(--brand-primary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '2px' }}>
-                                Action Needed:
-                              </strong>
-                              <p style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', margin: 0 }}>
-                                {relatedFinding.suggested_action}
-                              </p>
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
-
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-default)', paddingTop: '0.5rem', marginTop: '0.25rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                          <BookOpen size={12} /> {ev.source_reference || 'Legal Metrology Rules, 2011'}
+                          <BookOpen size={12} /> {ev.source_reference || 'Legal Metrology (Packaged Commodities) Rules, 2011'}
                         </span>
                         <span style={{ fontFamily: 'var(--font-mono)' }}>{ev.rule_code}</span>
                       </div>
@@ -308,7 +337,7 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
             })}
           </div>
         ) : (
-          /* Raw Extracted Packaging Declarations */
+          /* Packaging Details List */
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {fieldList.map((field) => (
               <div
@@ -319,22 +348,18 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.3rem' }}>
-                  <span className={`badge ${field.status === 'EXTRACTED' ? 'badge-good' : 'badge-neutral'}`} style={{ fontSize: '0.7rem' }}>
-                    {field.status === 'EXTRACTED' ? <CheckCircle2 size={11} /> : <XCircle size={11} />}
-                    <span>{field.status}</span>
-                  </span>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted)' }}>
-                    {field.source || 'Vector Layout'}
+                  <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
+                    {field.field_name}
+                  </h4>
+                  <span className={`badge ${field.status === 'EXTRACTED' ? 'badge-good' : field.status === 'UNCERTAIN' ? 'badge-review' : 'badge-neutral'}`} style={{ fontSize: '0.7rem' }}>
+                    {field.status === 'EXTRACTED' ? <CheckCircle2 size={11} /> : field.status === 'UNCERTAIN' ? <HelpCircle size={11} /> : <MinusCircle size={11} />}
+                    <span>{field.status === 'EXTRACTED' ? 'Found' : field.status === 'UNCERTAIN' ? 'Needs Review' : 'Not Found'}</span>
                   </span>
                 </div>
 
-                <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '0.25rem' }}>
-                  {field.field_name}
-                </h4>
-
                 <div style={{ backgroundColor: 'var(--bg-surface-subtle)', padding: '6px 10px', borderRadius: '4px', border: '1px solid var(--border-default)', marginTop: '4px' }}>
-                  <p style={{ fontSize: '0.8125rem', fontFamily: 'var(--font-mono)', color: field.status === 'EXTRACTED' ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                    {field.extracted_value || 'Not detected in uploaded artwork'}
+                  <p style={{ fontSize: '0.8125rem', fontFamily: 'var(--font-mono)', color: field.status === 'EXTRACTED' ? 'var(--text-primary)' : 'var(--text-muted)', margin: 0 }}>
+                    {field.extracted_value || 'Not detected on uploaded artwork'}
                   </p>
                 </div>
               </div>

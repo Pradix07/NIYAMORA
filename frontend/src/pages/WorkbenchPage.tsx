@@ -19,6 +19,7 @@ export const WorkbenchPage: React.FC = () => {
   const [evaluations, setEvaluations] = useState<ApiEvaluation[]>([]);
   const [findings, setFindings] = useState<ApiFinding[]>([]);
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null);
+  const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null);
   const [riskMap, setRiskMap] = useState<ApiRiskMapResponse | null>(null);
   const [showRiskMap, setShowRiskMap] = useState<boolean>(false);
 
@@ -37,6 +38,10 @@ export const WorkbenchPage: React.FC = () => {
       if (targetInspectionId) {
         const inspData = await api.getInspection(targetInspectionId);
         setInspection(inspData);
+
+        if (inspData.panels && inspData.panels.length > 0) {
+          setSelectedPanelId(inspData.panels[0].id);
+        }
 
         const [evals, fnds, risk] = await Promise.all([
           api.getEvaluations(targetInspectionId).catch(() => []),
@@ -68,6 +73,30 @@ export const WorkbenchPage: React.FC = () => {
     loadInspectionData();
   }, [inspectionId]);
 
+  // Handle finding selection and auto-switch panel if finding belongs to another panel
+  const handleSelectFinding = (findingId: string) => {
+    setSelectedFindingId(findingId);
+    const ev = evaluations.find((e) => e.id === findingId);
+    if (ev?.evidence?.bbox && inspection?.panels && inspection.panels.length > 0) {
+      const bbox = ev.evidence.bbox;
+      if (bbox.panel_id) {
+        const match = inspection.panels.find((p) => p.id === bbox.panel_id);
+        if (match) {
+          setSelectedPanelId(match.id);
+          return;
+        }
+      }
+      if (bbox.panel_type) {
+        const match = inspection.panels.find(
+          (p) => p.panel_type.toUpperCase() === bbox.panel_type!.toUpperCase()
+        );
+        if (match) {
+          setSelectedPanelId(match.id);
+        }
+      }
+    }
+  };
+
   // Build custom boxes from live extraction & evaluation evidence
   let customBoxes: CustomEvidenceBox[] | undefined = undefined;
   if (evaluations.length > 0) {
@@ -87,6 +116,8 @@ export const WorkbenchPage: React.FC = () => {
           label: showRiskMap && riskItem ? `[DENSITY: ${riskItem.density_level || 'EVALUATED'}] ${ev.rule_title}` : ev.rule_title,
           text: ev.observed_value || undefined,
           status: statusVal,
+          panelType: bbox.panel_type || undefined,
+          panelId: bbox.panel_id || undefined,
         };
       });
   } else if (inspection?.extracted_data?.fields) {
@@ -101,6 +132,8 @@ export const WorkbenchPage: React.FC = () => {
         label: field.field_name,
         text: field.extracted_value || undefined,
         status: field.status === 'EXTRACTED' ? 'GOOD' : 'REVIEW',
+        panelType: (field.evidence_box as any)?.panel_type || undefined,
+        panelId: (field.evidence_box as any)?.panel_id || undefined,
       }));
   }
 
@@ -159,10 +192,22 @@ export const WorkbenchPage: React.FC = () => {
   const productName = inspection.product_name || 'Packaging Artwork';
   const brandName = inspection.brand || 'Brand';
   const versionLabel = inspection.version_label || 'V01';
-  const previewUrl = inspection.preview_url ? api.getFileUrl(inspection.preview_url) : null;
+  
+  // Calculate active panel preview URL
+  const activePanel = inspection.panels?.find((p) => p.id === selectedPanelId);
+  const previewUrl = activePanel?.preview_url
+    ? api.getFileUrl(activePanel.preview_url)
+    : inspection.preview_url
+    ? api.getFileUrl(inspection.preview_url)
+    : null;
+
   const complianceVerdict = inspection.compliance_verdict;
   const productId = inspection.product_id;
   const versionId = inspection.artwork_version_id;
+
+  const passCount = evaluations.filter((e) => e.status === 'PASS').length;
+  const reviewCount = evaluations.filter((e) => e.status === 'REVIEW').length;
+  const issueCount = evaluations.filter((e) => e.status === 'ISSUE').length;
 
   return (
     <AppShell breadcrumbs={[{ label: 'Products', path: '/products' }, { label: productName, path: `/products/${productId}` }, { label: 'Results & Workbench' }]}>
@@ -189,17 +234,26 @@ export const WorkbenchPage: React.FC = () => {
                   {brandName}
                 </span>
                 <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>• Inspection: {inspection?.id ? `${inspection.id.slice(0, 8)}...` : 'Pre-Flight Master'}</span>
+                
                 {complianceVerdict && (
                   <span
                     className={`badge ${complianceVerdict === 'PASS' ? 'badge-good' : complianceVerdict === 'ISSUE' ? 'badge-issue' : 'badge-review'}`}
                     style={{ fontSize: '0.6875rem' }}
                   >
-                    {complianceVerdict === 'PASS' ? <ShieldCheck size={11} /> : <AlertTriangle size={11} />} Verdict: {complianceVerdict} ({evaluations.filter(e => e.status === 'PASS').length}/{evaluations.length || 8} Checks Passed)
+                    {complianceVerdict === 'PASS' ? <ShieldCheck size={11} /> : <AlertTriangle size={11} />} Verdict: {complianceVerdict === 'PASS' ? 'Passed' : complianceVerdict === 'ISSUE' ? 'Action Required' : 'Review Required'}
                   </span>
                 )}
-                {inspection?.quality_verdict && (
+
+                {/* Human-readable pass/review/issue pill */}
+                {evaluations.length > 0 && (
                   <span className="badge badge-neutral" style={{ fontSize: '0.6875rem' }}>
-                    <CheckCircle2 size={11} /> DPI Precheck: {inspection.quality_verdict}
+                    ✓ {passCount} Passed • ⚠ {reviewCount} Need Review {issueCount > 0 ? `• ✕ ${issueCount} Issue${issueCount > 1 ? 's' : ''}` : ''}
+                  </span>
+                )}
+
+                {inspection?.quality_verdict && (
+                  <span className={`badge ${inspection.quality_verdict === 'GOOD' ? 'badge-good' : 'badge-review'}`} style={{ fontSize: '0.6875rem' }}>
+                    <CheckCircle2 size={11} /> Quality: {inspection.quality_verdict === 'GOOD' ? 'Clear & Readable' : 'Review Recommended'}
                   </span>
                 )}
               </div>
@@ -266,15 +320,18 @@ export const WorkbenchPage: React.FC = () => {
             minHeight: 0,
           }}
         >
-          {/* Left: Interactive Artwork Canvas with Evidence Bounding Boxes */}
+          {/* Left: Interactive Artwork Canvas with Evidence Bounding Boxes & Panel Switcher */}
           <ArtworkViewer
             findings={undefined}
             customBoxes={customBoxes}
             selectedFindingId={selectedFindingId}
-            onSelectFinding={(id) => setSelectedFindingId(id)}
+            onSelectFinding={handleSelectFinding}
             productName={productName}
             versionLabel={versionLabel}
             previewImageUrl={previewUrl}
+            panels={inspection.panels}
+            activePanelId={selectedPanelId || undefined}
+            onSelectPanel={(panelId) => setSelectedPanelId(panelId)}
           />
 
           {/* Right: Inspection / Extraction Finding Panel */}
@@ -283,7 +340,7 @@ export const WorkbenchPage: React.FC = () => {
             findings={findings}
             extractedFields={inspection?.extracted_data?.fields}
             selectedFindingId={selectedFindingId}
-            onSelectFinding={(id) => setSelectedFindingId(id)}
+            onSelectFinding={handleSelectFinding}
             onOpenImprove={() => navigate(`/improve?productId=${productId}${versionId ? `&versionId=${versionId}` : ''}`)}
             complianceVerdict={complianceVerdict}
           />

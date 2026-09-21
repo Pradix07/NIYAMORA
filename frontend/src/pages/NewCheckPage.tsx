@@ -24,7 +24,7 @@ interface UploadedPanelItem {
   name: string;
   size: string;
   type: string;
-  panelType: 'FRONT' | 'BACK' | 'SIDE_LEFT' | 'SIDE_RIGHT' | 'TOP' | 'OTHER';
+  panelType: 'FRONT' | 'BACK' | 'SIDE_LEFT' | 'SIDE_RIGHT' | 'TOP' | 'BOTTOM' | 'OTHER';
   previewUrl?: string;
 }
 
@@ -49,16 +49,16 @@ export const NewCheckPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const guessPanelType = (filename: string): 'FRONT' | 'BACK' | 'SIDE_LEFT' | 'SIDE_RIGHT' | 'TOP' | 'OTHER' => {
+  const guessPanelType = (filename: string): 'FRONT' | 'BACK' | 'SIDE_LEFT' | 'SIDE_RIGHT' | 'TOP' | 'BOTTOM' | 'OTHER' => {
     const lower = filename.toLowerCase();
     if (lower.includes('front')) return 'FRONT';
-    if (lower.includes('back') || lower.includes('rear')) return 'BACK';
+    if (lower.includes('back') || lower.includes('rear') || lower.includes('nutrition')) return 'BACK';
     if (lower.includes('left')) return 'SIDE_LEFT';
     if (lower.includes('right')) return 'SIDE_RIGHT';
     if (lower.includes('side')) return 'SIDE_LEFT';
     if (lower.includes('top') || lower.includes('seal') || lower.includes('cap') || lower.includes('lid')) return 'TOP';
-    if (lower.includes('bottom') || lower.includes('base')) return 'OTHER';
-    return 'FRONT';
+    if (lower.includes('bottom') || lower.includes('base')) return 'BOTTOM';
+    return 'OTHER';
   };
 
   const handleFilesAdded = (incomingFiles: FileList | File[]) => {
@@ -108,12 +108,7 @@ export const NewCheckPage: React.FC = () => {
           });
         }
 
-        const updated = [...prev, ...newPanels];
-        if (!productName && updated.length > 0) {
-          const cleanName = updated[0].name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
-          setProductName(cleanName.charAt(0).toUpperCase() + cleanName.slice(1));
-        }
-        return updated;
+        return [...prev, ...newPanels];
       });
       setErrorMessage(null);
     } else {
@@ -127,10 +122,6 @@ export const NewCheckPage: React.FC = () => {
         type: first.type || 'Artwork File',
       });
       setErrorMessage(null);
-      if (!productName) {
-        const cleanName = first.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
-        setProductName(cleanName.charAt(0).toUpperCase() + cleanName.slice(1));
-      }
     }
   };
 
@@ -159,7 +150,7 @@ export const NewCheckPage: React.FC = () => {
         return;
       }
     } else {
-      if (!actualFile && !selectedFileMeta) {
+      if (!actualFile) {
         setErrorMessage('Please select or drag-and-drop a packaging artwork file (PDF, PNG, JPG).');
         return;
       }
@@ -187,13 +178,8 @@ export const NewCheckPage: React.FC = () => {
       } else {
         if (actualFile) {
           formData.append('file', actualFile);
-        } else {
-          const dummyContent = `%PDF-1.4\n1 0 obj\n<< /Title (${productName}) /Author (${brandName || 'Company'}) >>\nendobj\n%%EOF`;
-          const blob = new Blob([dummyContent], { type: 'application/pdf' });
-          const dummyFile = new File([blob], selectedFileMeta?.name || 'packaging_artwork.pdf', { type: 'application/pdf' });
-          formData.append('file', dummyFile);
+          formData.append('panel_type', 'FRONT');
         }
-        formData.append('panel_type', 'FRONT');
       }
 
       formData.append('product_name', productName.trim());
@@ -468,6 +454,7 @@ export const NewCheckPage: React.FC = () => {
                           <option value="SIDE_LEFT">Left Side</option>
                           <option value="SIDE_RIGHT">Right Side</option>
                           <option value="TOP">Top / Seal</option>
+                          <option value="BOTTOM">Bottom</option>
                           <option value="OTHER">Other / General</option>
                         </select>
                       </div>

@@ -1,5 +1,5 @@
 from typing import Optional, List
-from fastapi import Header, Depends, HTTPException, status
+from fastapi import Header, Query, Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from app.db.session import get_db
@@ -13,15 +13,17 @@ security_bearer = HTTPBearer(auto_error=False)
 
 def get_current_user_optional(
     auth: Optional[HTTPAuthorizationCredentials] = Depends(security_bearer),
+    token: Optional[str] = Query(None),
     db: Session = Depends(get_db)
 ) -> Optional[User]:
     """
-    Returns the authenticated user if a valid Bearer token is provided, else None.
+    Returns the authenticated user if a valid Bearer token or ?token= query param is provided, else None.
     """
-    if not auth or not auth.credentials:
+    raw_token = auth.credentials if (auth and auth.credentials) else token
+    if not raw_token:
         return None
     
-    payload = decode_access_token(auth.credentials)
+    payload = decode_access_token(raw_token)
     if not payload:
         return None
     

@@ -145,7 +145,9 @@ class InspectionPipelineService:
                             y=blk.normalized_box.y,
                             width=blk.normalized_box.width,
                             height=blk.normalized_box.height,
-                            label=f"[{p.panel_type}] {blk.normalized_box.label}"
+                            label=f"[{p.panel_type}] {blk.normalized_box.label}",
+                            panel_type=p.panel_type,
+                            panel_id=p.id
                         )
                     )
                     all_blocks.append(tagged_block)

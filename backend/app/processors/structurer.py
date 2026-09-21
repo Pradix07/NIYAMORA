@@ -40,7 +40,12 @@ class PackagingFieldStructurer:
             r"(?:Country\s*of\s*Origin|Made\s*in|Product\s*of)\s*[:\-]?\s*([A-Za-z\s]{3,20})",
         ],
         "manufacturer": [
-            r"(?:Mfg\s*by|Manufactured\s*by|Packed\s*by|Marketed\s*by)\s*[:\-]?\s*([^\n]+)",
+            r"(?:Mfg\s*by|Manufactured\s*by|Packed\s*by|Marketed\s*by|Imported\s*by|Produced\s*by)\s*[:\-]?\s*([A-Za-z0-9\s,.\-#/&()]+)",
+        ],
+        "barcode": [
+            r"(?:Barcode|EAN|GTIN|UPC|EAN-13|GTIN-13)\s*[:\-]?\s*([0-9]{8,14})\b",
+            r"\b(890[0-9]{10})\b",
+            r"\b([0-9]{12,14})\b",
         ]
     }
 
@@ -132,10 +137,22 @@ class PackagingFieldStructurer:
             name="Manufacturer / Packer Name & Address",
             patterns=cls.PATTERNS["manufacturer"],
             raw_text=raw_text,
+            blocks=blocks,
+            require_alpha=True
+        )
+
+        # 10. Barcode / GTIN / EAN
+        fields["barcode"] = cls._extract_entity(
+            key="barcode",
+            name="Barcode / GTIN / EAN",
+            patterns=cls.PATTERNS["barcode"],
+            raw_text=raw_text,
             blocks=blocks
         )
 
-        # 10. Product Name & Brand from Hints or Top Text Blocks
+        # 11. Product Name & Brand from Hints or Top Text Blocks
+        clean_name_hint = product_name_hint if not cls._is_filename_like(product_name_hint) else None
+
         if brand_hint and brand_hint.lower() in raw_text.lower():
             matching_box = next((b.normalized_box for b in blocks if brand_hint.lower() in b.text.lower()), None)
             fields["brand"] = ExtractedField(
@@ -165,25 +182,36 @@ class PackagingFieldStructurer:
                 evidence_box=None
             )
 
-        if product_name_hint and product_name_hint.lower() in raw_text.lower():
-            matching_box = next((b.normalized_box for b in blocks if product_name_hint.lower() in b.text.lower()), None)
+        if clean_name_hint and clean_name_hint.lower() in raw_text.lower():
+            matching_box = next((b.normalized_box for b in blocks if clean_name_hint.lower() in b.text.lower()), None)
             fields["product_name"] = ExtractedField(
                 field_key="product_name",
                 field_name="Product Name / Commercial Descriptor",
-                extracted_value=product_name_hint,
+                extracted_value=clean_name_hint,
                 status="EXTRACTED",
                 confidence=0.99,
                 evidence_box=matching_box or (blocks[1].normalized_box if len(blocks) > 1 else None)
             )
-        elif len(blocks) > 1 and not any(k in blocks[1].text.lower() for k in ["net", "mrp", "mfg", "pkd", "care", "helpline", "price", "taxes", "lot", "batch"]):
-            fields["product_name"] = ExtractedField(
-                field_key="product_name",
-                field_name="Product Name / Commercial Descriptor",
-                extracted_value=blocks[1].text,
-                status="EXTRACTED",
-                confidence=0.80,
-                evidence_box=blocks[1].normalized_box
-            )
+        elif len(blocks) > 1 and not any(k in blocks[1].text.lower() for k in ["net", "mrp", "mfg", "pkd", "care", "helpline", "price", "taxes", "lot", "batch", "barcode", "fssai"]):
+            candidate = blocks[1].text.strip()
+            if not cls._is_filename_like(candidate):
+                fields["product_name"] = ExtractedField(
+                    field_key="product_name",
+                    field_name="Product Name / Commercial Descriptor",
+                    extracted_value=candidate,
+                    status="EXTRACTED",
+                    confidence=0.80,
+                    evidence_box=blocks[1].normalized_box
+                )
+            else:
+                fields["product_name"] = ExtractedField(
+                    field_key="product_name",
+                    field_name="Product Name / Commercial Descriptor",
+                    extracted_value=None,
+                    status="NOT_FOUND",
+                    confidence=0.0,
+                    evidence_box=None
+                )
         else:
             fields["product_name"] = ExtractedField(
                 field_key="product_name",
@@ -196,6 +224,17 @@ class PackagingFieldStructurer:
 
         return fields
 
+    @staticmethod
+    def _is_filename_like(name: Optional[str]) -> bool:
+        if not name:
+            return False
+        lower = name.lower().strip()
+        if any(lower.startswith(prefix) for prefix in ["screenshot", "img_", "img-", "dsc_", "whatsapp", "pasted", "image", "photo", "scan", "artboard", "panel_"]):
+            return True
+        if any(lower.endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".pdf", ".webp", ".ai", ".psd"]):
+            return True
+        return False
+
     @classmethod
     def _extract_entity(
         cls,
@@ -203,7 +242,8 @@ class PackagingFieldStructurer:
         name: str,
         patterns: List[str],
         raw_text: str,
-        blocks: List[TextBlock]
+        blocks: List[TextBlock],
+        require_alpha: bool = False
     ) -> ExtractedField:
         # Check patterns across text blocks first to bind exact coordinates
         for block in blocks:
@@ -211,6 +251,8 @@ class PackagingFieldStructurer:
                 match = re.search(pat, block.text, re.IGNORECASE)
                 if match:
                     val = match.group(1).strip() if match.groups() else match.group(0).strip()
+                    if require_alpha and len(re.sub(r'[^a-zA-Z]', '', val)) < 3:
+                        continue
                     return ExtractedField(
                         field_key=key,
                         field_name=name,
@@ -226,6 +268,8 @@ class PackagingFieldStructurer:
             match = re.search(pat, raw_text, re.IGNORECASE)
             if match:
                 val = match.group(1).strip() if match.groups() else match.group(0).strip()
+                if require_alpha and len(re.sub(r'[^a-zA-Z]', '', val)) < 3:
+                    continue
                 return ExtractedField(
                     field_key=key,
                     field_name=name,

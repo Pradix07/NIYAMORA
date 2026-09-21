@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { Finding } from '../../types';
-import { ZoomIn, ZoomOut, Maximize2, Ruler, Eye, Layers } from 'lucide-react';
+import type { ApiPanel } from '../../services/api';
+import { ZoomIn, ZoomOut, Maximize2, Ruler, Eye, Layers, AlertCircle } from 'lucide-react';
 
 export interface CustomEvidenceBox {
   id: string;
@@ -11,6 +12,8 @@ export interface CustomEvidenceBox {
   label: string;
   text?: string;
   status?: 'GOOD' | 'REVIEW' | 'ISSUE';
+  panelType?: string;
+  panelId?: string;
 }
 
 interface ArtworkViewerProps {
@@ -21,6 +24,9 @@ interface ArtworkViewerProps {
   productName?: string;
   versionLabel?: string;
   previewImageUrl?: string | null;
+  panels?: ApiPanel[];
+  activePanelId?: string;
+  onSelectPanel?: (panelId: string) => void;
 }
 
 export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
@@ -30,17 +36,21 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
   onSelectFinding,
   versionLabel = 'V01',
   previewImageUrl,
+  panels = [],
+  activePanelId,
+  onSelectPanel,
 }) => {
   const [zoomLevel, setZoomLevel] = useState<number>(100);
   const [showRulers, setShowRulers] = useState<boolean>(true);
   const [showAllMarkers, setShowAllMarkers] = useState<boolean>(true);
+  const [imageError, setImageError] = useState<boolean>(false);
 
   const handleZoom = (delta: number) => {
     setZoomLevel((prev) => Math.min(300, Math.max(50, prev + delta)));
   };
 
   // Harmonize boxes: prefer customBoxes from live extraction, fallback to findings
-  const activeBoxes: CustomEvidenceBox[] = customBoxes || findings.map((f) => ({
+  const fallbackBoxes: CustomEvidenceBox[] = findings.map((f) => ({
     id: f.id,
     x: f.evidenceBox.x,
     y: f.evidenceBox.y,
@@ -51,7 +61,18 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
     status: f.status,
   }));
 
+  const activeBoxes: CustomEvidenceBox[] = (customBoxes || fallbackBoxes).filter((box) => {
+    // If active panel is selected, filter boxes that match this panel or show all if panel is unassigned
+    if (!activePanelId || panels.length === 0) return true;
+    const currentPanel = panels.find((p) => p.id === activePanelId);
+    if (!currentPanel) return true;
+    if (!box.panelType) return true;
+    return box.panelType.toUpperCase() === currentPanel.panel_type.toUpperCase();
+  });
+
   const selectedBox = activeBoxes.find((b) => b.id === selectedFindingId);
+  const currentPanelObj = panels.find((p) => p.id === activePanelId);
+  const panelDisplayName = currentPanelObj ? currentPanelObj.panel_type.replace('_', ' ') : 'Artwork';
 
   return (
     <div
@@ -69,7 +90,7 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
       {/* Viewer Toolbar */}
       <div
         style={{
-          padding: '0.75rem 1rem',
+          padding: '0.625rem 1rem',
           borderBottom: '1px solid var(--border-default)',
           display: 'flex',
           alignItems: 'center',
@@ -80,13 +101,13 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span style={{ fontSize: '0.875rem', fontWeight: 700 }}>Artwork Canvas</span>
-          <span className="badge badge-neutral" style={{ fontFamily: 'var(--font-mono)' }}>
-            {versionLabel} • {previewImageUrl ? 'Live Uploaded Artwork/Scan' : '160×240mm (300 DPI)'}
+          <span style={{ fontSize: '0.875rem', fontWeight: 700 }}>Packaging Artwork</span>
+          <span className="badge badge-neutral" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem' }}>
+            {versionLabel} • {panelDisplayName}
           </span>
           {selectedBox && (
             <span className="badge badge-sample" style={{ fontSize: '0.7rem' }}>
-              Active: {selectedBox.label}
+              Selected: {selectedBox.label}
             </span>
           )}
         </div>
@@ -130,6 +151,43 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
         </div>
       </div>
 
+      {/* Multi-Panel Switcher Strip */}
+      {panels.length > 1 && (
+        <div
+          style={{
+            padding: '0.5rem 1rem',
+            borderBottom: '1px solid var(--border-default)',
+            backgroundColor: 'var(--bg-surface)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            overflowX: 'auto',
+          }}
+        >
+          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-secondary)', marginRight: '0.25rem', whiteSpace: 'nowrap' }}>
+            Panels:
+          </span>
+          {panels.map((p) => {
+            const isActive = p.id === activePanelId || (!activePanelId && p === panels[0]);
+            return (
+              <button
+                key={p.id}
+                onClick={() => onSelectPanel && onSelectPanel(p.id)}
+                className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`}
+                style={{
+                  fontSize: '0.75rem',
+                  padding: '0.25rem 0.65rem',
+                  whiteSpace: 'nowrap',
+                  borderRadius: 'var(--radius-full)',
+                }}
+              >
+                <span>{p.panel_type.replace('_', ' ')}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
       {/* Main Canvas Viewport */}
       <div
         style={{
@@ -140,7 +198,7 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
           justifyContent: 'center',
           backgroundColor: 'var(--bg-app)',
           position: 'relative',
-          padding: '2rem',
+          padding: '1.5rem',
           backgroundImage: 'radial-gradient(var(--border-strong) 1px, transparent 1px)',
           backgroundSize: '20px 20px',
         }}
@@ -153,7 +211,7 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
               top: '8px',
               left: '50%',
               transform: 'translateX(-50%)',
-              backgroundColor: 'rgba(0,0,0,0.8)',
+              backgroundColor: 'rgba(0,0,0,0.85)',
               color: '#FFF',
               padding: '2px 10px',
               borderRadius: '4px',
@@ -165,7 +223,7 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
               gap: '0.5rem',
             }}
           >
-            <Ruler size={11} /> 0.0mm ──────── 160.0mm Principal Display Panel Width
+            <Ruler size={11} /> Principal Display Panel Coordinate Grid (Normalized %)
           </div>
         )}
 
@@ -176,150 +234,128 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
             transformOrigin: 'center center',
             transition: 'transform 0.15s ease-out',
             position: 'relative',
-            width: '420px',
-            height: '560px',
-            backgroundColor: '#CBB593',
-            borderRadius: '12px',
-            boxShadow: '0 20px 40px rgba(0,0,0,0.18), 0 2px 6px rgba(0,0,0,0.1)',
+            maxWidth: '520px',
+            width: '100%',
+            minHeight: '400px',
+            backgroundColor: 'var(--bg-surface)',
+            borderRadius: '8px',
+            boxShadow: '0 12px 32px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.08)',
             overflow: 'hidden',
-            border: '2px solid rgba(255,255,255,0.4)',
+            border: '1px solid var(--border-default)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
           }}
         >
-          {previewImageUrl ? (
-            <img
-              src={previewImageUrl}
-              alt="Uploaded Artwork Preview"
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'contain',
-                backgroundColor: '#FFFFFF',
-              }}
-            />
+          {previewImageUrl && !imageError ? (
+            <div style={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <img
+                src={previewImageUrl}
+                alt="Uploaded Artwork Preview"
+                onError={() => setImageError(true)}
+                style={{
+                  width: '100%',
+                  height: 'auto',
+                  maxHeight: '560px',
+                  objectFit: 'contain',
+                  display: 'block',
+                  backgroundColor: '#FFFFFF',
+                }}
+              />
+
+              {/* Interactive Bounding Box Overlays */}
+              {showAllMarkers &&
+                activeBoxes.map((box) => {
+                  const isSelected = box.id === selectedFindingId;
+                  const { x, y, width, height, label } = box;
+
+                  let borderColor = 'var(--brand-primary)';
+                  let bgColor = 'rgba(79, 70, 229, 0.15)';
+                  if (box.status === 'GOOD') {
+                    borderColor = 'var(--status-good-solid)';
+                    bgColor = 'rgba(16, 185, 129, 0.18)';
+                  } else if (box.status === 'REVIEW') {
+                    borderColor = 'var(--status-review-solid)';
+                    bgColor = 'rgba(245, 158, 11, 0.22)';
+                  } else if (box.status === 'ISSUE') {
+                    borderColor = 'var(--status-issue-solid)';
+                    bgColor = 'rgba(239, 68, 68, 0.22)';
+                  }
+
+                  return (
+                    <div
+                      key={box.id}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectFinding(box.id);
+                      }}
+                      style={{
+                        position: 'absolute',
+                        left: `${x}%`,
+                        top: `${y}%`,
+                        width: `${Math.max(width, 4)}%`,
+                        height: `${Math.max(height, 2.5)}%`,
+                        border: isSelected ? `2.5px solid ${borderColor}` : `1.5px dashed ${borderColor}`,
+                        backgroundColor: isSelected ? bgColor : 'rgba(0,0,0,0.05)',
+                        borderRadius: '3px',
+                        cursor: 'pointer',
+                        boxShadow: isSelected ? `0 0 0 3px rgba(255,255,255,0.9), 0 0 12px ${borderColor}` : 'none',
+                        transition: 'all 0.15s ease',
+                        zIndex: isSelected ? 30 : 20,
+                        display: 'flex',
+                        alignItems: 'flex-start',
+                        justifyContent: 'flex-start',
+                      }}
+                      title={label}
+                    >
+                      <div
+                        style={{
+                          position: 'absolute',
+                          top: '-16px',
+                          left: '0',
+                          backgroundColor: borderColor,
+                          color: '#FFFFFF',
+                          fontSize: '0.6rem',
+                          fontWeight: 700,
+                          padding: '1px 5px',
+                          borderRadius: '2px',
+                          whiteSpace: 'nowrap',
+                          boxShadow: '0 2px 4px rgba(0,0,0,0.25)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          pointerEvents: 'none',
+                        }}
+                      >
+                        <Layers size={9} />
+                        <span>{label}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
           ) : (
-            /* Synthetic Vector Mockup Base */
-            <div style={{ position: 'absolute', inset: 0, padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', background: 'linear-gradient(145deg, #DFC8A8 0%, #CBB593 50%, #BFA57E 100%)' }}>
-              <div style={{ borderBottom: '2px dashed #9C815A', paddingBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.65rem', fontFamily: 'monospace', color: '#6A5333', fontWeight: 700 }}>BATCH: AB-2609-C</span>
-                <span style={{ fontSize: '0.65rem', fontFamily: 'monospace', color: '#6A5333', fontWeight: 700 }}>MFD: 09/2026</span>
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                  <div style={{ width: '10px', height: '10px', backgroundColor: '#10B981', borderRadius: '50%' }} />
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, letterSpacing: '0.08em', color: '#2D3748', textTransform: 'uppercase' }}>
-                    Aura Botanicals
-                  </span>
-                </div>
-                <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#1A202C', lineHeight: 1.1 }}>
-                  ORGANIC CHIA CRUNCH
-                </h2>
-                <p style={{ fontSize: '0.75rem', color: '#4A5568', fontWeight: 600 }}>
-                  Cold-Milled Raw Chia Seeds • Omega-3 & High Dietary Fiber
-                </p>
-              </div>
-
-              <div style={{ height: '130px', backgroundColor: 'rgba(255,255,255,0.85)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', border: '1px solid rgba(0,0,0,0.08)' }}>
-                <div style={{ width: '60px', height: '60px', borderRadius: '50%', backgroundColor: '#FEF3C7', border: '2px dashed #F59E0B', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#B45309', fontWeight: 800, fontSize: '0.8rem' }}>
-                  100% RAW
-                </div>
-                <span style={{ fontSize: '0.7rem', fontWeight: 700, color: '#4A5568', marginTop: '6px' }}>SUPERFOOD BLEND</span>
-              </div>
-
-              <div style={{ backgroundColor: 'rgba(255,255,255,0.92)', borderRadius: '6px', padding: '10px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px', fontSize: '0.65rem', color: '#1A202C' }}>
-                <div>
-                  <strong style={{ display: 'block', fontSize: '0.65rem' }}>INGREDIENTS:</strong>
-                  <p style={{ fontSize: '0.6rem', color: '#4A5568' }}>Roasted Organic Chia Seeds (Salvia hispanica). Himalayan Pink Salt.</p>
-                  <p style={{ fontSize: '0.6rem', fontWeight: 700, color: '#000', marginTop: '2px' }}>ALLERGEN: CONTAINS CHIA SEEDS.</p>
-                </div>
-                <div>
-                  <strong style={{ display: 'block', fontSize: '0.65rem' }}>CONSUMER CARE:</strong>
-                  <p style={{ fontSize: '0.58rem', color: '#4A5568' }}>Toll Free: 1800-425-9988</p>
-                  <p style={{ fontSize: '0.58rem', color: '#4A5568' }}>care@aurabotanicals.com</p>
-                </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: 'rgba(255,255,255,0.95)', padding: '8px 10px', borderRadius: '6px' }}>
-                <div>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#111827', fontFamily: 'monospace' }}>Net Qty: 250 g</span>
-                  <span style={{ display: 'block', fontSize: '0.58rem', color: '#4B5563', fontFamily: 'monospace' }}>MRP: ₹299.00 (₹1.20/g)</span>
-                </div>
-                <div style={{ textAlign: 'right' }}>
-                  <span style={{ fontSize: '0.6rem', fontWeight: 700, color: '#065F46', display: 'block' }}>fssai 10020011002345</span>
-                  <span style={{ fontSize: '0.55rem', color: '#6B7280' }}>Made in India</span>
-                </div>
-              </div>
+            /* Clear user-facing error state when artwork is missing or failed */
+            <div
+              style={{
+                padding: '3rem 2rem',
+                textAlign: 'center',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: '0.75rem',
+                color: 'var(--text-secondary)',
+              }}
+            >
+              <AlertCircle size={36} style={{ color: 'var(--status-review-solid)' }} />
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+                Your artwork could not be displayed.
+              </h3>
+              <p style={{ fontSize: '0.8125rem', maxWidth: '320px', lineHeight: 1.4 }}>
+                The preview file for {panelDisplayName} is being processed or could not be loaded. Findings remain available in the right panel.
+              </p>
             </div>
           )}
-
-          {/* Interactive Bounding Box Overlays */}
-          {showAllMarkers && activeBoxes.map((box) => {
-            const isSelected = box.id === selectedFindingId;
-            const { x, y, width, height, label } = box;
-
-            let borderColor = 'var(--brand-primary)';
-            let bgColor = 'rgba(79, 70, 229, 0.15)';
-            if (box.status === 'GOOD') {
-              borderColor = 'var(--status-good-solid)';
-              bgColor = 'rgba(16, 185, 129, 0.18)';
-            } else if (box.status === 'REVIEW') {
-              borderColor = 'var(--status-review-solid)';
-              bgColor = 'rgba(245, 158, 11, 0.22)';
-            } else if (box.status === 'ISSUE') {
-              borderColor = 'var(--status-issue-solid)';
-              bgColor = 'rgba(239, 68, 68, 0.22)';
-            }
-
-            return (
-              <div
-                key={box.id}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSelectFinding(box.id);
-                }}
-                style={{
-                  position: 'absolute',
-                  left: `${x}%`,
-                  top: `${y}%`,
-                  width: `${width}%`,
-                  height: `${height}%`,
-                  border: isSelected ? `2.5px solid ${borderColor}` : `1.5px dashed ${borderColor}`,
-                  backgroundColor: isSelected ? bgColor : 'rgba(0,0,0,0.05)',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  boxShadow: isSelected ? `0 0 0 3px rgba(255,255,255,0.9), 0 0 12px ${borderColor}` : 'none',
-                  transition: 'all 0.15s ease',
-                  zIndex: isSelected ? 30 : 20,
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'flex-start',
-                }}
-                title={label}
-              >
-                <div
-                  style={{
-                    position: 'absolute',
-                    top: '-18px',
-                    left: '0',
-                    backgroundColor: borderColor,
-                    color: '#FFFFFF',
-                    fontSize: '0.625rem',
-                    fontWeight: 700,
-                    padding: '1px 5px',
-                    borderRadius: '3px',
-                    whiteSpace: 'nowrap',
-                    boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '3px',
-                  }}
-                >
-                  <Layers size={9} />
-                  <span>{label}</span>
-                </div>
-              </div>
-            );
-          })}
         </div>
       </div>
 
@@ -336,9 +372,11 @@ export const ArtworkViewer: React.FC<ArtworkViewerProps> = ({
           justifyContent: 'space-between',
         }}
       >
-        <span>Click any evidence box or entity row on right to inspect coordinates.</span>
-        <span style={{ fontFamily: 'var(--font-mono)' }}>
-          {selectedBox ? `Box: X:${selectedBox.x}% Y:${selectedBox.y}% (W:${selectedBox.width}% H:${selectedBox.height}%)` : 'Ready'}
+        <span>
+          {selectedBox ? 'Select a highlighted area to see why it was flagged.' : 'Select a finding on the right to highlight it on the artwork.'}
+        </span>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem' }}>
+          {selectedBox ? `${selectedBox.label}` : 'Ready'}
         </span>
       </div>
     </div>

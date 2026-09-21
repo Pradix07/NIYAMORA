@@ -44,6 +44,18 @@ class ManufacturerAddressEvaluator(BaseRuleEvaluator):
                 "Add explicit 'Manufactured by / Packed by: [Name & Address]' block on packaging dieline."
             )
 
+        # Ensure it is not a barcode or purely numeric/symbol string
+        alpha_count = len(re.sub(r'[^a-zA-Z]', '', found_line or ""))
+        if alpha_count < 4:
+            return (
+                "REVIEW",
+                found_line,
+                expected_cond,
+                f"Numeric or barcode-like value detected ('{found_line}'), but manufacturer/packer requires complete entity name and physical address (Rule 6(1)(a)).",
+                None,
+                "Ensure textual manufacturer or packer name and physical address are declared."
+            )
+
         # Assess completeness: does it contain an entity name and some address indication (city, state, pin, street)?
         lower_val = found_line.lower()
         has_address_cues = any(cue in lower_val for cue in ["road", "street", "plot", "phase", "ind.", "industrial", "pincode", "pin", "estate", "nagai", "nagar", "dist", "delhi", "mumbai", "bengaluru", "chennai", "kolkata", "pune", "gujarat", "maharashtra", "karnataka", "india", "box", "po", "fssai", "zone", "sector", "lane"]) or bool(re.search(r"\b\d{6}\b", found_line))

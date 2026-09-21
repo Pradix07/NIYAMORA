@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.inspection import Inspection
 from app.models.artwork_version import ArtworkVersion
+from app.models.artwork_panel import ArtworkPanel
 from app.models.product import Product
 from app.models.company import Company
 from app.schemas.inspection import InspectionRead, InspectionCreate
@@ -30,6 +31,27 @@ def list_inspections(
     for insp in inspections:
         version = db.query(ArtworkVersion).filter(ArtworkVersion.id == insp.artwork_version_id).first()
         product = db.query(Product).filter(Product.id == insp.product_id).first()
+        
+        panels = []
+        if version:
+            panel_models = (
+                db.query(ArtworkPanel)
+                .filter(ArtworkPanel.artwork_version_id == version.id)
+                .order_by(ArtworkPanel.created_at.asc())
+                .all()
+            )
+            panels = [
+                {
+                    "id": p.id,
+                    "panel_type": p.panel_type,
+                    "original_filename": p.original_filename,
+                    "file_size_bytes": p.file_size_bytes,
+                    "mime_type": p.mime_type,
+                    "preview_url": f"/api/files/panels/{p.id}"
+                }
+                for p in panel_models
+            ]
+
         results.append({
             "id": insp.id,
             "product_id": insp.product_id,
@@ -48,6 +70,7 @@ def list_inspections(
             "compliance_score": insp.compliance_score,
             "findings_summary": insp.findings_summary,
             "preview_url": f"/api/files/preview/{version.id}" if version else None,
+            "panels": panels,
             "error_message": insp.error_message,
             "created_at": insp.created_at,
             "completed_at": insp.completed_at
@@ -98,6 +121,26 @@ def get_inspection(
     version = db.query(ArtworkVersion).filter(ArtworkVersion.id == inspection.artwork_version_id).first()
     product = db.query(Product).filter(Product.id == inspection.product_id).first()
 
+    panels = []
+    if version:
+        panel_models = (
+            db.query(ArtworkPanel)
+            .filter(ArtworkPanel.artwork_version_id == version.id)
+            .order_by(ArtworkPanel.created_at.asc())
+            .all()
+        )
+        panels = [
+            {
+                "id": p.id,
+                "panel_type": p.panel_type,
+                "original_filename": p.original_filename,
+                "file_size_bytes": p.file_size_bytes,
+                "mime_type": p.mime_type,
+                "preview_url": f"/api/files/panels/{p.id}"
+            }
+            for p in panel_models
+        ]
+
     return {
         "id": inspection.id,
         "product_id": inspection.product_id,
@@ -116,6 +159,7 @@ def get_inspection(
         "compliance_score": inspection.compliance_score,
         "findings_summary": inspection.findings_summary,
         "preview_url": f"/api/files/preview/{version.id}" if version else None,
+        "panels": panels,
         "error_message": inspection.error_message,
         "created_at": inspection.created_at,
         "completed_at": inspection.completed_at

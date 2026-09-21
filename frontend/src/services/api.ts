@@ -76,6 +76,8 @@ export interface ApiExtractedField {
     width: number;
     height: number;
     label?: string;
+    panel_type?: string;
+    panel_id?: string;
   };
   source?: string;
 }
@@ -92,6 +94,8 @@ export interface ApiEvidence {
     width: number;
     height: number;
     label?: string;
+    panel_type?: string;
+    panel_id?: string;
   };
   observed_text?: string;
   extracted_value?: string;
@@ -184,6 +188,15 @@ export interface ApiHumanReview {
   created_at: string;
 }
 
+export interface ApiPanel {
+  id: string;
+  panel_type: string;
+  original_filename: string;
+  file_size_bytes: number;
+  mime_type?: string;
+  preview_url: string;
+}
+
 export interface ApiInspection {
   id: string;
   product_id: string;
@@ -211,6 +224,8 @@ export interface ApiInspection {
         width: number;
         height: number;
         label?: string;
+        panel_type?: string;
+        panel_id?: string;
       };
     }>;
     fields: Record<string, ApiExtractedField>;
@@ -227,6 +242,7 @@ export interface ApiInspection {
     na_count: number;
   };
   preview_url?: string;
+  panels?: ApiPanel[];
   error_message?: string;
   created_at: string;
   completed_at?: string;
@@ -854,7 +870,12 @@ export const api = {
   },
 
   getFileUrl(path: string): string {
-    if (path.startsWith('http')) return path;
-    return `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+    const token = localStorage.getItem('niyamora_token');
+    let url = path.startsWith('http') ? path : `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
+    if (token && !url.includes('token=')) {
+      const sep = url.includes('?') ? '&' : '?';
+      url = `${url}${sep}token=${encodeURIComponent(token)}`;
+    }
+    return url;
   },
 };
