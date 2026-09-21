@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { ApiEvaluation, ApiFinding, ApiExtractedField } from '../../services/api';
-import { Wand2, BookOpen, AlertCircle, CheckCircle2, XCircle, HelpCircle, MinusCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { Wand2, BookOpen, AlertCircle, CheckCircle2, XCircle, HelpCircle, MinusCircle, ChevronDown, ChevronUp, MapPin, Shield } from 'lucide-react';
 
 interface FindingPanelProps {
   evaluations?: ApiEvaluation[];
@@ -19,7 +19,6 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
   selectedFindingId,
   onSelectFinding,
   onOpenImprove,
-  complianceVerdict,
 }) => {
   const [filter, setFilter] = useState<'ALL' | 'ISSUE' | 'REVIEW' | 'PASS' | 'N/A'>('ALL');
   const [activeTab, setActiveTab] = useState<'RULES' | 'EXTRACTION'>('RULES');
@@ -55,23 +54,125 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
       case 'ISSUE':
         return (
           <span className="badge badge-issue" style={{ fontSize: '0.7rem' }}>
-            <XCircle size={11} /> Needs Attention
+            <XCircle size={11} /> Issue
           </span>
         );
       case 'REVIEW':
         return (
           <span className="badge badge-review" style={{ fontSize: '0.7rem' }}>
-            <HelpCircle size={11} /> Needs Review
+            <HelpCircle size={11} /> Needs review
           </span>
         );
       case 'N/A':
       default:
         return (
           <span className="badge badge-neutral" style={{ fontSize: '0.7rem' }}>
-            <MinusCircle size={11} /> Not Applicable
+            <MinusCircle size={11} /> Not applicable
           </span>
         );
     }
+  };
+
+  // Helper to provide simple English titles for standard rules
+  const getSimpleTitle = (ruleCode: string, fallbackTitle: string): string => {
+    const code = (ruleCode || '').toUpperCase();
+    if (code.includes('R06-1-A') || code.includes('MFG')) return 'Manufacturer details';
+    if (code.includes('R06-1-B') || code.includes('GENERIC')) return 'Product common / generic name';
+    if (code.includes('R06-1-C') || code.includes('NET-QTY')) return 'Declared net quantity';
+    if (code.includes('R09') || code.includes('HEIGHT') || code.includes('FONT')) return 'Text height & readability';
+    if (code.includes('R06-1-E') || code.includes('MRP')) return 'Maximum Retail Price (MRP)';
+    if (code.includes('R06-1-D') || code.includes('DATE')) return 'Date of manufacture / packaging';
+    if (code.includes('R06-1-N') || code.includes('USP')) return 'Unit Sale Price (USP)';
+    if (code.includes('R06-1-G') || code.includes('CONSUMER')) return 'Consumer care details';
+    if (code.includes('R06-1-F') || code.includes('ORIGIN')) return 'Country of origin';
+    if (code.includes('FSSAI')) return 'FSSAI License & logo';
+    return fallbackTitle;
+  };
+
+  // Helper to generate simple, non-technical explanation
+  const getSimpleExplanation = (ev: ApiEvaluation): string => {
+    const code = (ev.rule_code || '').toUpperCase();
+    const status = ev.status;
+
+    if (code.includes('R06-1-A') || code.includes('MFG')) {
+      if (status === 'REVIEW') {
+        return "We found a manufacturer/packer reference, but we couldn't clearly verify the complete address.";
+      }
+      if (status === 'ISSUE') {
+        return 'Manufacturer or packer details are missing or incomplete on the packaging.';
+      }
+      return 'Manufacturer or packer name and complete physical address were verified.';
+    }
+
+    if (code.includes('R09') || code.includes('HEIGHT')) {
+      if (status === 'ISSUE') {
+        return 'The net quantity text height appears smaller than the statutory minimum for this package size.';
+      }
+      if (status === 'REVIEW') {
+        return 'Package surface dimensions need manual confirmation to verify text height requirements.';
+      }
+      return 'Text character height meets the statutory minimum for this package size.';
+    }
+
+    if (code.includes('R06-1-E') || code.includes('MRP')) {
+      if (status === 'ISSUE') {
+        return "MRP is missing the mandatory '(inclusive of all taxes)' declaration.";
+      }
+      if (status === 'REVIEW') {
+        return 'MRP text was located, but tax-inclusive wording needs manual confirmation.';
+      }
+      return "MRP is declared with required 'inclusive of all taxes' wording.";
+    }
+
+    if (code.includes('R06-1-C') || code.includes('NET-QTY')) {
+      if (status === 'ISSUE') {
+        return 'Net quantity uses a prohibited unit abbreviation or non-standard measurement format.';
+      }
+      if (status === 'REVIEW') {
+        return 'Net quantity was found but unit abbreviation requires manual verification.';
+      }
+      return 'Declared net quantity uses valid SI units and standard formatting.';
+    }
+
+    if (code.includes('R06-1-N') || code.includes('USP')) {
+      if (status === 'ISSUE') {
+        return 'Unit Sale Price (e.g. per gram or per kg) is required for this pack size but missing.';
+      }
+      if (status === 'REVIEW') {
+        return 'Unit Sale Price calculation requires verification against the declared pack weight.';
+      }
+      return 'Unit Sale Price is correctly declared with valid unit basis.';
+    }
+
+    // Default fallback to existing explanation
+    return ev.explanation || 'Packaging requirement evaluated against statutory rules.';
+  };
+
+  // Helper to generate actionable next step
+  const getActionableGuidance = (ev: ApiEvaluation, finding?: ApiFinding): string | null => {
+    if (ev.status === 'PASS' || ev.status === 'N/A') return null;
+
+    if (finding?.suggested_action) {
+      return finding.suggested_action;
+    }
+
+    const code = (ev.rule_code || '').toUpperCase();
+    if (code.includes('R06-1-A') || code.includes('MFG')) {
+      return 'Check the full manufacturer/packer name and address on the package.';
+    }
+    if (code.includes('R09') || code.includes('HEIGHT')) {
+      return 'Increase font height of net quantity digits to meet the minimum required mm height.';
+    }
+    if (code.includes('R06-1-E') || code.includes('MRP')) {
+      return "Ensure '(inclusive of all taxes)' or '(incl. of all taxes)' is printed right after the MRP.";
+    }
+    if (code.includes('R06-1-C') || code.includes('NET-QTY')) {
+      return "Use standard SI symbols like 'g', 'kg', or 'ml' without trailing periods or non-standard symbols.";
+    }
+    if (code.includes('R06-1-N') || code.includes('USP')) {
+      return "Add unit sale price (e.g. '₹ 1.80 / g' or '₹ 180 / kg') near the MRP.";
+    }
+    return 'Review the highlighted area on your packaging artwork to ensure compliance.';
   };
 
   return (
@@ -87,73 +188,62 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
       }}
     >
       {/* Header & Status Summary Bar */}
-      <div style={{ padding: '1.25rem 1.25rem 1rem', borderBottom: '1px solid var(--border-default)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.875rem' }}>
+      <div style={{ padding: '1rem 1.25rem 0.875rem', borderBottom: '1px solid var(--border-default)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.25rem' }}>
-              <h3 style={{ fontSize: '1.125rem', fontWeight: 700 }}>
-                {activeTab === 'RULES' ? 'Packaging Check' : 'Packaging Details'}
-              </h3>
-              {complianceVerdict && (
-                <span
-                  className={`badge ${complianceVerdict === 'PASS' ? 'badge-good' : complianceVerdict === 'ISSUE' ? 'badge-issue' : 'badge-review'}`}
-                  style={{ fontSize: '0.75rem', fontWeight: 800 }}
-                >
-                  {complianceVerdict === 'PASS' ? 'Passed' : complianceVerdict === 'ISSUE' ? 'Action Required' : 'Review Required'}
-                </span>
-              )}
-            </div>
-            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+            <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>
+              What we found
+            </h3>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '2px', marginBottom: 0 }}>
               {hasEvaluations ? (
-                <>
-                  <span style={{ color: 'var(--status-good-text)', fontWeight: 600 }}>✓ {passCount} Passed</span>
-                  {' • '}
-                  <span style={{ color: 'var(--status-review-text)', fontWeight: 600 }}>⚠ {reviewCount} Need Review</span>
+                <span>
                   {issueCount > 0 && (
-                    <>
-                      {' • '}
-                      <span style={{ color: 'var(--status-issue-text)', fontWeight: 600 }}>✕ {issueCount} Issue{issueCount > 1 ? 's' : ''}</span>
-                    </>
+                    <strong style={{ color: 'var(--status-issue-text)' }}>
+                      ❌ {issueCount} {issueCount === 1 ? 'Issue' : 'Issues'} ·{' '}
+                    </strong>
                   )}
-                  {naCount > 0 && (
-                    <>
-                      {' • '}
-                      <span>— {naCount} N/A</span>
-                    </>
-                  )}
-                </>
+                  <span style={{ color: 'var(--status-review-text)', fontWeight: 600 }}>
+                    ⚠ {reviewCount} Need review
+                  </span>
+                  {' · '}
+                  <span style={{ color: 'var(--status-good-text)', fontWeight: 600 }}>
+                    ✓ {passCount} Passed
+                  </span>
+                  {naCount > 0 && <span> · — {naCount} N/A</span>}
+                </span>
               ) : (
-                `${fieldList.length} packaging declarations identified`
+                `${fieldList.length} items found`
               )}
             </p>
           </div>
+
           {onOpenImprove && issueCount > 0 && (
             <button 
               onClick={onOpenImprove}
               className="btn btn-primary btn-sm"
               style={{ gap: '0.35rem', boxShadow: '0 2px 8px rgba(79, 70, 229, 0.3)' }}
             >
-              <Wand2 size={14} />
+              <Wand2 size={13} />
               <span>Improve Design</span>
             </button>
           )}
         </div>
 
-        {/* View Switch Tabs (Rules vs Extracted Details) */}
+        {/* View Switch Tabs (Checks vs Packaging Information) */}
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.75rem' }}>
           <button
             onClick={() => setActiveTab('RULES')}
             className={`btn btn-sm ${activeTab === 'RULES' ? 'btn-primary' : 'btn-ghost'}`}
             style={{ fontSize: '0.75rem', padding: '0.3rem 0.75rem' }}
           >
-            Requirement Checks ({evaluations.length})
+            Checks ({evaluations.length})
           </button>
           <button
             onClick={() => setActiveTab('EXTRACTION')}
             className={`btn btn-sm ${activeTab === 'EXTRACTION' ? 'btn-primary' : 'btn-ghost'}`}
             style={{ fontSize: '0.75rem', padding: '0.3rem 0.75rem' }}
           >
-            Packaging Details ({fieldList.length})
+            Packaging Information ({fieldList.length})
           </button>
         </div>
 
@@ -163,7 +253,7 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
             <button
               onClick={() => setFilter('ALL')}
               className={`btn btn-sm ${filter === 'ALL' ? 'btn-primary' : 'btn-secondary'}`}
-              style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem' }}
+              style={{ fontSize: '0.72rem', padding: '0.2rem 0.55rem' }}
             >
               All ({evaluations.length})
             </button>
@@ -171,32 +261,32 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
               <button
                 onClick={() => setFilter('ISSUE')}
                 className={`btn btn-sm ${filter === 'ISSUE' ? 'btn-danger' : 'btn-secondary'}`}
-                style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem' }}
+                style={{ fontSize: '0.72rem', padding: '0.2rem 0.55rem' }}
               >
-                Needs Attention ({issueCount})
+                ❌ Issue ({issueCount})
               </button>
             )}
             <button
               onClick={() => setFilter('REVIEW')}
               className={`btn btn-sm ${filter === 'REVIEW' ? 'btn-secondary' : 'btn-ghost'}`}
-              style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem', color: filter === 'REVIEW' ? 'var(--status-review-text)' : 'inherit' }}
+              style={{ fontSize: '0.72rem', padding: '0.2rem 0.55rem', color: filter === 'REVIEW' ? 'var(--status-review-text)' : 'inherit' }}
             >
-              Needs Review ({reviewCount})
+              ⚠ Needs review ({reviewCount})
             </button>
             <button
               onClick={() => setFilter('PASS')}
               className={`btn btn-sm ${filter === 'PASS' ? 'btn-secondary' : 'btn-ghost'}`}
-              style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem', color: filter === 'PASS' ? 'var(--status-good-text)' : 'inherit' }}
+              style={{ fontSize: '0.72rem', padding: '0.2rem 0.55rem', color: filter === 'PASS' ? 'var(--status-good-text)' : 'inherit' }}
             >
-              Passed ({passCount})
+              ✓ Passed ({passCount})
             </button>
             {naCount > 0 && (
               <button
                 onClick={() => setFilter('N/A')}
                 className={`btn btn-sm ${filter === 'N/A' ? 'btn-secondary' : 'btn-ghost'}`}
-                style={{ fontSize: '0.75rem', padding: '0.2rem 0.55rem' }}
+                style={{ fontSize: '0.72rem', padding: '0.2rem 0.55rem' }}
               >
-                N/A ({naCount})
+                Not applicable ({naCount})
               </button>
             )}
           </div>
@@ -212,15 +302,20 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 800, color: 'var(--status-good-text)', fontSize: '0.875rem' }}>
                   <CheckCircle2 size={17} /> ALL CHECKS PASSED
                 </div>
-                <p style={{ fontSize: '0.8125rem', color: 'var(--text-primary)', marginTop: '4px', lineHeight: 1.4 }}>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--text-primary)', marginTop: '4px', lineHeight: 1.4, margin: 0 }}>
                   All {evaluations.length} evaluated packaging checks passed statutory requirements.
                 </p>
               </div>
             )}
+
             {filteredEvaluations.map((ev) => {
               const isSelected = ev.id === selectedFindingId || ev.rule_code === selectedFindingId;
               const isExpanded = isSelected || expandedDetails[ev.id];
               const relatedFinding = findings.find((f) => f.rule_code === ev.rule_code || f.evaluation_id === ev.id);
+
+              const simpleTitle = getSimpleTitle(ev.rule_code, ev.rule_title);
+              const simpleExplanation = getSimpleExplanation(ev);
+              const actionableStep = getActionableGuidance(ev, relatedFinding);
 
               return (
                 <div
@@ -241,18 +336,31 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
                     transition: 'background-color var(--transition-fast)',
                   }}
                 >
+                  {/* Card Header: Plain English Title + Badge */}
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
                     <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                      {ev.rule_title}
+                      {simpleTitle}
                     </h4>
                     {getStatusBadge(ev.status)}
                   </div>
 
-                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.4, margin: '0.25rem 0' }}>
-                    {ev.explanation}
+                  {/* Plain English Explanation */}
+                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.4, margin: '0.25rem 0 0.35rem' }}>
+                    {simpleExplanation}
                   </p>
 
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.5rem' }}>
+                  {/* Actionable Guidance (What you can do) */}
+                  {actionableStep && (
+                    <div style={{ margin: '0.35rem 0', padding: '0.4rem 0.6rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)', fontSize: '0.78rem' }}>
+                      <span style={{ fontWeight: 700, color: 'var(--brand-primary)', marginRight: '4px' }}>
+                        What you can do:
+                      </span>
+                      <span style={{ color: 'var(--text-secondary)' }}>{actionableStep}</span>
+                    </div>
+                  )}
+
+                  {/* Bottom Toggle Bar */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '0.35rem' }}>
                     <button
                       type="button"
                       onClick={(e) => toggleDetails(ev.id, e)}
@@ -274,61 +382,75 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
                       {isExpanded ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                     </button>
 
-                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                      {ev.source_reference ? ev.source_reference.split('(')[0] : 'Legal Metrology'}
+                    <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                      {ev.rule_code}
                     </span>
                   </div>
 
-                  {/* Expandable Secondary Detail Section */}
+                  {/* Expandable Deep-Dive Evidence & Legal Details */}
                   {isExpanded && (
                     <div 
                       className="card animate-fade-in"
                       style={{ 
-                        marginTop: '0.75rem', 
+                        marginTop: '0.65rem', 
                         padding: '0.875rem', 
                         backgroundColor: 'var(--bg-surface)', 
-                        fontSize: '0.8125rem',
+                        fontSize: '0.78rem',
                         display: 'flex',
                         flexDirection: 'column',
-                        gap: '0.5rem',
+                        gap: '0.6rem',
                         border: '1px solid var(--border-default)'
                       }}
                       onClick={(e) => e.stopPropagation()}
                     >
+                      {/* What we found */}
                       <div>
-                        <strong style={{ color: 'var(--text-primary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                          Observed on Package:
+                        <strong style={{ color: 'var(--text-primary)', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          What we found on package:
                         </strong>
-                        <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', marginTop: '2px', backgroundColor: 'var(--bg-surface-subtle)', padding: '4px 8px', borderRadius: '4px' }}>
+                        <p style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)', marginTop: '2px', marginBottom: 0, backgroundColor: 'var(--bg-surface-subtle)', padding: '4px 8px', borderRadius: '4px' }}>
                           {ev.observed_value || 'Not clearly detected on packaging artwork'}
                         </p>
                       </div>
 
+                      {/* Why it matters / Requirement context */}
                       <div>
-                        <strong style={{ color: 'var(--text-primary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                          Why is this checked:
+                        <strong style={{ color: 'var(--text-primary)', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          Why it matters:
                         </strong>
-                        <p style={{ color: 'var(--text-secondary)', marginTop: '2px', fontSize: '0.78rem' }}>
+                        <p style={{ color: 'var(--text-secondary)', marginTop: '2px', marginBottom: 0 }}>
                           {ev.expected_condition}
                         </p>
                       </div>
 
-                      {relatedFinding?.suggested_action && (
-                        <div style={{ padding: '0.5rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-subtle)' }}>
-                          <strong style={{ color: 'var(--brand-primary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.04em', display: 'block', marginBottom: '2px' }}>
-                            How to fix:
-                          </strong>
-                          <p style={{ color: 'var(--text-secondary)', fontSize: '0.78rem', margin: 0 }}>
-                            {relatedFinding.suggested_action}
-                          </p>
+                      {/* Exact Legal Requirement */}
+                      <div>
+                        <strong style={{ color: 'var(--text-primary)', fontSize: '0.72rem', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          Legal requirement:
+                        </strong>
+                        <p style={{ color: 'var(--text-secondary)', marginTop: '2px', marginBottom: 0 }}>
+                          {ev.rule_title} ({ev.rule_code})
+                        </p>
+                      </div>
+
+                      {/* Evidence / Location */}
+                      {ev.evidence?.bbox && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)', fontSize: '0.72rem' }}>
+                          <MapPin size={12} />
+                          <span>
+                            Location: {ev.evidence.bbox.panel_type || 'Front'} (x: {Math.round(ev.evidence.bbox.x)}%, y: {Math.round(ev.evidence.bbox.y)}%)
+                          </span>
                         </div>
                       )}
 
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-default)', paddingTop: '0.5rem', marginTop: '0.25rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                      {/* Source Reference & Legal Metrology Citation */}
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-default)', paddingTop: '0.5rem', marginTop: '0.2rem', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                         <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                           <BookOpen size={12} /> {ev.source_reference || 'Legal Metrology (Packaged Commodities) Rules, 2011'}
                         </span>
-                        <span style={{ fontFamily: 'var(--font-mono)' }}>{ev.rule_code}</span>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                          <Shield size={11} /> Verified Rule
+                        </span>
                       </div>
                     </div>
                   )}
@@ -337,8 +459,12 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
             })}
           </div>
         ) : (
-          /* Packaging Details List */
+          /* Packaging Information Tab (Extracted Facts) */
           <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ padding: '0.75rem 1.25rem', backgroundColor: 'var(--bg-surface-subtle)', borderBottom: '1px solid var(--border-default)', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              <span>Extracted declarations from your packaging dieline and text layer.</span>
+            </div>
+
             {fieldList.map((field) => (
               <div
                 key={field.field_key}
@@ -351,9 +477,9 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
                   <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
                     {field.field_name}
                   </h4>
-                  <span className={`badge ${field.status === 'EXTRACTED' ? 'badge-good' : field.status === 'UNCERTAIN' ? 'badge-review' : 'badge-neutral'}`} style={{ fontSize: '0.7rem' }}>
+                  <span className={`badge ${field.status === 'EXTRACTED' ? 'badge-good' : field.status === 'UNCERTAIN' ? 'badge-review' : 'badge-neutral'}`} style={{ fontSize: '0.6875rem' }}>
                     {field.status === 'EXTRACTED' ? <CheckCircle2 size={11} /> : field.status === 'UNCERTAIN' ? <HelpCircle size={11} /> : <MinusCircle size={11} />}
-                    <span>{field.status === 'EXTRACTED' ? 'Found' : field.status === 'UNCERTAIN' ? 'Needs Review' : 'Not Found'}</span>
+                    <span>{field.status === 'EXTRACTED' ? 'Found' : field.status === 'UNCERTAIN' ? 'Needs review' : 'Not found'}</span>
                   </span>
                 </div>
 
@@ -368,12 +494,11 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
         )}
       </div>
 
-      {/* Statutory Disclaimer Footer */}
-      <div style={{ padding: '0.625rem 1rem', borderTop: '1px solid var(--border-default)', backgroundColor: 'var(--bg-surface-subtle)', fontSize: '0.7rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+      {/* Simplified Disclaimer Footer */}
+      <div style={{ padding: '0.625rem 1rem', borderTop: '1px solid var(--border-default)', backgroundColor: 'var(--bg-surface-subtle)', fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
         <AlertCircle size={12} style={{ flexShrink: 0, color: 'var(--brand-primary)' }} />
-        <span>Assisted pre-print verification under verified Legal Metrology (Packaged Commodities) Rules, 2011.</span>
+        <span>This is a pre-print packaging check, not a government certificate.</span>
       </div>
     </div>
   );
 };
-

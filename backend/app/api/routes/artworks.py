@@ -13,6 +13,8 @@ from app.storage.local import storage
 from app.services.pipeline import InspectionPipelineService
 from app.api.deps import get_current_company, verify_product_ownership
 
+from app.processors.structurer import PackagingFieldStructurer
+
 router = APIRouter(tags=["Artworks & Upload"])
 
 @router.post("/upload-check", status_code=201)
@@ -43,7 +45,11 @@ async def upload_artwork_and_start_check(
         raise HTTPException(status_code=400, detail="At least one packaging artwork file is required.")
 
     # Form parameters
-    product_name = str(form.get("product_name") or "Packaging Artwork")
+    raw_name = str(form.get("product_name") or "").strip()
+    if not raw_name or PackagingFieldStructurer._is_filename_like(raw_name):
+        product_name = "Packaging Artwork"
+    else:
+        product_name = raw_name
     brand = str(form.get("brand") or "Brand")
     category = str(form.get("category") or "Food & Beverage")
     packaging_type = str(form.get("packaging_type") or "Stand-Up Pouch")

@@ -178,6 +178,15 @@ class InspectionPipelineService:
                 phase_note=f"Extraction and parsing completed across {len(panels)} packaging panel(s). Verified compliance rules evaluated."
             )
 
+            # Update product name if previously generic/filename-like and confident text detected
+            if product and (product.name == "Packaging Artwork" or PackagingFieldStructurer._is_filename_like(product.name)):
+                prod_field = fields.get("product_name")
+                if prod_field and prod_field.extracted_value:
+                    val = prod_field.extracted_value.strip()
+                    if val and not PackagingFieldStructurer._is_filename_like(val) and len(val) >= 3:
+                        product.name = val
+                        db.commit()
+
             inspection.extracted_data = extraction_result.model_dump()
             inspection.current_stage = "COMPLIANCE_EVALUATION"
             db.commit()

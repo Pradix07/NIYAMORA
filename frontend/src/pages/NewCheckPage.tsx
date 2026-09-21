@@ -482,14 +482,18 @@ export const NewCheckPage: React.FC = () => {
             )}
 
             {/* SINGLE FILE PREVIEW (for artwork, photo, ecom modes) */}
-            {uploadMode !== 'multi' && selectedFileMeta && (
-              <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--brand-primary-light)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <FileText size={18} />
+            {uploadMode !== 'multi' && selectedFileMeta && actualFile && (
+              <div style={{ marginTop: '1rem', padding: '1rem', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-default)', borderRadius: 'var(--radius-md)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, flex: 1 }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-sm)', backgroundColor: 'var(--brand-primary-light)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                    {actualFile.type.startsWith('image/') ? (
+                      <img src={URL.createObjectURL(actualFile)} alt={selectedFileMeta.name} style={{ width: '100%', height: '100%', objectFit: 'contain', backgroundColor: '#FFF' }} />
+                    ) : (
+                      <FileText size={20} />
+                    )}
                   </div>
-                  <div>
-                    <span style={{ fontWeight: 700, fontSize: '0.875rem', display: 'block' }}>
+                  <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                    <span style={{ fontWeight: 700, fontSize: '0.875rem', display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {selectedFileMeta.name}
                     </span>
                     <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
@@ -498,7 +502,7 @@ export const NewCheckPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexShrink: 0 }}>
                   <span className="badge badge-good" style={{ fontSize: '0.7rem' }}>
                     <CheckCircle2 size={12} /> Ready to Analyze
                   </span>
@@ -527,12 +531,12 @@ export const NewCheckPage: React.FC = () => {
             <div className="grid-2" style={{ gap: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '0.35rem' }}>
-                  Product Master Name *
+                  Product Name *
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Organic Chia Crunch Pouch"
+                  placeholder="e.g. Nutriva California Almonds"
                   value={productName}
                   onChange={(e) => setProductName(e.target.value)}
                   style={{ width: '100%' }}
@@ -545,7 +549,7 @@ export const NewCheckPage: React.FC = () => {
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. Aura Botanicals"
+                  placeholder="e.g. Nutriva"
                   value={brandName}
                   onChange={(e) => setBrandName(e.target.value)}
                   style={{ width: '100%' }}

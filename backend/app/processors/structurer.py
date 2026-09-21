@@ -229,9 +229,16 @@ class PackagingFieldStructurer:
         if not name:
             return False
         lower = name.lower().strip()
-        if any(lower.startswith(prefix) for prefix in ["screenshot", "img_", "img-", "dsc_", "whatsapp", "pasted", "image", "photo", "scan", "artboard", "panel_"]):
+        filename_prefixes = [
+            "screenshot", "screen shot", "img_", "img-", "dsc_", "whatsapp",
+            "pasted", "image", "photo", "scan", "artboard", "panel_", "picture",
+            "untitled", "download", "document", "capture"
+        ]
+        if any(lower.startswith(prefix) for prefix in filename_prefixes):
             return True
-        if any(lower.endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".pdf", ".webp", ".ai", ".psd"]):
+        if re.search(r"\b(screenshot|dsc_\d|img_\d|\d{4}-\d{2}-\d{2})\b", lower):
+            return True
+        if any(lower.endswith(ext) for ext in [".png", ".jpg", ".jpeg", ".pdf", ".webp", ".ai", ".psd", ".svg", ".tiff"]):
             return True
         return False
 
