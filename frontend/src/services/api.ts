@@ -1,9 +1,22 @@
-export const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL !== undefined
-    ? import.meta.env.VITE_API_BASE_URL
-    : (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
-      ? ''
-      : 'http://127.0.0.1:8000';
+const getApiBaseUrl = (): string => {
+  const envUrl =
+    import.meta.env.VITE_API_BASE_URL ||
+    import.meta.env.VITE_BACKEND_URL ||
+    import.meta.env.VITE_API_URL;
+
+  if (typeof envUrl === 'string' && envUrl.trim() !== '') {
+    return envUrl.trim().replace(/\/+$/, '').replace(/\/api$/, '');
+  }
+  if (
+    typeof window !== 'undefined' &&
+    (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
+  ) {
+    return '';
+  }
+  return 'https://niyamura-backend.onrender.com';
+};
+
+export const API_BASE_URL = getApiBaseUrl();
 
 export interface ApiUser {
   id: string;

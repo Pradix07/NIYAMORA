@@ -1,3 +1,11 @@
+import sys
+from pathlib import Path
+
+# Ensure backend root directory is in sys.path for direct module execution and Render startup
+backend_dir = Path(__file__).resolve().parent.parent
+if str(backend_dir) not in sys.path:
+    sys.path.insert(0, str(backend_dir))
+
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
@@ -123,12 +131,23 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS,
+    allow_origin_regex=r"^https://.*\.onrender\.com$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 app.include_router(api_router, prefix=settings.API_V1_STR)
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "app": settings.PROJECT_NAME,
+        "version": settings.VERSION,
+        "phase": "Production Ready"
+    }
 
 @app.get("/")
 def root():

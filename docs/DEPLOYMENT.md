@@ -22,7 +22,7 @@ Render PostgreSQL Database
 - **Build Command**: `npm install && npm run build`
 - **Publish Directory**: `dist`
 - **Environment Variables**:
-  - `VITE_API_BASE_URL`: URL of the deployed Render FastAPI Web Service (e.g. `https://niyamora-api.onrender.com`)
+  - `VITE_API_BASE_URL`: `https://niyamura-backend.onrender.com` (URL of the deployed Render FastAPI Web Service)
 
 ### 2. Backend — Render Web Service (FastAPI)
 - **Repository**: NIYAMORA
@@ -30,10 +30,12 @@ Render PostgreSQL Database
 - **Runtime**: Python 3.10+
 - **Build Command**: `pip install -r backend/requirements.txt`
 - **Start Command**: `uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT`
+- **Health Check Path**: `/health` (or `/api/health`)
 - **Environment Variables**:
   - `DATABASE_URL`: Connection string to Render PostgreSQL
-  - `SECRET_KEY`: Secure random string for JWT signing
+  - `SECRET_KEY`: Secure random string for JWT signing (or `JWT_SECRET_KEY`)
   - `ENVIRONMENT`: `production`
+  - `CORS_ORIGINS`: `https://niyamura-frontend.onrender.com,https://niyamora-frontend.onrender.com`
 
 ### 3. Database — Render PostgreSQL
 - Managed PostgreSQL instance configured and linked to the backend service via `DATABASE_URL`.

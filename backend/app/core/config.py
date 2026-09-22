@@ -27,8 +27,11 @@ class Settings(BaseSettings):
     
     # CORS
     CORS_ORIGINS: List[str] = [
-        origin.strip()
-        for origin in os.getenv("CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000,http://127.0.0.1:8000").split(",")
+        origin.strip().rstrip("/")
+        for origin in os.getenv(
+            "CORS_ORIGINS",
+            "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:3000,http://127.0.0.1:3000,http://localhost:8000,http://127.0.0.1:8000,https://niyamura-frontend.onrender.com,https://niyamora-frontend.onrender.com,https://niyamura.onrender.com,https://niyamora.onrender.com,https://niyamura-backend.onrender.com,https://niyamora-backend.onrender.com"
+        ).split(",")
         if origin.strip()
     ]
     
@@ -39,7 +42,13 @@ class Settings(BaseSettings):
 
     def get_jwt_secret_key(self) -> str:
         env = (os.getenv("ENVIRONMENT") or self.ENVIRONMENT).lower().strip()
-        secret = (os.getenv("JWT_SECRET_KEY") or self.JWT_SECRET_KEY or "").strip()
+        secret = (
+            os.getenv("JWT_SECRET_KEY")
+            or self.JWT_SECRET_KEY
+            or os.getenv("SECRET_KEY")
+            or self.SECRET_KEY
+            or ""
+        ).strip()
         if env == "production":
             if not secret or "dev_" in secret or "secret_key_2026" in secret:
                 raise RuntimeError(
