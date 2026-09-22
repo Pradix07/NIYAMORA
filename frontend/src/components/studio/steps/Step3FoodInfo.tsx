@@ -23,20 +23,8 @@ export const Step3FoodInfo: React.FC<Step3Props> = ({
   onFoodChange,
   onNutritionChange,
 }) => {
-  const ingredients = foodData.ingredients || [
-    { name: 'Almonds', percentage: '98%' },
-    { name: 'Iodized Salt', percentage: '2%' },
-  ];
-
-  const nutrients = nutritionData.nutrients || [
-    { nutrient_name: 'Energy', amount: '580', unit: 'kcal' },
-    { nutrient_name: 'Protein', amount: '21.2', unit: 'g' },
-    { nutrient_name: 'Total Fat', amount: '50.6', unit: 'g' },
-    { nutrient_name: 'Saturated Fat', amount: '3.8', unit: 'g' },
-    { nutrient_name: 'Carbohydrates', amount: '10.5', unit: 'g' },
-    { nutrient_name: 'Total Sugars', amount: '4.2', unit: 'g' },
-    { nutrient_name: 'Sodium', amount: '15.0', unit: 'mg' },
-  ];
+  const ingredients = foodData.ingredients || [];
+  const nutrients = nutritionData.nutrients || [];
 
   const handleAddIngredient = () => {
     onFoodChange({
@@ -146,34 +134,40 @@ export const Step3FoodInfo: React.FC<Step3Props> = ({
           </button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-          {ingredients.map((ing, idx) => (
-            <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', width: '20px' }}>{idx + 1}.</span>
-              <input
-                type="text"
-                placeholder="Ingredient name (e.g. Almonds)"
-                value={ing.name}
-                onChange={(e) => handleUpdateIngredient(idx, 'name', e.target.value)}
-                style={{ flex: 3, padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.8125rem' }}
-              />
-              <input
-                type="text"
-                placeholder="Percentage (e.g. 98%)"
-                value={ing.percentage || ''}
-                onChange={(e) => handleUpdateIngredient(idx, 'percentage', e.target.value)}
-                style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.8125rem' }}
-              />
-              <button
-                type="button"
-                onClick={() => handleRemoveIngredient(idx)}
-                style={{ background: 'none', border: 'none', color: 'var(--status-issue-text)', cursor: 'pointer', padding: '0.25rem' }}
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-          ))}
-        </div>
+        {ingredients.length === 0 ? (
+          <div style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-default)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
+            No ingredients added yet. Click "Add Ingredient" to list ingredients.
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
+            {ingredients.map((ing, idx) => (
+              <div key={idx} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', width: '20px' }}>{idx + 1}.</span>
+                <input
+                  type="text"
+                  placeholder="Ingredient name (e.g. Wheat Flour)"
+                  value={ing.name}
+                  onChange={(e) => handleUpdateIngredient(idx, 'name', e.target.value)}
+                  style={{ flex: 3, padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.8125rem' }}
+                />
+                <input
+                  type="text"
+                  placeholder="Percentage (e.g. 98%)"
+                  value={ing.percentage || ''}
+                  onChange={(e) => handleUpdateIngredient(idx, 'percentage', e.target.value)}
+                  style={{ flex: 1, padding: '0.5rem 0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.8125rem' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveIngredient(idx)}
+                  style={{ background: 'none', border: 'none', color: 'var(--status-issue-text)', cursor: 'pointer', padding: '0.25rem' }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Allergens Declaration */}
@@ -183,7 +177,7 @@ export const Step3FoodInfo: React.FC<Step3Props> = ({
         </label>
         <input
           type="text"
-          placeholder="e.g. Tree Nuts (Almonds). Produced in a facility that also handles peanuts and gluten."
+          placeholder="Enter allergens (e.g. Tree Nuts, Gluten, Soy)"
           value={(foodData.contains_allergens || []).join(', ')}
           onChange={(e) => onFoodChange({ contains_allergens: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
           style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.875rem' }}
@@ -203,10 +197,11 @@ export const Step3FoodInfo: React.FC<Step3Props> = ({
           </div>
           <div style={{ display: 'flex', gap: '0.5rem' }}>
             <select
-              value={nutritionData.basis || 'Per 100 g'}
+              value={nutritionData.basis || ''}
               onChange={(e) => onNutritionChange({ basis: e.target.value })}
               style={{ padding: '0.35rem 0.65rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)', fontSize: '0.75rem', fontWeight: 600 }}
             >
+              <option value="" disabled>Select basis</option>
               <option value="Per 100 g">Per 100 g</option>
               <option value="Per 100 ml">Per 100 ml</option>
               <option value="Per Serving (30 g)">Per Serving (30 g)</option>
@@ -232,40 +227,46 @@ export const Step3FoodInfo: React.FC<Step3Props> = ({
           </div>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-          {nutrients.map((nut, idx) => (
-            <div key={idx} style={{ display: 'grid', gridTemplateColumns: '3fr 2fr 1fr auto', gap: '0.5rem', alignItems: 'center' }}>
-              <input
-                type="text"
-                placeholder="Nutrient (e.g. Protein)"
-                value={nut.nutrient_name}
-                onChange={(e) => handleUpdateNutrient(idx, 'nutrient_name', e.target.value)}
-                style={{ padding: '0.45rem 0.65rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.8125rem' }}
-              />
-              <input
-                type="text"
-                placeholder="Amount (e.g. 21.2)"
-                value={nut.amount}
-                onChange={(e) => handleUpdateNutrient(idx, 'amount', e.target.value)}
-                style={{ padding: '0.45rem 0.65rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.8125rem' }}
-              />
-              <input
-                type="text"
-                placeholder="Unit (g/kcal/mg)"
-                value={nut.unit || 'g'}
-                onChange={(e) => handleUpdateNutrient(idx, 'unit', e.target.value)}
-                style={{ padding: '0.45rem 0.65rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.8125rem' }}
-              />
-              <button
-                type="button"
-                onClick={() => handleRemoveNutrient(idx)}
-                style={{ background: 'none', border: 'none', color: 'var(--status-issue-text)', cursor: 'pointer' }}
-              >
-                <Trash2 size={15} />
-              </button>
-            </div>
-          ))}
-        </div>
+        {nutrients.length === 0 ? (
+          <div style={{ padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px dashed var(--border-default)', textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.8125rem', backgroundColor: 'var(--bg-primary)' }}>
+            No nutrition rows added. Click "Add Row" to enter nutrients (e.g. Energy, Protein, Fat, Carbohydrates).
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+            {nutrients.map((nut, idx) => (
+              <div key={idx} style={{ display: 'grid', gridTemplateColumns: '3fr 2fr 1fr auto', gap: '0.5rem', alignItems: 'center' }}>
+                <input
+                  type="text"
+                  placeholder="Nutrient (e.g. Protein)"
+                  value={nut.nutrient_name}
+                  onChange={(e) => handleUpdateNutrient(idx, 'nutrient_name', e.target.value)}
+                  style={{ padding: '0.45rem 0.65rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.8125rem' }}
+                />
+                <input
+                  type="text"
+                  placeholder="Amount (e.g. 21.2)"
+                  value={nut.amount}
+                  onChange={(e) => handleUpdateNutrient(idx, 'amount', e.target.value)}
+                  style={{ padding: '0.45rem 0.65rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.8125rem' }}
+                />
+                <input
+                  type="text"
+                  placeholder="Unit (g/kcal/mg)"
+                  value={nut.unit || 'g'}
+                  onChange={(e) => handleUpdateNutrient(idx, 'unit', e.target.value)}
+                  style={{ padding: '0.45rem 0.65rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.8125rem' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveNutrient(idx)}
+                  style={{ background: 'none', border: 'none', color: 'var(--status-issue-text)', cursor: 'pointer' }}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

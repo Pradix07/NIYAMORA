@@ -163,3 +163,34 @@ def test_redesign_workflow_and_v02_creation(db_session, test_company):
     pdf_path = PackagingDesignService.export_packaging_pdf(db_session, project.id)
     assert os.path.exists(pdf_path)
     assert pdf_path.endswith(".pdf")
+
+def test_blank_project_initialization_and_panel_mapping(db_session, test_company):
+    """Verify that a newly created blank packaging project starts completely empty and serves all 6 panels."""
+    blank_payload = {
+        "title": "New Blank Project",
+        "packaging_format": "STAND_UP_POUCH",
+        "product_data": {},
+        "business_data": {},
+        "food_data": {},
+        "nutrition_data": {},
+        "declaration_data": {},
+        "brand_data": {}
+    }
+    project = PackagingDesignService.create_project(db_session, test_company.id, blank_payload)
+    assert project.id is not None
+    assert project.product_data == {}
+    assert project.business_data == {}
+    assert project.food_data == {}
+
+    # Generate packaging version with zero inputs
+    updated_proj, insp = PackagingDesignService.generate_packaging_version(db_session, project.id, version_number=1)
+    assert updated_proj.status == "GENERATED"
+    
+    # Check all 6 panels exist and preview URLs are mapped accurately
+    for p_type in ["FRONT", "BACK", "LEFT", "RIGHT", "TOP", "BOTTOM"]:
+        p_data = updated_proj.panel_designs.get(p_type)
+        assert p_data is not None
+        assert p_data["panel_type"] == p_type
+        assert p_data["preview_url"] == f"/api/packaging-studio/projects/{project.id}/panels/{p_type}"
+        assert os.path.exists(p_data["file_path"])
+

@@ -49,7 +49,7 @@ export const Step1ProductBasics: React.FC<Step1Props> = ({ data, onChange }) => 
           </label>
           <input
             type="text"
-            placeholder="e.g. NutriBounty"
+            placeholder="Enter brand name"
             value={data.brand_name || ''}
             onChange={(e) => onChange({ brand_name: e.target.value })}
             style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.875rem' }}
@@ -63,7 +63,7 @@ export const Step1ProductBasics: React.FC<Step1Props> = ({ data, onChange }) => 
           </label>
           <input
             type="text"
-            placeholder="e.g. California Roasted Almonds"
+            placeholder="Enter product name"
             value={data.product_name || ''}
             onChange={(e) => onChange({ product_name: e.target.value })}
             style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.875rem' }}
@@ -78,10 +78,11 @@ export const Step1ProductBasics: React.FC<Step1Props> = ({ data, onChange }) => 
             Grocery Category <span style={{ color: 'var(--status-issue-text)' }}>*</span>
           </label>
           <select
-            value={data.category || 'Dry Fruits & Nuts'}
+            value={data.category || ''}
             onChange={(e) => onChange({ category: e.target.value })}
             style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.875rem' }}
           >
+            <option value="" disabled>Select category</option>
             {CATEGORIES.map((cat) => (
               <option key={cat} value={cat}>{cat}</option>
             ))}
@@ -95,7 +96,7 @@ export const Step1ProductBasics: React.FC<Step1Props> = ({ data, onChange }) => 
           </label>
           <input
             type="text"
-            placeholder="e.g. Roasted & Salted"
+            placeholder="Enter sub-category"
             value={data.sub_category || ''}
             onChange={(e) => onChange({ sub_category: e.target.value })}
             style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.875rem' }}
@@ -111,7 +112,7 @@ export const Step1ProductBasics: React.FC<Step1Props> = ({ data, onChange }) => 
           </label>
           <input
             type="text"
-            placeholder="e.g. 250"
+            placeholder="Enter net quantity (e.g. 250)"
             value={data.net_quantity || ''}
             onChange={(e) => onChange({ net_quantity: e.target.value.replace(/[^0-9.]/g, '') })}
             style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.875rem' }}
@@ -122,10 +123,11 @@ export const Step1ProductBasics: React.FC<Step1Props> = ({ data, onChange }) => 
             Statutory Unit <span style={{ color: 'var(--status-issue-text)' }}>*</span>
           </label>
           <select
-            value={data.unit || 'g'}
+            value={data.unit || ''}
             onChange={(e) => onChange({ unit: e.target.value })}
             style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.875rem' }}
           >
+            <option value="" disabled>Select unit</option>
             {UNITS.map((u) => (
               <option key={u} value={u}>{u}</option>
             ))}
@@ -140,7 +142,7 @@ export const Step1ProductBasics: React.FC<Step1Props> = ({ data, onChange }) => 
         </label>
         <textarea
           rows={2}
-          placeholder="e.g. Crispy, handpicked California almonds lightly roasted with pink Himalayan salt."
+          placeholder="Enter product description or headline descriptor"
           value={data.description || ''}
           onChange={(e) => onChange({ description: e.target.value })}
           style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.875rem' }}

@@ -35,7 +35,7 @@ export const Packaging2DViewer: React.FC<Packaging2DViewerProps> = ({
   const isPanningRef = useRef(false);
   const startPanRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
-  const currentPanelData = panelDesigns[selectedPanel];
+  const currentPanelData = panelDesigns[selectedPanel] || panelDesigns[selectedPanel.toUpperCase()] || panelDesigns[selectedPanel.toLowerCase()];
   const panelsList = ['FRONT', 'BACK', 'LEFT', 'RIGHT', 'TOP', 'BOTTOM'];
 
   const handleZoom = (dir: 'IN' | 'OUT' | 'RESET') => {

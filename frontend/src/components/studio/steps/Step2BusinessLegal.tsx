@@ -38,7 +38,7 @@ export const Step2BusinessLegal: React.FC<Step2Props> = ({ data, onChange }) => 
           </label>
           <input
             type="text"
-            placeholder="e.g. NutriBounty Foods India Pvt Ltd"
+            placeholder="Enter manufacturer / packer name"
             value={data.manufacturer_name || ''}
             onChange={(e) => onChange({ manufacturer_name: e.target.value })}
             style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.875rem' }}
@@ -50,8 +50,8 @@ export const Step2BusinessLegal: React.FC<Step2Props> = ({ data, onChange }) => 
           </label>
           <input
             type="text"
-            placeholder="India"
-            value={data.country_of_origin || 'India'}
+            placeholder="Enter country of origin (e.g. India)"
+            value={data.country_of_origin || ''}
             onChange={(e) => onChange({ country_of_origin: e.target.value })}
             style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.875rem' }}
           />
@@ -65,7 +65,7 @@ export const Step2BusinessLegal: React.FC<Step2Props> = ({ data, onChange }) => 
         </label>
         <textarea
           rows={2}
-          placeholder="e.g. Plot No. 42, Export Promotion Industrial Park, Whitefield, Bengaluru, Karnataka - 560066"
+          placeholder="Enter manufacturer full physical address"
           value={data.manufacturer_address || ''}
           onChange={(e) => onChange({ manufacturer_address: e.target.value })}
           style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.875rem' }}
@@ -79,7 +79,7 @@ export const Step2BusinessLegal: React.FC<Step2Props> = ({ data, onChange }) => 
         </label>
         <input
           type="text"
-          placeholder="e.g. 10019043002890"
+          placeholder="Enter 14-digit FSSAI license number"
           value={data.fssai_license || ''}
           onChange={(e) => onChange({ fssai_license: e.target.value.replace(/[^0-9]/g, '') })}
           style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.875rem' }}
@@ -98,7 +98,7 @@ export const Step2BusinessLegal: React.FC<Step2Props> = ({ data, onChange }) => 
             </label>
             <input
               type="text"
-              placeholder="e.g. 1800-425-9988 / +91-80-45678900"
+              placeholder="Enter helpline phone number"
               value={data.consumer_care_phone || ''}
               onChange={(e) => onChange({ consumer_care_phone: e.target.value })}
               style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.8125rem' }}
@@ -110,7 +110,7 @@ export const Step2BusinessLegal: React.FC<Step2Props> = ({ data, onChange }) => 
             </label>
             <input
               type="email"
-              placeholder="e.g. care@nutribounty.com"
+              placeholder="Enter consumer support email"
               value={data.consumer_care_email || ''}
               onChange={(e) => onChange({ consumer_care_email: e.target.value })}
               style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.8125rem' }}
@@ -122,7 +122,7 @@ export const Step2BusinessLegal: React.FC<Step2Props> = ({ data, onChange }) => 
             </label>
             <input
               type="text"
-              placeholder="e.g. www.nutribounty.com"
+              placeholder="Enter brand website"
               value={data.consumer_care_website || ''}
               onChange={(e) => onChange({ consumer_care_website: e.target.value })}
               style={{ width: '100%', padding: '0.55rem 0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.8125rem' }}

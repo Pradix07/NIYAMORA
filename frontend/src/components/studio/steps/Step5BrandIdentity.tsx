@@ -114,7 +114,8 @@ export const Step5BrandIdentity: React.FC<Step5Props> = ({ data, onChange }) => 
             />
             <input
               type="text"
-              value={data.primary_color || '#1B4D3E'}
+              placeholder="#1B4D3E"
+              value={data.primary_color || ''}
               onChange={(e) => onChange({ primary_color: e.target.value })}
               style={{ flex: 1, padding: '0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)', fontSize: '0.8125rem' }}
             />
@@ -134,7 +135,8 @@ export const Step5BrandIdentity: React.FC<Step5Props> = ({ data, onChange }) => 
             />
             <input
               type="text"
-              value={data.secondary_color || '#FAF8F5'}
+              placeholder="#FAF8F5"
+              value={data.secondary_color || ''}
               onChange={(e) => onChange({ secondary_color: e.target.value })}
               style={{ flex: 1, padding: '0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)', fontSize: '0.8125rem' }}
             />
@@ -154,7 +156,8 @@ export const Step5BrandIdentity: React.FC<Step5Props> = ({ data, onChange }) => 
             />
             <input
               type="text"
-              value={data.accent_color || '#D4AF37'}
+              placeholder="#D4AF37"
+              value={data.accent_color || ''}
               onChange={(e) => onChange({ accent_color: e.target.value })}
               style={{ flex: 1, padding: '0.5rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)', fontSize: '0.8125rem' }}
             />
@@ -169,7 +172,7 @@ export const Step5BrandIdentity: React.FC<Step5Props> = ({ data, onChange }) => 
         </label>
         <textarea
           rows={2}
-          placeholder="e.g. Use a light natural green and cream theme with gold framing. Make the brand title prominent and emphasize the vegetarian dietary mark."
+          placeholder="Enter custom design direction (e.g. Use a light natural green and cream theme with gold framing)"
           value={data.custom_direction || ''}
           onChange={(e) => onChange({ custom_direction: e.target.value })}
           style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.875rem' }}

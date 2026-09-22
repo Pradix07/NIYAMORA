@@ -84,24 +84,32 @@ export const Packaging3DViewer: React.FC<Packaging3DViewerProps> = ({
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     rendererRef.current = renderer;
 
-    // 3. Lighting
-    const ambientLight = new THREE.AmbientLight(0xffffff, 1.3);
+    // 3. Multi-directional Lighting (Ensure no dark or black faces)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
     scene.add(ambientLight);
 
-    const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.5);
-    dirLight1.position.set(5, 10, 7);
+    const dirLight1 = new THREE.DirectionalLight(0xffffff, 1.2);
+    dirLight1.position.set(5, 8, 6);
     scene.add(dirLight1);
 
-    const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.8);
-    dirLight2.position.set(-5, -5, -5);
+    const dirLight2 = new THREE.DirectionalLight(0xffffff, 1.0);
+    dirLight2.position.set(-5, -6, -6);
     scene.add(dirLight2);
+
+    const dirLightBack = new THREE.DirectionalLight(0xffffff, 0.8);
+    dirLightBack.position.set(0, 6, -6);
+    scene.add(dirLightBack);
+
+    const dirLightBottom = new THREE.DirectionalLight(0xffffff, 0.6);
+    dirLightBottom.position.set(0, -6, 6);
+    scene.add(dirLightBottom);
 
     // 4. Create Package Geometry & Textures
     const group = new THREE.Group();
     meshGroupRef.current = group;
     scene.add(group);
 
-    // Helper: Build high-contrast fallback canvas texture
+    // Helper: Build clean bright fallback canvas texture (never black)
     const createFallbackTexture = (pType: string): THREE.Texture => {
       const canvas = document.createElement('canvas');
       const isNarrow = pType === 'LEFT' || pType === 'RIGHT';
@@ -110,41 +118,42 @@ export const Packaging3DViewer: React.FC<Packaging3DViewerProps> = ({
       canvas.height = isShort ? 256 : 768;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.fillStyle = pType === 'FRONT' ? '#1B4D3E' : '#FAF8F5';
+        ctx.fillStyle = '#F8FAFC';
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         
-        ctx.strokeStyle = pType === 'FRONT' ? '#D4AF37' : '#CCCCCC';
+        ctx.strokeStyle = '#6366F1';
         ctx.lineWidth = 6;
         ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
 
-        ctx.fillStyle = pType === 'FRONT' ? '#D4AF37' : '#1B4D3E';
-        ctx.font = 'bold 30px sans-serif';
+        ctx.fillStyle = '#1E293B';
+        ctx.font = 'bold 28px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(`${pType}`, canvas.width / 2, canvas.height / 2);
+        ctx.fillText(`${pType} PANEL`, canvas.width / 2, canvas.height / 2);
       }
       const tex = new THREE.CanvasTexture(canvas);
       tex.colorSpace = THREE.SRGBColorSpace;
       tex.minFilter = THREE.LinearFilter;
+      tex.magFilter = THREE.LinearFilter;
+      tex.needsUpdate = true;
       return tex;
     };
 
     // Initialize standard material mapping for each panel
     // BoxGeometry material array order: [Right (+X), Left (-X), Top (+Y), Bottom (-Y), Front (+Z), Back (-Z)]
     const panelMaterials: Record<string, THREE.MeshStandardMaterial> = {
-      RIGHT: new THREE.MeshStandardMaterial({ map: createFallbackTexture('RIGHT'), roughness: 0.35, metalness: 0.1 }),
-      LEFT: new THREE.MeshStandardMaterial({ map: createFallbackTexture('LEFT'), roughness: 0.35, metalness: 0.1 }),
-      TOP: new THREE.MeshStandardMaterial({ map: createFallbackTexture('TOP'), roughness: 0.4, metalness: 0.1 }),
-      BOTTOM: new THREE.MeshStandardMaterial({ map: createFallbackTexture('BOTTOM'), roughness: 0.4, metalness: 0.1 }),
-      FRONT: new THREE.MeshStandardMaterial({ map: createFallbackTexture('FRONT'), roughness: 0.3, metalness: 0.15 }),
-      BACK: new THREE.MeshStandardMaterial({ map: createFallbackTexture('BACK'), roughness: 0.35, metalness: 0.1 }),
+      RIGHT: new THREE.MeshStandardMaterial({ map: createFallbackTexture('RIGHT'), roughness: 0.25, metalness: 0.05, color: 0xffffff }),
+      LEFT: new THREE.MeshStandardMaterial({ map: createFallbackTexture('LEFT'), roughness: 0.25, metalness: 0.05, color: 0xffffff }),
+      TOP: new THREE.MeshStandardMaterial({ map: createFallbackTexture('TOP'), roughness: 0.3, metalness: 0.05, color: 0xffffff }),
+      BOTTOM: new THREE.MeshStandardMaterial({ map: createFallbackTexture('BOTTOM'), roughness: 0.3, metalness: 0.05, color: 0xffffff }),
+      FRONT: new THREE.MeshStandardMaterial({ map: createFallbackTexture('FRONT'), roughness: 0.2, metalness: 0.05, color: 0xffffff }),
+      BACK: new THREE.MeshStandardMaterial({ map: createFallbackTexture('BACK'), roughness: 0.25, metalness: 0.05, color: 0xffffff }),
     };
 
-    const textureLoader = new THREE.TextureLoader();
-
-    // Securely fetch panel artwork with authentication and load as Three.js texture
+    // Load panel artwork using authenticated fetch and DataURL decoding (avoids CORS / WebGL blob taint)
     const loadPanelArtwork = async (pType: string) => {
-      const pData = panelDesigns[pType];
+      const normKey = pType.toUpperCase();
+      const pData = panelDesigns[normKey] || panelDesigns[pType] || panelDesigns[pType.toLowerCase()];
       const endpoint = pData?.preview_url || (pData?.file_path && pData.file_path.startsWith('/api') ? pData.file_path : undefined);
       
       if (!endpoint) return;
@@ -167,32 +176,39 @@ export const Packaging3DViewer: React.FC<Packaging3DViewerProps> = ({
         const blob = await res.blob();
         if (isCancelled) return;
 
-        const blobUrl = URL.createObjectURL(blob);
-        createdObjectUrls.push(blobUrl);
+        // Use FileReader to convert Blob to DataURL for 100% reliable WebGL image decoding
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          if (isCancelled || !reader.result) return;
+          const dataUrl = reader.result as string;
 
-        textureLoader.load(
-          blobUrl,
-          (loadedTex) => {
+          const img = new Image();
+          img.crossOrigin = 'anonymous';
+          img.onload = () => {
             if (isCancelled) return;
+            const loadedTex = new THREE.Texture(img);
             loadedTex.colorSpace = THREE.SRGBColorSpace;
-            loadedTex.minFilter = THREE.LinearFilter;
+            loadedTex.minFilter = THREE.LinearMipmapLinearFilter;
+            loadedTex.magFilter = THREE.LinearFilter;
             loadedTex.generateMipmaps = true;
             loadedTex.needsUpdate = true;
 
-            const mat = panelMaterials[pType];
+            const mat = panelMaterials[normKey];
             if (mat) {
               if (mat.map && mat.map !== loadedTex) {
                 mat.map.dispose();
               }
               mat.map = loadedTex;
+              mat.color.set(0xffffff);
               mat.needsUpdate = true;
             }
-          },
-          undefined,
-          (err) => {
-            console.warn(`[Packaging3DViewer] Error decoding texture for ${pType}:`, err);
-          }
-        );
+          };
+          img.onerror = (err) => {
+            console.warn(`[Packaging3DViewer] Image decode failed for ${pType}:`, err);
+          };
+          img.src = dataUrl;
+        };
+        reader.readAsDataURL(blob);
       } catch (err) {
         console.warn(`[Packaging3DViewer] Failed to load artwork texture for ${pType} from ${url}:`, err);
       }
@@ -217,12 +233,17 @@ export const Packaging3DViewer: React.FC<Packaging3DViewerProps> = ({
       const boxMesh = new THREE.Mesh(boxGeo, materials);
       group.add(boxMesh);
     } else if (formatType === 'JAR' || formatType === 'BOTTLE' || formatType === 'CAN') {
-      const cylGeo = new THREE.CylinderGeometry(0.9, 0.9, 2.6, 32);
-      const cylMesh = new THREE.Mesh(cylGeo, panelMaterials.FRONT);
+      const cylGeo = new THREE.CylinderGeometry(0.9, 0.9, 2.6, 64);
+      const cylMaterials = [
+        panelMaterials.FRONT,
+        panelMaterials.TOP,
+        panelMaterials.BOTTOM,
+      ];
+      const cylMesh = new THREE.Mesh(cylGeo, cylMaterials);
       group.add(cylMesh);
 
       // Gold / metallic cap
-      const capGeo = new THREE.CylinderGeometry(0.92, 0.92, 0.3, 32);
+      const capGeo = new THREE.CylinderGeometry(0.92, 0.92, 0.3, 64);
       const capMat = new THREE.MeshStandardMaterial({ color: 0xD4AF37, metalness: 0.8, roughness: 0.2 });
       const capMesh = new THREE.Mesh(capGeo, capMat);
       capMesh.position.y = 1.45;
@@ -235,7 +256,7 @@ export const Packaging3DViewer: React.FC<Packaging3DViewerProps> = ({
 
       // Top sealed trim
       const sealGeo = new THREE.BoxGeometry(2.0, 0.15, 0.1);
-      const sealMat = new THREE.MeshStandardMaterial({ color: 0x1B4D3E, metalness: 0.4, roughness: 0.3 });
+      const sealMat = new THREE.MeshStandardMaterial({ color: 0x4F46E5, metalness: 0.3, roughness: 0.3 });
       const sealMesh = new THREE.Mesh(sealGeo, sealMat);
       sealMesh.position.y = 1.45;
       group.add(sealMesh);
@@ -260,21 +281,29 @@ export const Packaging3DViewer: React.FC<Packaging3DViewerProps> = ({
     };
     animate();
 
-    // 6. Resize Handler
+    // 6. Resize Handler with ResizeObserver
     const handleResize = () => {
       if (!containerRef.current || !renderer || !camera) return;
-      const w = containerRef.current.clientWidth;
-      const h = containerRef.current.clientHeight;
+      const w = containerRef.current.clientWidth || 600;
+      const h = containerRef.current.clientHeight || 500;
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
       renderer.setSize(w, h);
     };
     window.addEventListener('resize', handleResize);
 
+    const resizeObserver = new ResizeObserver(() => {
+      handleResize();
+    });
+    if (containerRef.current) {
+      resizeObserver.observe(containerRef.current);
+    }
+
     return () => {
       isCancelled = true;
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
+      resizeObserver.disconnect();
       createdObjectUrls.forEach((url) => URL.revokeObjectURL(url));
       Object.values(panelMaterials).forEach((mat) => {
         if (mat.map) mat.map.dispose();

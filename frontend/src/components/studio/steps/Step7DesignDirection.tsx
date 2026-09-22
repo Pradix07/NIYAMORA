@@ -15,9 +15,9 @@ export const Step7DesignDirection: React.FC<Step7Props> = ({
   customDirection,
   onDirectionChange,
 }) => {
-  const brand = productData.brand_name || 'Brand';
-  const name = productData.product_name || 'Product';
-  const style = (brandData.design_style || 'PREMIUM_NATURAL').replace('_', ' ').toLowerCase();
+  const brand = productData.brand_name || '[Brand Name]';
+  const name = productData.product_name || '[Product Name]';
+  const style = brandData.design_style ? brandData.design_style.replace('_', ' ').toLowerCase() : 'custom theme';
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>

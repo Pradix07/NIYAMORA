@@ -353,11 +353,11 @@ class PackagingDesignService:
             })
             return cur_y
 
-        brand_name = prod_data.get("brand_name", "BRAND")
-        product_name = prod_data.get("product_name", "Product Name")
-        net_qty_val = prod_data.get("net_quantity") or "250"
+        brand_name = prod_data.get("brand_name") or "[Brand Name]"
+        product_name = prod_data.get("product_name") or "[Product Name]"
+        net_qty_val = prod_data.get("net_quantity")
         net_qty_unit = prod_data.get("unit") or "g"
-        net_qty_str = f"Net Quantity: {net_qty_val} {net_qty_unit}"
+        net_qty_str = f"Net Quantity: {net_qty_val} {net_qty_unit}" if net_qty_val else "Net Quantity: [Insert Net Quantity]"
 
         # -------------------- FRONT PANEL --------------------
         if panel_type == "FRONT":
@@ -373,27 +373,32 @@ class PackagingDesignService:
             cur_y = add_text_item(product_name.upper(), 90, 260, font_size=48, fill="#FFFFFF", bold=True, element_type="PRODUCT_TITLE", source_field="product_name")
             
             # Category / Descriptor
-            desc = prod_data.get("description") or f"Premium Quality {prod_data.get('category', 'Grocery')}"
+            desc = prod_data.get("description") or (f"Premium Quality {prod_data.get('category')}" if prod_data.get("category") else "[Product Descriptor]")
             cur_y = add_text_item(desc, 90, cur_y + 20, font_size=24, fill=accent_color, element_type="DESCRIPTOR", source_field="description")
 
             # Central Product Motif Box
             draw.rectangle([120, 520, width - 120, 1150], fill="#00000020", outline=accent_color, width=2)
             draw.text((width//2 - 140, 820), f"[ {brand_name} {product_name} ]", fill="#FFFFFF")
 
-            # Claims Badges
-            claims = decl_data.get("user_claims") or ["100% Natural", "Premium Grade", "No Added Preservatives"]
-            c_y = 1200
-            for clm in claims[:3]:
-                draw.rectangle([100, c_y, 450, c_y + 45], fill=accent_color)
-                add_text_item(f"✓ {clm}", 115, c_y + 12, font_size=18, fill="#1A1A1A", element_type="CLAIM_BADGE", source_field="user_claims")
-                c_y += 60
+            # User Claims Badges (Render only if user provided)
+            claims = decl_data.get("user_claims") or []
+            if claims:
+                c_y = 1200
+                for clm in claims[:3]:
+                    draw.rectangle([100, c_y, 450, c_y + 45], fill=accent_color)
+                    add_text_item(f"✓ {clm}", 115, c_y + 12, font_size=18, fill="#1A1A1A", element_type="CLAIM_BADGE", source_field="user_claims")
+                    c_y += 60
 
-            # Green Veg Dot Symbol (Statutory)
-            veg_type = food_data.get("veg_non_veg", "VEG")
+            # Green Veg Dot Symbol (Statutory - only when VEG specified)
+            veg_type = food_data.get("veg_non_veg")
             if veg_type == "VEG":
                 draw.rectangle([width - 160, 1200, width - 100, 1260], outline="#1E7E34", width=3)
                 draw.ellipse([width - 145, 1215, width - 115, 1245], fill="#1E7E34")
                 add_text_item("VEG", width - 150, 1270, font_size=14, fill="#1E7E34", element_type="VEG_ICON", source_field="veg_non_veg")
+            elif veg_type == "NON_VEG":
+                draw.rectangle([width - 160, 1200, width - 100, 1260], outline="#854D0E", width=3)
+                draw.polygon([(width - 130, 1215), (width - 150, 1245), (width - 110, 1245)], fill="#854D0E")
+                add_text_item("NON-VEG", width - 160, 1270, font_size=13, fill="#854D0E", element_type="VEG_ICON", source_field="veg_non_veg")
 
             # Statutory Net Quantity Declaration
             draw.rectangle([80, height - 190, width - 80, height - 90], fill="#FFFFFF", outline=accent_color, width=2)
@@ -411,61 +416,61 @@ class PackagingDesignService:
             draw.rectangle([60, 130, width - 60, 560], outline="#CCCCCC", width=1, fill="#FFFFFF")
             draw.rectangle([60, 130, width - 60, 175], fill="#EAEAEA")
             
-            nutr_basis = nutr_data.get("basis", "Per 100 g")
+            nutr_basis = nutr_data.get("basis") or "Per 100 g"
             add_text_item(f"NUTRITIONAL INFORMATION ({nutr_basis})", 80, 142, font_size=18, fill="#1A1A1A", bold=True, element_type="NUTRITION_HEADER", source_field="nutrition_data")
             
-            nutrients = nutr_data.get("nutrients") or [
-                {"nutrient_name": "Energy", "amount": "550", "unit": "kcal"},
-                {"nutrient_name": "Protein", "amount": "21.2", "unit": "g"},
-                {"nutrient_name": "Total Fat", "amount": "50.6", "unit": "g"},
-                {"nutrient_name": "Carbohydrates", "amount": "10.5", "unit": "g"},
-                {"nutrient_name": "Total Sugars", "amount": "4.2", "unit": "g"},
-                {"nutrient_name": "Sodium", "amount": "15.0", "unit": "mg"}
-            ]
-            
-            n_y = 190
-            for nut in nutrients[:7]:
-                draw.line([(60, n_y), (width - 60, n_y)], fill="#EEEEEE", width=1)
-                nut_txt = f"{nut.get('nutrient_name', '')}: {nut.get('amount', '')} {nut.get('unit', 'g')}"
-                add_text_item(nut_txt, 80, n_y + 8, font_size=16, fill="#333333", element_type="NUTRITION_ROW", source_field="nutrition_data")
-                n_y += 45
+            nutrients = nutr_data.get("nutrients") or []
+            if nutrients:
+                n_y = 190
+                for nut in nutrients[:7]:
+                    draw.line([(60, n_y), (width - 60, n_y)], fill="#EEEEEE", width=1)
+                    nut_txt = f"{nut.get('nutrient_name', '')}: {nut.get('amount', '')} {nut.get('unit', 'g')}"
+                    add_text_item(nut_txt, 80, n_y + 8, font_size=16, fill="#333333", element_type="NUTRITION_ROW", source_field="nutrition_data")
+                    n_y += 45
+            else:
+                add_text_item("[Nutrition facts table to be populated]", 80, 200, font_size=15, fill="#666666", element_type="NUTRITION_ROW", source_field="nutrition_data")
 
             # 2. Ingredients & Allergens
-            ing_list = food_data.get("ingredients") or [{"name": "Almonds", "percentage": "100%"}]
-            ing_str = "Ingredients: " + ", ".join([f"{item.get('name', '')} ({item.get('percentage', '')})" if item.get('percentage') else item.get('name', '') for item in ing_list])
+            ing_list = food_data.get("ingredients") or []
+            if ing_list:
+                ing_str = "Ingredients: " + ", ".join([f"{item.get('name', '')} ({item.get('percentage', '')})" if item.get('percentage') else item.get('name', '') for item in ing_list])
+            else:
+                ing_str = "Ingredients: [Ingredients list to be specified]"
             ing_y = add_text_item(ing_str, 60, 590, font_size=17, fill="#1A1A1A", bold=True, element_type="INGREDIENTS", source_field="ingredients")
 
-            allergens = food_data.get("contains_allergens") or ["Tree Nuts"]
+            allergens = food_data.get("contains_allergens") or []
             if allergens:
                 al_str = "Allergen Declaration: Contains " + ", ".join(allergens)
                 ing_y = add_text_item(al_str, 60, ing_y + 10, font_size=15, fill="#990000", bold=True, element_type="ALLERGENS", source_field="contains_allergens")
 
             # 3. Manufacturer & Business Info
-            mfg_name = biz_data.get("manufacturer_name") or f"{brand_name} Foods India Pvt Ltd"
-            mfg_addr = biz_data.get("manufacturer_address") or "Plot No. 42, Industrial Area, Sector 5, Bengaluru, Karnataka - 560066"
+            mfg_name = biz_data.get("manufacturer_name") or "[Insert Manufacturer Name]"
+            mfg_addr = biz_data.get("manufacturer_address") or "[Insert Manufacturer Address]"
+            country_orig = biz_data.get("country_of_origin") or "[Country of Origin]"
             fssai = biz_data.get("fssai_license") or "[Insert FSSAI License Number]"
             
-            mfg_block = f"Manufactured & Packed By: {mfg_name}\nAddress: {mfg_addr}\nCountry of Origin: {biz_data.get('country_of_origin', 'India')}\nFSSAI Lic. No.: {fssai}"
+            mfg_block = f"Manufactured & Packed By: {mfg_name}\nAddress: {mfg_addr}\nCountry of Origin: {country_orig}\nFSSAI Lic. No.: {fssai}"
             m_y = add_text_item(mfg_block, 60, ing_y + 20, font_size=15, fill="#222222", element_type="MANUFACTURER", source_field="manufacturer_address")
 
             # 4. Consumer Care Block
             c_phone = biz_data.get("consumer_care_phone") or "[Insert Consumer Care Phone]"
             c_email = biz_data.get("consumer_care_email") or "[Insert Consumer Care Email]"
-            c_web = biz_data.get("consumer_care_website") or "www.niyamura.com"
+            c_web = biz_data.get("consumer_care_website") or "[Insert Website]"
             care_txt = f"For Feedback / Consumer Care:\nContact Executive: {c_phone}\nEmail: {c_email}\nWebsite: {c_web}"
             
             draw.rectangle([60, m_y + 15, width - 60, m_y + 130], fill="#F0F4F2", outline="#1B4D3E", width=1)
             c_y_res = add_text_item(care_txt, 80, m_y + 25, font_size=15, fill="#1B4D3E", element_type="CONSUMER_CARE", source_field="consumer_care")
 
             # 5. Statutory MRP, Date & Batch Box
-            mrp_val = decl_data.get("mrp") or "499.00"
+            mrp_val = decl_data.get("mrp") or "[Insert MRP]"
+            mrp_clause = f"MRP Rs. {mrp_val} (inclusive of all taxes)" if decl_data.get("mrp") else "MRP: [Insert MRP] (inclusive of all taxes)"
             mfg_dt = decl_data.get("mfg_date") or "[MM/YYYY]"
-            batch = decl_data.get("batch_number") or "BATCH-01"
-            best_bef = decl_data.get("best_before") or "9 Months from packaging"
-            storage_txt = decl_data.get("storage_instructions") or "Store in a cool and dry place away from direct sunlight."
+            batch = decl_data.get("batch_number") or "[Batch No]"
+            best_bef = decl_data.get("best_before") or "[Best Before]"
+            storage_txt = decl_data.get("storage_instructions") or "[Storage Instructions]"
 
             statutory_block = (
-                f"MRP Rs. {mrp_val} (inclusive of all taxes)\n"
+                f"{mrp_clause}\n"
                 f"{net_qty_str}\n"
                 f"Mfg Date: {mfg_dt} | Batch No: {batch}\n"
                 f"Best Before: {best_bef}\n"
@@ -475,9 +480,10 @@ class PackagingDesignService:
             add_text_item(statutory_block, 80, height - 300, font_size=18, fill="#1A1A1A", bold=True, element_type="STATUTORY_DECLARATIONS", source_field="mrp")
 
             # Barcode graphic placeholder
+            barcode_val = decl_data.get("barcode") or "[Barcode]"
             draw.rectangle([width - 240, height - 190, width - 80, height - 100], fill="#EEEEEE", outline="#000000", width=1)
             draw.text((width - 220, height - 150), "[ |||||||||||||| ]", fill="#000000")
-            draw.text((width - 210, height - 125), decl_data.get("barcode") or "8901234567890", fill="#000000")
+            draw.text((width - 210, height - 125), barcode_val, fill="#000000")
 
         # -------------------- LEFT PANEL --------------------
         elif panel_type == "LEFT":
@@ -485,30 +491,33 @@ class PackagingDesignService:
             add_text_item(brand_name.upper(), 50, 60, font_size=28, fill="#1B4D3E", bold=True)
             add_text_item(product_name, 50, 110, font_size=22, fill="#333333", bold=True)
             
-            desc_txt = f"About {product_name}:\nCarefully sourced and hygienically packed to preserve authentic natural goodness and rich taste."
+            desc_txt = f"About {product_name}:\n{prod_data.get('description') or 'Carefully sourced and hygienically packed to preserve authentic natural goodness and rich taste.'}"
             add_text_item(desc_txt, 50, 220, font_size=16, fill="#444444")
             
-            claims = decl_data.get("user_claims") or ["100% Natural", "High in Protein", "Zero Trans Fat"]
-            c_y = 420
-            add_text_item("HIGHLIGHTS:", 50, c_y, font_size=18, fill="#1B4D3E", bold=True)
-            for cl in claims:
-                c_y += 40
-                add_text_item(f"• {cl}", 60, c_y, font_size=16, fill="#222222")
+            claims = decl_data.get("user_claims") or []
+            if claims:
+                c_y = 420
+                add_text_item("HIGHLIGHTS:", 50, c_y, font_size=18, fill="#1B4D3E", bold=True)
+                for cl in claims:
+                    c_y += 40
+                    add_text_item(f"• {cl}", 60, c_y, font_size=16, fill="#222222")
 
-            add_text_item(f"{net_qty_str}\nMRP Rs. {decl_data.get('mrp', '499.00')}", 50, height - 200, font_size=18, fill="#1B4D3E", bold=True)
+            mrp_disp = f"MRP Rs. {decl_data.get('mrp')}" if decl_data.get("mrp") else "MRP: [Insert MRP]"
+            add_text_item(f"{net_qty_str}\n{mrp_disp}", 50, height - 200, font_size=18, fill="#1B4D3E", bold=True)
 
         # -------------------- RIGHT PANEL --------------------
         elif panel_type == "RIGHT":
             draw.rectangle([20, 20, width - 20, height - 20], outline="#1B4D3E", width=2)
             add_text_item("USAGE & STORAGE", 50, 60, font_size=24, fill="#1B4D3E", bold=True)
             
-            store_txt = f"Storage Instructions:\n{decl_data.get('storage_instructions', 'Store in a cool, hygienic place.')}"
+            store_txt = f"Storage Instructions:\n{decl_data.get('storage_instructions') or '[Insert storage instructions]'}"
             add_text_item(store_txt, 50, 130, font_size=16, fill="#333333")
 
-            prep_txt = decl_data.get("preparation_instructions") or "Ready to eat. Can be consumed as a healthy snack or added to dishes."
+            prep_txt = decl_data.get("preparation_instructions") or "Ready to use."
             add_text_item(f"Directions:\n{prep_txt}", 50, 320, font_size=16, fill="#333333")
 
-            add_text_item(f"Country of Origin: {biz_data.get('country_of_origin', 'India')}", 50, 520, font_size=16, fill="#1A1A1A", bold=True)
+            country_txt = biz_data.get('country_of_origin') or '[Country of Origin]'
+            add_text_item(f"Country of Origin: {country_txt}", 50, 520, font_size=16, fill="#1A1A1A", bold=True)
             add_text_item("♻ Dispose Responsibly", 50, height - 120, font_size=16, fill="#1E7E34")
 
         # -------------------- TOP PANEL --------------------
@@ -521,10 +530,10 @@ class PackagingDesignService:
         # -------------------- BOTTOM PANEL --------------------
         elif panel_type == "BOTTOM":
             draw.rectangle([20, 20, width - 20, height - 20], outline="#1B4D3E", width=2)
-            batch = decl_data.get("batch_number") or "BATCH-01"
+            batch = decl_data.get("batch_number") or "[Batch No]"
             mfg_dt = decl_data.get("mfg_date") or "[MM/YYYY]"
-            mrp_val = decl_data.get("mrp") or "499.00"
-            bot_txt = f"B.NO: {batch} | MFG: {mfg_dt} | MRP Rs. {mrp_val} (incl. of all taxes)\n{net_qty_str}"
+            mrp_val = decl_data.get("mrp") or "[MRP]"
+            bot_txt = f"B.NO: {batch} | MFG: {mfg_dt} | MRP: {mrp_val} (incl. of all taxes)\n{net_qty_str}"
             add_text_item(bot_txt, 60, 120, font_size=20, fill="#1A1A1A", bold=True)
 
         return img, text_blocks, elements_meta

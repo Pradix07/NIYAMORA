@@ -47,64 +47,54 @@ export const CreatePackagingPage: React.FC = () => {
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Form State
+  // Form State (Must be completely blank for new projects)
   const [productData, setProductData] = useState<Record<string, any>>({
-    product_name: 'California Roasted Almonds',
-    brand_name: 'NutriBounty',
-    category: 'Dry Fruits & Nuts',
-    sub_category: 'Whole Roasted & Salted',
-    description: 'Handpicked California whole almonds lightly roasted with pink Himalayan salt.',
-    net_quantity: '250',
-    unit: 'g',
+    product_name: '',
+    brand_name: '',
+    category: '',
+    sub_category: '',
+    description: '',
+    net_quantity: '',
+    unit: '',
   });
 
   const [businessData, setBusinessData] = useState<Record<string, any>>({
-    manufacturer_name: 'NutriBounty Foods India Pvt Ltd',
-    manufacturer_address: 'Plot No. 42, Export Industrial Park, Whitefield, Bengaluru, Karnataka - 560066',
-    country_of_origin: 'India',
-    consumer_care_phone: '1800-425-9988',
-    consumer_care_email: 'care@nutribounty.com',
-    consumer_care_website: 'www.nutribounty.com',
-    fssai_license: '10019043002890',
+    manufacturer_name: '',
+    manufacturer_address: '',
+    country_of_origin: '',
+    consumer_care_phone: '',
+    consumer_care_email: '',
+    consumer_care_website: '',
+    fssai_license: '',
   });
 
   const [foodData, setFoodData] = useState<Record<string, any>>({
-    ingredients: [
-      { name: 'Almonds', percentage: '98%' },
-      { name: 'Iodized Salt', percentage: '2%' },
-    ],
-    contains_allergens: ['Tree Nuts (Almonds)'],
-    veg_non_veg: 'VEG',
+    ingredients: [],
+    contains_allergens: [],
+    veg_non_veg: '',
   });
 
   const [nutritionData, setNutritionData] = useState<Record<string, any>>({
-    basis: 'Per 100 g',
-    nutrients: [
-      { nutrient_name: 'Energy', amount: '580', unit: 'kcal' },
-      { nutrient_name: 'Protein', amount: '21.2', unit: 'g' },
-      { nutrient_name: 'Total Fat', amount: '50.6', unit: 'g' },
-      { nutrient_name: 'Carbohydrates', amount: '10.5', unit: 'g' },
-      { nutrient_name: 'Total Sugars', amount: '4.2', unit: 'g' },
-      { nutrient_name: 'Sodium', amount: '15.0', unit: 'mg' },
-    ],
+    basis: '',
+    nutrients: [],
   });
 
   const [declarationData, setDeclarationData] = useState<Record<string, any>>({
-    mrp: '399.00',
-    mfg_date: '09/2026',
-    batch_number: 'ALM-2026-B1',
-    best_before: '9 Months from packaging',
-    storage_instructions: 'Store in a cool, hygienic and dry place away from direct sunlight.',
-    user_claims: ['100% Natural', 'High in Protein', 'Zero Trans Fat'],
-    barcode: '8901234567890',
+    mrp: '',
+    mfg_date: '',
+    batch_number: '',
+    best_before: '',
+    storage_instructions: '',
+    user_claims: [],
+    barcode: '',
   });
 
   const [brandData, setBrandData] = useState<Record<string, any>>({
-    primary_color: '#1B4D3E',
-    secondary_color: '#FAF8F5',
-    accent_color: '#D4AF37',
-    design_style: 'PREMIUM_NATURAL',
-    custom_direction: 'Premium organic grocery packaging with gold borders and clear statutory visibility.',
+    primary_color: '',
+    secondary_color: '',
+    accent_color: '',
+    design_style: '',
+    custom_direction: '',
   });
 
   const [packagingFormat, setPackagingFormat] = useState<string>('STAND_UP_POUCH');
@@ -124,10 +114,65 @@ export const CreatePackagingPage: React.FC = () => {
   const [focusedFindingPanel, setFocusedFindingPanel] = useState<string | null>(null);
   const [focusedFindingTitle, setFocusedFindingTitle] = useState<string | null>(null);
 
-  // Load existing project if project_id in URL
+  // Load existing project only if project_id in URL, otherwise reset to completely blank form
   useEffect(() => {
     if (projectIdFromUrl) {
       loadProject(projectIdFromUrl);
+    } else {
+      // Clean reset for new projects
+      setProject(null);
+      setViewMode('WIZARD');
+      setCurrentStep(1);
+      setProductData({
+        product_name: '',
+        brand_name: '',
+        category: '',
+        sub_category: '',
+        description: '',
+        net_quantity: '',
+        unit: '',
+      });
+      setBusinessData({
+        manufacturer_name: '',
+        manufacturer_address: '',
+        country_of_origin: '',
+        consumer_care_phone: '',
+        consumer_care_email: '',
+        consumer_care_website: '',
+        fssai_license: '',
+      });
+      setFoodData({
+        ingredients: [],
+        contains_allergens: [],
+        veg_non_veg: '',
+      });
+      setNutritionData({
+        basis: '',
+        nutrients: [],
+      });
+      setDeclarationData({
+        mrp: '',
+        mfg_date: '',
+        batch_number: '',
+        best_before: '',
+        storage_instructions: '',
+        user_claims: [],
+        barcode: '',
+      });
+      setBrandData({
+        primary_color: '',
+        secondary_color: '',
+        accent_color: '',
+        design_style: '',
+        custom_direction: '',
+      });
+      setPackagingFormat('STAND_UP_POUCH');
+      setDimensions({
+        width_mm: 140,
+        height_mm: 210,
+        depth_mm: 60,
+        bleed_mm: 3,
+      });
     }
   }, [projectIdFromUrl]);
 

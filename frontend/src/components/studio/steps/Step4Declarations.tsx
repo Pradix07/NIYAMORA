@@ -37,7 +37,7 @@ export const Step4Declarations: React.FC<Step4Props> = ({ data, onChange }) => {
             <span style={{ position: 'absolute', left: '0.75rem', top: '0.65rem', color: 'var(--text-muted)' }}>₹</span>
             <input
               type="text"
-              placeholder="e.g. 399.00"
+              placeholder="Enter MRP (e.g. 399.00)"
               value={data.mrp || ''}
               onChange={(e) => onChange({ mrp: e.target.value.replace(/[^0-9.]/g, '') })}
               style={{ width: '100%', padding: '0.65rem 0.85rem 0.65rem 2rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.875rem' }}
@@ -54,7 +54,7 @@ export const Step4Declarations: React.FC<Step4Props> = ({ data, onChange }) => {
           </label>
           <input
             type="text"
-            placeholder="e.g. ₹1.60 / g"
+            placeholder="Enter USP (e.g. ₹1.60 / g)"
             value={data.unit_sale_price || ''}
             onChange={(e) => onChange({ unit_sale_price: e.target.value })}
             style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.875rem' }}
@@ -70,7 +70,7 @@ export const Step4Declarations: React.FC<Step4Props> = ({ data, onChange }) => {
           </label>
           <input
             type="text"
-            placeholder="e.g. 09/2026"
+            placeholder="MM/YYYY (e.g. 09/2026)"
             value={data.mfg_date || ''}
             onChange={(e) => onChange({ mfg_date: e.target.value })}
             style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.875rem' }}
@@ -83,7 +83,7 @@ export const Step4Declarations: React.FC<Step4Props> = ({ data, onChange }) => {
           </label>
           <input
             type="text"
-            placeholder="e.g. BATCH-ALM-2026"
+            placeholder="Enter batch/lot number"
             value={data.batch_number || ''}
             onChange={(e) => onChange({ batch_number: e.target.value })}
             style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.875rem' }}
@@ -96,8 +96,8 @@ export const Step4Declarations: React.FC<Step4Props> = ({ data, onChange }) => {
           </label>
           <input
             type="text"
-            placeholder="e.g. 9 Months from packaging"
-            value={data.best_before || '9 Months from packaging'}
+            placeholder="Enter best before (e.g. 9 Months from packaging)"
+            value={data.best_before || ''}
             onChange={(e) => onChange({ best_before: e.target.value })}
             style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.875rem' }}
           />
@@ -111,8 +111,8 @@ export const Step4Declarations: React.FC<Step4Props> = ({ data, onChange }) => {
         </label>
         <textarea
           rows={2}
-          placeholder="e.g. Store in a cool, hygienic and dry place away from direct sunlight. Once opened, transfer contents to an airtight container."
-          value={data.storage_instructions || 'Store in a cool, hygienic and dry place away from direct sunlight.'}
+          placeholder="Enter storage instructions"
+          value={data.storage_instructions || ''}
           onChange={(e) => onChange({ storage_instructions: e.target.value })}
           style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.875rem' }}
         />
@@ -125,7 +125,7 @@ export const Step4Declarations: React.FC<Step4Props> = ({ data, onChange }) => {
         </label>
         <input
           type="text"
-          placeholder="e.g. 100% Natural, No Added Preservatives, Gluten Free, High in Protein"
+          placeholder="Enter factual claims separated by comma"
           value={(data.user_claims || []).join(', ')}
           onChange={(e) => onChange({ user_claims: e.target.value.split(',').map((s) => s.trim()).filter(Boolean) })}
           style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.875rem' }}
@@ -142,7 +142,7 @@ export const Step4Declarations: React.FC<Step4Props> = ({ data, onChange }) => {
         </label>
         <input
           type="text"
-          placeholder="e.g. 8901234567890"
+          placeholder="Enter barcode / GTIN number"
           value={data.barcode || ''}
           onChange={(e) => onChange({ barcode: e.target.value.replace(/[^0-9]/g, '') })}
           style={{ width: '100%', padding: '0.65rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.875rem' }}
