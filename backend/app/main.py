@@ -30,11 +30,13 @@ def init_db_and_seed():
             db.commit()
             db.refresh(company)
 
+            from app.core.security import hash_password
             user = User(
                 company_id=company.id,
                 name="Prashant Dwivedi",
                 email="prashant@aurabotanicals.com",
-                role="COMPANY_USER"
+                role="COMPANY_USER",
+                password_hash=hash_password("Password123!")
             )
             db.add(user)
             db.commit()
@@ -120,7 +122,7 @@ app = FastAPI(
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # For student local development
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

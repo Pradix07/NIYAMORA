@@ -19,6 +19,8 @@ class ArtworkPanelRead(BaseModel):
     file_size_bytes: int
     width: Optional[int] = None
     height: Optional[int] = None
+    image_hash: Optional[str] = None
+    panel_metadata: Optional[dict] = None
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

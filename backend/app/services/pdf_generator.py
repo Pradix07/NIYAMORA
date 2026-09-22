@@ -103,33 +103,44 @@ class PDFReportGenerator:
         page1.insert_text((50, 774), "This document is a pre-print design verification summary under Legal Metrology Rules.", fontsize=7.5, color=(0.3, 0.3, 0.3), fontname="helv")
         page1.insert_text((50, 786), "It is not a statutory certification or government certificate. Final compliance rests with the packaging entity.", fontsize=7.5, color=(0.3, 0.3, 0.3), fontname="helv")
 
-        # --- PAGE 2: ARTWORK VISUAL PACKSHOT ---
-        page2 = doc.new_page(width=595, height=842)
-        page2.draw_rect(fitz.Rect(0, 0, 595, 50), color=None, fill=(0.06, 0.09, 0.16))
-        page2.insert_text((40, 32), "UPLOADED PACKAGING ARTWORK EVIDENCE", fontsize=13, color=(1, 1, 1), fontname="helv")
-        page2.insert_text((440, 32), f"Version: {version_label}", fontsize=10, color=(0.4, 0.8, 0.6), fontname="helv")
+        # --- PAGE 2+: ARTWORK VISUAL PACKSHOTS (Multi-Panel Aware) ---
+        panels = version.panels if (version and version.panels) else []
+        if not panels:
+            panels = [
+                ArtworkPanel(
+                    panel_type="FRONT",
+                    file_path=version.preview_image_path or version.file_path if version else None
+                )
+            ]
 
-        # Embed artwork image
-        art_path = version.preview_image_path or version.file_path if version else None
-        if art_path and os.path.exists(art_path):
-            try:
-                img_rect = fitz.Rect(60, 70, 535, 740)
-                page2.insert_image(img_rect, filename=art_path, keep_proportion=True)
-            except Exception as e:
-                logger.warning(f"Could not embed image into PDF: {e}")
-                page2.draw_rect(fitz.Rect(60, 70, 535, 740), color=(0.8, 0.8, 0.8), fill=(0.95, 0.95, 0.95))
-                page2.insert_text((180, 400), "Artwork Packshot Recorded", fontsize=12, color=(0.4, 0.4, 0.4))
-        else:
-            page2.draw_rect(fitz.Rect(60, 70, 535, 740), color=(0.8, 0.8, 0.8), fill=(0.95, 0.95, 0.95))
-            page2.insert_text((180, 400), "Artwork Packshot Recorded", fontsize=12, color=(0.4, 0.4, 0.4))
+        total_pages = 1 + len(panels)
+        for p_idx, p in enumerate(panels, 1):
+            p_page = doc.new_page(width=595, height=842)
+            p_page.draw_rect(fitz.Rect(0, 0, 595, 50), color=None, fill=(0.06, 0.09, 0.16))
+            p_page.insert_text((40, 32), f"UPLOADED PACKAGING ARTWORK: {p.panel_type} PANEL", fontsize=12, color=(1, 1, 1), fontname="helv")
+            p_page.insert_text((440, 32), f"Version: {version_label}", fontsize=10, color=(0.4, 0.8, 0.6), fontname="helv")
 
-        page2.insert_text((40, 810), f"NIYAMORA Compliance Inspection • {product.brand} ({product.name})", fontsize=8, color=(0.5, 0.5, 0.5), fontname="helv")
-        page2.insert_text((500, 810), "Page 2 of 2", fontsize=8, color=(0.5, 0.5, 0.5), fontname="helv")
+            p_path = p.file_path
+            embedded = False
+            if p_path and os.path.exists(p_path):
+                try:
+                    img_rect = fitz.Rect(60, 70, 535, 740)
+                    p_page.insert_image(img_rect, filename=p_path, keep_proportion=True)
+                    embedded = True
+                except Exception as e:
+                    logger.warning(f"Could not embed image {p_path} into PDF: {e}")
+
+            if not embedded:
+                p_page.draw_rect(fitz.Rect(60, 70, 535, 740), color=(0.8, 0.8, 0.8), fill=(0.95, 0.95, 0.95))
+                p_page.insert_text((200, 400), "Artwork could not be loaded.", fontsize=12, color=(0.4, 0.4, 0.4))
+
+            p_page.insert_text((40, 810), f"NIYAMORA Compliance Inspection • {product.brand} ({product.name})", fontsize=8, color=(0.5, 0.5, 0.5), fontname="helv")
+            p_page.insert_text((480, 810), f"Page {1 + p_idx} of {total_pages}", fontsize=8, color=(0.5, 0.5, 0.5), fontname="helv")
 
         pdf_bytes = doc.tobytes()
         doc.close()
 
-        logger.info(f"Generated Inspection PDF for {inspection.id} ({len(pdf_bytes)} bytes)")
+        logger.info(f"Generated Inspection PDF for {inspection.id} ({len(pdf_bytes)} bytes, {total_pages} pages)")
         return pdf_bytes, filename
 
     @classmethod
@@ -233,10 +244,10 @@ class PDFReportGenerator:
             except Exception as e:
                 logger.warning(f"Could not embed rendered image into PDF: {e}")
                 page2.draw_rect(fitz.Rect(60, 70, 535, 740), color=(0.8, 0.8, 0.8), fill=(0.95, 0.95, 0.95))
-                page2.insert_text((180, 400), "High-Resolution Artwork Packshot Rendered", fontsize=12, color=(0.4, 0.4, 0.4))
+                page2.insert_text((200, 400), "Artwork could not be loaded.", fontsize=12, color=(0.4, 0.4, 0.4))
         else:
             page2.draw_rect(fitz.Rect(60, 70, 535, 740), color=(0.8, 0.8, 0.8), fill=(0.95, 0.95, 0.95))
-            page2.insert_text((180, 400), "High-Resolution Artwork Packshot Rendered", fontsize=12, color=(0.4, 0.4, 0.4))
+            page2.insert_text((200, 400), "Artwork could not be loaded.", fontsize=12, color=(0.4, 0.4, 0.4))
 
         page2.insert_text((40, 810), f"NIYAMORA Compliance Review • Generated for {product.brand} ({product.name})", fontsize=8, color=(0.5, 0.5, 0.5), fontname="helv")
         page2.insert_text((500, 810), "Page 2 of 2", fontsize=8, color=(0.5, 0.5, 0.5), fontname="helv")

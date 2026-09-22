@@ -17,9 +17,10 @@ class MRPEvaluator(BaseRuleEvaluator):
     ) -> Tuple[str, Optional[str], str, str, Optional[Dict[str, Any]], Optional[str]]:
         expected_cond = "Must declare Maximum Retail Price (MRP) in Indian Rupees, accompanied by the mandatory statutory phrase '(inclusive of all taxes)' or 'incl. of all taxes' (Rule 6(1)(e))."
 
-        mrp_field = extracted_fields.get("mrp") or {}
-        extracted_val = mrp_field.get("extracted_value")
-        evidence_box = mrp_field.get("evidence_box")
+        mrp_field = extracted_fields.get("mrp")
+        extracted_val = mrp_field.get("extracted_value") if isinstance(mrp_field, dict) else getattr(mrp_field, "extracted_value", None)
+        box = mrp_field.get("evidence_box") if isinstance(mrp_field, dict) else getattr(mrp_field, "evidence_box", None)
+        evidence_box = box.model_dump() if hasattr(box, "model_dump") else (box.dict() if hasattr(box, "dict") else box)
 
         candidate_text = extracted_val
         if not candidate_text:
@@ -46,8 +47,21 @@ class MRPEvaluator(BaseRuleEvaluator):
         has_price_num = bool(re.search(r"(?:₹|rs\.?|inr)?\s*(\d+(?:\.\d{1,2})?)", observed_lower))
 
         # Check for statutory tax inclusion clause
-        tax_keywords = ["incl", "inclusive", "incl.", "all taxes", "taxes"]
-        has_tax_clause = any(kw in observed_lower for kw in ["incl. of all taxes", "inclusive of all taxes", "incl of all taxes", "incl. all taxes", "all taxes"])
+        tax_phrases = [
+            "inclusive of all taxes", "incl. of all taxes", "incl of all taxes",
+            "incl. all taxes", "inclusive of taxes", "incl. taxes", "incl taxes"
+        ]
+        has_tax_clause = any(p in observed_lower for p in tax_phrases)
+
+        # Check adjacent lines around MRP declaration
+        if not has_tax_clause:
+            lines = raw_text.splitlines()
+            for idx, line in enumerate(lines):
+                if any(m in line.lower() for m in ["mrp", "m.r.p", "maximum retail"]):
+                    window = " ".join(lines[max(0, idx - 1):min(len(lines), idx + 3)]).lower()
+                    if any(p in window for p in tax_phrases):
+                        has_tax_clause = True
+                        break
 
         evidence_data = {
             "source_type": "OCR",
@@ -67,25 +81,14 @@ class MRPEvaluator(BaseRuleEvaluator):
                 None
             )
         elif has_price_num and not has_tax_clause:
-            # Check if 'taxes' appears in immediately adjacent lines
-            if "tax" in raw_text.lower():
-                return (
-                    "PASS",
-                    observed,
-                    expected_cond,
-                    f"MRP declaration located ('{observed}') with tax-inclusive wording detected in declaration block.",
-                    evidence_data,
-                    None
-                )
-            else:
-                return (
-                    "ISSUE",
-                    observed,
-                    expected_cond,
-                    f"MRP declaration '{observed}' omits mandatory statutory phrase '(inclusive of all taxes)' under Rule 6(1)(e).",
-                    evidence_data,
-                    "Append '(incl. of all taxes)' or '(inclusive of all taxes)' directly adjacent to the retail sale price."
-                )
+            return (
+                "ISSUE",
+                observed,
+                expected_cond,
+                f"MRP declaration '{observed}' omits mandatory statutory phrase '(inclusive of all taxes)' under Rule 6(1)(e).",
+                evidence_data,
+                "Append '(incl. of all taxes)' or '(inclusive of all taxes)' directly adjacent to the retail sale price."
+            )
         else:
             return (
                 "REVIEW",

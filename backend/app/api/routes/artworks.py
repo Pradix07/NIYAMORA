@@ -36,10 +36,19 @@ async def upload_artwork_and_start_check(
 
     # 0. Collect and validate uploaded files
     uploaded_files: List[UploadFile] = []
-    for key in form.keys():
-        for item in form.getlist(key):
-            if hasattr(item, "filename") and getattr(item, "filename", None) and item not in uploaded_files:
-                uploaded_files.append(item)
+    # If "files" is provided (e.g. multi-panel upload), prefer "files" list
+    raw_multi = form.getlist("files")
+    if raw_multi and any(hasattr(item, "filename") and getattr(item, "filename", None) for item in raw_multi):
+        uploaded_files = [item for item in raw_multi if hasattr(item, "filename") and getattr(item, "filename", None)]
+    else:
+        raw_single = form.getlist("file")
+        if raw_single and any(hasattr(item, "filename") and getattr(item, "filename", None) for item in raw_single):
+            uploaded_files = [item for item in raw_single if hasattr(item, "filename") and getattr(item, "filename", None)]
+        else:
+            for key in form.keys():
+                for item in form.getlist(key):
+                    if hasattr(item, "filename") and getattr(item, "filename", None) and item not in uploaded_files:
+                        uploaded_files.append(item)
 
     if not uploaded_files:
         raise HTTPException(status_code=400, detail="At least one packaging artwork file is required.")
@@ -107,7 +116,7 @@ async def upload_artwork_and_start_check(
 
     # 4. Save primary file to storage
     primary_file = uploaded_files[0]
-    primary_path, primary_storage_key, primary_size, primary_orig_name = await storage.save_upload(
+    primary_path, primary_storage_key, primary_size, primary_orig_name, primary_hash = await storage.save_upload(
         file=primary_file,
         company_id=company.id,
         product_id=product.id,
@@ -132,9 +141,9 @@ async def upload_artwork_and_start_check(
     # 6. Register panels for all uploaded files (FRONT, BACK, SIDE, TOP, etc.)
     for idx, f in enumerate(uploaded_files):
         if idx == 0:
-            p_path, p_key, p_size, p_name = primary_path, primary_storage_key, primary_size, primary_orig_name
+            p_path, p_key, p_size, p_name, p_hash = primary_path, primary_storage_key, primary_size, primary_orig_name, primary_hash
         else:
-            p_path, p_key, p_size, p_name = await storage.save_upload(
+            p_path, p_key, p_size, p_name, p_hash = await storage.save_upload(
                 file=f,
                 company_id=company.id,
                 product_id=product.id,
@@ -177,7 +186,8 @@ async def upload_artwork_and_start_check(
             file_path=p_path,
             original_filename=p_name,
             mime_type=f.content_type or "application/octet-stream",
-            file_size_bytes=p_size
+            file_size_bytes=p_size,
+            image_hash=p_hash
         )
         db.add(panel)
 
@@ -236,7 +246,7 @@ async def add_panel_to_version(
         if product:
             verify_product_ownership(product, company)
 
-    file_path, storage_key, file_size, orig_name = await storage.save_upload(
+    file_path, storage_key, file_size, orig_name, file_hash = await storage.save_upload(
         file=file,
         company_id=company.id,
         product_id=artwork.product_id if artwork else "generic",
@@ -250,7 +260,8 @@ async def add_panel_to_version(
         file_path=file_path,
         original_filename=orig_name,
         mime_type=file.content_type or "application/octet-stream",
-        file_size_bytes=file_size
+        file_size_bytes=file_size,
+        image_hash=file_hash
     )
     db.add(panel)
     db.commit()

@@ -18,16 +18,27 @@ class NetQuantityEvaluator(BaseRuleEvaluator):
     ) -> Tuple[str, Optional[str], str, str, Optional[Dict[str, Any]], Optional[str]]:
         expected_cond = "Must declare net quantity in standard statutory metric units (e.g. 'g', 'kg', 'ml', 'l', 'N') without prohibited abbreviations like 'gms' or 'lts' (Rule 6(1)(c), Rule 11)."
 
-        qty_field = extracted_fields.get("net_quantity") or {}
-        extracted_val = qty_field.get("extracted_value")
-        evidence_box = qty_field.get("evidence_box")
+        qty_field = extracted_fields.get("net_quantity")
+        extracted_val = qty_field.get("extracted_value") if isinstance(qty_field, dict) else getattr(qty_field, "extracted_value", None)
+        box = qty_field.get("evidence_box") if isinstance(qty_field, dict) else getattr(qty_field, "evidence_box", None)
+        evidence_box = box.model_dump() if hasattr(box, "model_dump") else (box.dict() if hasattr(box, "dict") else box)
 
-        # Fallback raw text search if extracted_val is empty
+        # Fallback raw text search if extracted_val is empty (exclude nutrition lines)
         candidate_text = extracted_val
         if not candidate_text:
-            match = re.search(r"(?:net\s*(?:qty|quantity|wt|weight)?[:.\s-]*)?(\d+(?:\.\d+)?\s*(?:gms?|kgs?|ml|lts?|litres?|grams?|kg|g|mg|N|units?))\b", raw_text, re.IGNORECASE)
-            if match:
-                candidate_text = match.group(0).strip()
+            nutrition_words = ["protein", "carbohydrate", "carb", "fat", "sugar", "per 100", "serving", "kcal", "energy", "fiber", "fibre", "sodium"]
+            for line in raw_text.splitlines():
+                line_lower = line.lower()
+                if any(nw in line_lower for nw in nutrition_words):
+                    continue
+                match = re.search(
+                    r"(?:net\s*(?:qty|quantity|wt|weight|content|contents|volume|vol)\.?\s*[:\-]?\s*)([0-9]+(?:\.[0-9]+)?\s*(?:gms?|kgs?|ml|lts?|litres?|grams?|kg|g|mg|N|units?))\b",
+                    line,
+                    re.IGNORECASE
+                )
+                if match:
+                    candidate_text = match.group(0).strip()
+                    break
 
         if not candidate_text:
             return (

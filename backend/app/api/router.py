@@ -10,6 +10,7 @@ from app.api.routes import (
     compliance,
     suggested_designs,
     analysis,
+    packaging_studio,
 )
 
 api_router = APIRouter()
@@ -24,3 +25,4 @@ api_router.include_router(rules.router)
 api_router.include_router(compliance.router)
 api_router.include_router(suggested_designs.router)
 api_router.include_router(analysis.router)
+api_router.include_router(packaging_studio.router)

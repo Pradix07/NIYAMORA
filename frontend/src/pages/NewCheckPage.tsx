@@ -3,19 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { AppShell } from '../components/layout/AppShell';
 import type { PackagingType } from '../types';
 import { api } from '../services/api';
-import { 
-  UploadCloud, 
-  FileText, 
-  Image, 
-  Layers, 
-  Link2, 
-  CheckCircle2, 
-  X, 
-  ArrowRight, 
+import { CameraCapture, type PackagingPanelType } from '../components/common/CameraCapture';
+import {
+  UploadCloud,
+  FileText,
+  Image,
+  Layers,
+  Link2,
+  CheckCircle2,
+  X,
+  ArrowRight,
   Info,
   Loader2,
   AlertCircle,
-  Plus
+  Plus,
+  Camera
 } from 'lucide-react';
 
 interface UploadedPanelItem {
@@ -33,14 +35,14 @@ export const NewCheckPage: React.FC = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [uploadMode, setUploadMode] = useState<'artwork' | 'photo' | 'multi' | 'ecom'>('artwork');
-  
+
   // Single file state (for artwork, photo, ecom modes)
   const [actualFile, setActualFile] = useState<File | null>(null);
   const [selectedFileMeta, setSelectedFileMeta] = useState<{ name: string; size: string; type: string } | null>(null);
-  
+
   // Multi-panel state (for multi mode)
   const [uploadedPanels, setUploadedPanels] = useState<UploadedPanelItem[]>([]);
-  
+
   const [productName, setProductName] = useState('');
   const [productType, setProductType] = useState<PackagingType>('Stand-Up Pouch');
   const [brandName, setBrandName] = useState('');
@@ -48,6 +50,38 @@ export const NewCheckPage: React.FC = () => {
   const [isDragging, setIsDragging] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+
+  const handleCameraCapture = (file: File, pType: PackagingPanelType) => {
+    const sizeInMb = (file.size / (1024 * 1024)).toFixed(1);
+    const previewUrl = URL.createObjectURL(file);
+
+    if (uploadMode === 'multi') {
+      setUploadedPanels((prev) => [
+        ...prev,
+        {
+          id: `panel_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+          file,
+          name: file.name,
+          size: `${sizeInMb} MB`,
+          type: file.type || 'image/jpeg',
+          panelType: pType,
+          previewUrl,
+        },
+      ]);
+      if (uploadedPanels.length + 1 >= 4) {
+        setIsCameraOpen(false);
+      }
+    } else {
+      setActualFile(file);
+      setSelectedFileMeta({
+        name: file.name,
+        size: `${sizeInMb} MB`,
+        type: file.type || 'image/jpeg',
+      });
+      setIsCameraOpen(false);
+    }
+  };
 
   const guessPanelType = (filename: string): 'FRONT' | 'BACK' | 'SIDE_LEFT' | 'SIDE_RIGHT' | 'TOP' | 'BOTTOM' | 'OTHER' => {
     const lower = filename.toLowerCase();
@@ -172,9 +206,6 @@ export const NewCheckPage: React.FC = () => {
           formData.append('files', panel.file);
           formData.append('panel_types', panel.panelType);
         }
-        // Primary file for backwards compatibility
-        formData.append('file', uploadedPanels[0].file);
-        formData.append('panel_type', uploadedPanels[0].panelType);
       } else {
         if (actualFile) {
           formData.append('file', actualFile);
@@ -201,7 +232,7 @@ export const NewCheckPage: React.FC = () => {
   return (
     <AppShell breadcrumbs={[{ label: 'New Check' }]}>
       <div style={{ maxWidth: '1000px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
-        
+
         {/* Header */}
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 800 }}>Start a New Packaging Check</h1>
@@ -218,7 +249,7 @@ export const NewCheckPage: React.FC = () => {
         )}
 
         <form onSubmit={handleStartCheck} style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          
+
           {/* Section 1: Input Source Selector */}
           <div className="card" style={{ padding: '1.5rem' }}>
             <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '0.875rem' }}>
@@ -310,16 +341,40 @@ export const NewCheckPage: React.FC = () => {
 
           {/* Section 2: Upload Drop Zone */}
           <div className="card" style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.875rem' }}>
-              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>
-                {uploadMode === 'multi' ? '2. Upload Packaging Panels (One Check)' : '2. Upload Artwork File'}
-              </h3>
-              {uploadMode === 'multi' && uploadedPanels.length > 0 && (
-                <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--brand-primary)' }}>
-                  {uploadedPanels.length} panel{uploadedPanels.length > 1 ? 's' : ''} added
-                </span>
-              )}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.875rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <h3 style={{ fontSize: '1.05rem', fontWeight: 700, margin: 0 }}>
+                  {uploadMode === 'multi' ? '2. Upload Packaging Panels (One Check)' : '2. Upload Artwork File'}
+                </h3>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button
+                  type="button"
+                  onClick={() => setIsCameraOpen(!isCameraOpen)}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', borderColor: isCameraOpen ? 'var(--brand-primary)' : undefined }}
+                >
+                  <Camera size={15} />
+                  <span>{isCameraOpen ? 'Close Camera' : 'Live Camera Scan'}</span>
+                </button>
+                {uploadMode === 'multi' && uploadedPanels.length > 0 && (
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--brand-primary)' }}>
+                    {uploadedPanels.length} panel{uploadedPanels.length > 1 ? 's' : ''} added
+                  </span>
+                )}
+              </div>
             </div>
+
+            {isCameraOpen && (
+              <div style={{ marginBottom: '1.25rem' }}>
+                <CameraCapture
+                  onCapture={handleCameraCapture}
+                  onCancel={() => setIsCameraOpen(false)}
+                  currentPhotoCount={uploadMode === 'multi' ? uploadedPanels.length : (actualFile ? 1 : 0)}
+                  maxPhotos={4}
+                />
+              </div>
+            )}
 
             {/* Hidden native file input */}
             <input
@@ -363,8 +418,8 @@ export const NewCheckPage: React.FC = () => {
                 <UploadCloud size={24} />
               </div>
               <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.25rem' }}>
-                {uploadMode === 'multi' 
-                  ? 'Drag and drop multiple panel images here, or browse' 
+                {uploadMode === 'multi'
+                  ? 'Drag and drop multiple panel images here, or browse'
                   : 'Drag and drop your packaging file here, or browse'}
               </h4>
               <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', maxWidth: '440px', margin: '0 auto 1rem' }}>
@@ -591,10 +646,11 @@ export const NewCheckPage: React.FC = () => {
           </div>
 
           {/* Submission CTA */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', flexWrap: 'wrap' }}>
             <button type="button" onClick={() => navigate('/dashboard')} className="btn btn-secondary" disabled={isSubmitting}>
               Cancel
             </button>
+
             <button
               type="submit"
               disabled={isSubmitting}

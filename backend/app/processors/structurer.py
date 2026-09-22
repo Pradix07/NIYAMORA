@@ -18,6 +18,14 @@ class PackagingFieldStructurer:
         "% daily", "nutritional", "nutrition facts", "approximate values", "approx values"
     ]
 
+    STORAGE_KEYWORDS = [
+        "storage", "store in", "keep in", "cool, dry", "cool dry", "cool and dry",
+        "direct sunlight", "sunlight", "dry place", "room temperature", "refrigerat",
+        "airtight", "sealed container", "hygienic", "preserve in", "after opening",
+        "consume within", "instructions for use", "directions for use", "preparation instructions",
+        "best consumed", "humidity", "ambient"
+    ]
+
     SLOGAN_PATTERNS = [
         r"\b(?:simple\s+ingredients|real\s+benefits)\b",
         r"\b(?:100%\s+almonds?|100%\s+natural|100%\s+pure|100%\s+organic)\b",
@@ -71,6 +79,12 @@ class PackagingFieldStructurer:
             r"(?:Barcode|EAN|GTIN|UPC|EAN-13|GTIN-13)\s*[:\-]?\s*([0-9]{8,14})\b",
             r"\b(890[0-9]{10})\b",
             r"\b([0-9]{12,14})\b",
+        ],
+        "generic_name": [
+            r"(?:Generic\s*Name|Commodity\s*Name|Name\s*of\s*Commodity|Commodity|Common\s*Name)\s*[:\-]?\s*([A-Za-z0-9\s,.\-()]{3,50})",
+        ],
+        "storage_instructions": [
+            r"(?:Storage\s*(?:Instructions|Conditions)?|Store\s*in|Keep\s*in)\s*[:\-]?\s*([^\n]+(?:\n[^\n]+)?)",
         ]
     }
 
@@ -87,6 +101,13 @@ class PackagingFieldStructurer:
             return False
         clean = text.strip().lower()
         return any(kw in clean for kw in cls.NUTRITION_KEYWORDS)
+
+    @classmethod
+    def is_storage_text(cls, text: str) -> bool:
+        if not text:
+            return False
+        clean = text.strip().lower()
+        return any(kw in clean for kw in cls.STORAGE_KEYWORDS)
 
     @classmethod
     def structure_fields(
@@ -192,7 +213,26 @@ class PackagingFieldStructurer:
             blocks=blocks
         )
 
-        # 12. Brand Identity & Product Name (with strict marketing slogan filtering)
+        # 12. Generic / Common Commodity Name
+        fields["generic_name"] = cls._extract_entity(
+            key="generic_name",
+            name="Generic / Common Commodity Name",
+            patterns=cls.PATTERNS["generic_name"],
+            raw_text=raw_text,
+            blocks=blocks,
+            require_alpha=True
+        )
+
+        # 13. Storage Instructions
+        fields["storage_instructions"] = cls._extract_entity(
+            key="storage_instructions",
+            name="Storage Instructions",
+            patterns=cls.PATTERNS["storage_instructions"],
+            raw_text=raw_text,
+            blocks=blocks
+        )
+
+        # 14. Brand Identity & Product Name (with strict marketing slogan & storage filtering)
         brand_field, prod_name_field = cls._extract_brand_and_product_name(
             raw_text=raw_text,
             blocks=blocks,
@@ -301,13 +341,13 @@ class PackagingFieldStructurer:
         front_blocks = [b for b in blocks if b.normalized_box and b.normalized_box.panel_type == "FRONT"]
         eligible_blocks = front_blocks if front_blocks else blocks
 
-        # Filter out slogans, dates, prices, net qty, nutrition
+        # Filter out slogans, dates, prices, net qty, nutrition, and storage instructions
         non_marketing_blocks = []
         for b in eligible_blocks:
             t = b.text.strip()
             if not t or len(t) < 2:
                 continue
-            if cls.is_slogan_or_marketing(t) or cls.is_nutrition_text(t):
+            if cls.is_slogan_or_marketing(t) or cls.is_nutrition_text(t) or cls.is_storage_text(t):
                 continue
             if any(k in t.lower() for k in [
                 "mrp", "m.r.p", "₹", "rs.", "mfg", "pkd", "fssai", "batch", "lot", "barcode",
@@ -315,7 +355,8 @@ class PackagingFieldStructurer:
                 "lic", "license", "best before", "use by", "expiry", "exp:", "exp date",
                 "net qty", "net quantity", "net weight", "net wt", "net vol", "net volume",
                 "ingredients", "allergen", "manufactured", "packed by", "marketed by", "imported by",
-                "storage:", "store in", "keep in", "directions", "how to use", "warning", "caution"
+                "storage", "store in", "keep in", "cool, dry", "cool dry", "sunlight", "dry place",
+                "directions", "how to use", "warning", "caution"
             ]):
                 continue
             if re.match(r"^\s*\d+(?:\.\d+)?\s*(?:g|kg|ml|l|mg|gms|kgs|units?|pieces?|tablets?|capsules?|nos?|count)\b", t, re.IGNORECASE):
@@ -336,7 +377,7 @@ class PackagingFieldStructurer:
                 confidence=0.99,
                 evidence_box=matching_box
             )
-        elif non_marketing_blocks:
+        elif non_marketing_blocks and not cls.is_storage_text(non_marketing_blocks[0].text) and not cls.is_slogan_or_marketing(non_marketing_blocks[0].text):
             candidate_brand = non_marketing_blocks[0].text.strip()
             brand_field = ExtractedField(
                 field_key="brand",
@@ -370,8 +411,8 @@ class PackagingFieldStructurer:
             )
         elif len(non_marketing_blocks) > 1:
             candidate_name = non_marketing_blocks[1].text.strip()
-            # Double check candidate is not a marketing slogan
-            if not cls.is_slogan_or_marketing(candidate_name):
+            # Double check candidate is not a marketing slogan or storage instruction
+            if not cls.is_slogan_or_marketing(candidate_name) and not cls.is_storage_text(candidate_name) and not cls._is_filename_like(candidate_name):
                 prod_field = ExtractedField(
                     field_key="product_name",
                     field_name="Product Name / Commercial Descriptor",

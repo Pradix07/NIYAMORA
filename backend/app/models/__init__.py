@@ -15,6 +15,7 @@ from app.models.compliance import (
     HumanReview,
 )
 from app.models.suggested_design import SuggestedDesign, AuditEvent
+from app.models.packaging_project import PackagingProject
 
 __all__ = [
     "Company",
@@ -33,4 +34,5 @@ __all__ = [
     "HumanReview",
     "SuggestedDesign",
     "AuditEvent",
+    "PackagingProject",
 ]

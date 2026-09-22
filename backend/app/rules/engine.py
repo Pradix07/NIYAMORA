@@ -14,6 +14,7 @@ from app.rules.evaluators.mrp_evaluator import MRPEvaluator
 from app.rules.evaluators.usp_evaluator import UnitSalePriceEvaluator
 from app.rules.evaluators.consumer_care_evaluator import ConsumerCareEvaluator
 from app.rules.evaluators.country_origin_evaluator import CountryOfOriginEvaluator
+from app.rules.evaluators.language_evaluator import LanguageDeclarationEvaluator
 
 logger = logging.getLogger("niyamora.compliance_engine")
 
@@ -26,6 +27,7 @@ EVALUATOR_REGISTRY = {
     "LMPC-DECL-USP": UnitSalePriceEvaluator(),
     "LMPC-DECL-CONSUMER-CARE": ConsumerCareEvaluator(),
     "LMPC-DECL-COUNTRY-ORIGIN": CountryOfOriginEvaluator(),
+    "LMPC-DECL-LANG": LanguageDeclarationEvaluator(),
 }
 
 class ComplianceEngine:
@@ -174,32 +176,98 @@ class ComplianceEngine:
                 logger.warning(f"No evaluator registered for rule_code {rv.rule_code}")
                 continue
 
-            status, obs_val, exp_cond, explanation, evidence_info, action = evaluator.evaluate(
-                rule_version=rv,
-                extracted_fields=extracted_fields,
-                raw_text=raw_text,
-                blocks=blocks,
-                product_context=product_context
-            )
+            # Rule 26 Statutory Exemptions check based on net quantity / package weight
+            pkg_weight = product_context.get("package_weight_value")
+            pkg_unit = product_context.get("package_weight_unit")
+            if pkg_weight is None:
+                nq_raw = str(product_context.get("net_quantity") or "")
+                if not nq_raw and isinstance(extracted_fields.get("net_quantity"), dict):
+                    nq_raw = str(extracted_fields["net_quantity"].get("extracted_value") or "")
+                elif not nq_raw and hasattr(extracted_fields.get("net_quantity"), "extracted_value"):
+                    nq_raw = str(extracted_fields["net_quantity"].extracted_value or "")
+                import re
+                m = re.search(r"(\d+(?:\.\d+)?)\s*(g|gm|gms|ml)\b", nq_raw, re.IGNORECASE)
+                if m:
+                    try:
+                        pkg_weight = float(m.group(1))
+                        pkg_unit = m.group(2).lower()
+                    except ValueError:
+                        pass
+
+            is_exempt_full = False
+            is_exempt_partial = False
+            if pkg_weight is not None and pkg_unit in ("g", "gm", "gms", "ml"):
+                if pkg_weight <= 10:
+                    is_exempt_full = True
+                elif pkg_weight <= 20 and rv.rule_code not in ("LMPC-DECL-MRP", "LMPC-DECL-NET-QTY"):
+                    is_exempt_partial = True
+
+            if is_exempt_full:
+                status = "N/A"
+                obs_val = f"Package Weight/Volume: {pkg_weight}{pkg_unit}"
+                exp_cond = "Exempt from mandatory declarations under Rule 26 (<= 10g or 10ml)"
+                explanation = f"Statutory exemption under Rule 26 of Legal Metrology Rules, 2011: Packages with net quantity <= 10g or 10ml are exempt from mandatory packaging declarations."
+                evidence_info = None
+                action = None
+            elif is_exempt_partial:
+                status = "N/A"
+                obs_val = f"Package Weight/Volume: {pkg_weight}{pkg_unit}"
+                exp_cond = "Exempt from declarations other than MRP & Net Qty under Rule 26 (<= 20g or 20ml)"
+                explanation = f"Statutory exemption under Rule 26 of Legal Metrology Rules, 2011: Packages with net quantity <= 20g or 20ml are exempt from declarations other than MRP and Net Quantity."
+                evidence_info = None
+                action = None
+            else:
+                status, obs_val, exp_cond, explanation, evidence_info, action = evaluator.evaluate(
+                    rule_version=rv,
+                    extracted_fields=extracted_fields,
+                    raw_text=raw_text,
+                    blocks=blocks,
+                    product_context=product_context
+                )
 
             # 1. Create Evidence record if evidence data is present
             evidence_rec = None
             if evidence_info:
-                matched_panel_id = version.panels[0].id if version.panels else None
-                if version.panels and len(version.panels) > 1:
-                    bbox_data = evidence_info.get("bbox") or {}
-                    lbl = bbox_data.get("label", "") if isinstance(bbox_data, dict) else ""
-                    for p in version.panels:
-                        if f"[{p.panel_type}]" in lbl:
-                            matched_panel_id = p.id
-                            break
+                matched_panel_id = None
+                bbox_data = evidence_info.get("bbox")
+                if isinstance(bbox_data, dict):
+                    # Direct panel_id or panel_type
+                    req_pid = evidence_info.get("panel_id") or bbox_data.get("panel_id")
+                    req_ptype = evidence_info.get("panel_type") or bbox_data.get("panel_type")
+                    if req_pid and version.panels:
+                        for p in version.panels:
+                            if p.id == req_pid:
+                                matched_panel_id = p.id
+                                break
+                    if not matched_panel_id and req_ptype and version.panels:
+                        norm_type = str(req_ptype).strip().upper()
+                        for p in version.panels:
+                            if p.panel_type.upper() == norm_type:
+                                matched_panel_id = p.id
+                                break
+                    if not matched_panel_id and version.panels:
+                        lbl = str(bbox_data.get("label", "")).upper()
+                        for p in version.panels:
+                            if f"[{p.panel_type.upper()}]" in lbl:
+                                matched_panel_id = p.id
+                                break
+
+                if not matched_panel_id and version.panels:
+                    matched_panel_id = version.panels[0].id
+
+                # Ensure bbox dictionary is enriched with panel info
+                if isinstance(bbox_data, dict) and matched_panel_id:
+                    matched_panel = next((p for p in version.panels if p.id == matched_panel_id), None)
+                    if matched_panel:
+                        bbox_data["panel_id"] = matched_panel.id
+                        bbox_data["panel_type"] = matched_panel.panel_type
 
                 evidence_rec = Evidence(
                     inspection_id=inspection.id,
                     source_type=evidence_info.get("source_type", "OCR"),
                     panel_id=matched_panel_id,
                     page_number=1,
-                    bbox=evidence_info.get("bbox"),
+                    bbox=bbox_data,
                     observed_text=evidence_info.get("observed_text"),
                     extracted_value=evidence_info.get("extracted_value"),
                     evidence_quality=evidence_info.get("evidence_quality", "HIGH")

@@ -1,6 +1,7 @@
 import os
 import uuid
 import re
+import hashlib
 from pathlib import Path
 from typing import Tuple
 import aiofiles
@@ -29,10 +30,10 @@ class LocalStorage:
         product_id: str,
         artwork_id: str,
         version_number: int
-    ) -> Tuple[str, str, int, str]:
+    ) -> Tuple[str, str, int, str, str]:
         """
         Saves an uploaded file to structured local storage.
-        Returns: (saved_file_path, storage_key, file_size_bytes, original_filename)
+        Returns: (saved_file_path, storage_key, file_size_bytes, original_filename, sha256_hash)
         """
         original_name = file.filename or "uploaded_artwork.pdf"
         sanitized = self._sanitize_filename(original_name)
@@ -53,9 +54,11 @@ class LocalStorage:
         target_path = target_dir / stored_filename
 
         total_bytes = 0
+        hasher = hashlib.sha256()
         async with aiofiles.open(target_path, "wb") as out_file:
             while chunk := await file.read(1024 * 1024):  # 1MB chunks
                 total_bytes += len(chunk)
+                hasher.update(chunk)
                 if total_bytes > settings.MAX_UPLOAD_SIZE_BYTES:
                     if target_path.exists():
                         target_path.unlink()
@@ -67,7 +70,8 @@ class LocalStorage:
 
         # Storage key relative to base_dir
         rel_key = str(target_path.relative_to(self.base_dir)).replace("\\", "/")
-        return str(target_path), rel_key, total_bytes, original_name
+        sha256_hash = hasher.hexdigest()
+        return str(target_path), rel_key, total_bytes, original_name, sha256_hash
 
     def resolve_path(self, storage_key: str) -> Path:
         # Prevent directory traversal

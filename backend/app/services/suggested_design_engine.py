@@ -471,14 +471,11 @@ class SuggestedDesignEngine:
         elif rule_code == "LMPC-DECL-CONSUMER-CARE":
             current_care = fields.get("consumer_care", {}).get("extracted_value") or "Not Detected"
             
-            # Preserve existing text if partially present; otherwise structure clearly
+            # Preserve existing text without inventing phone/email
             if current_care and current_care != "Not Detected":
                 suggested_val = current_care
-                if "1800" not in current_care and "@" not in current_care:
-                    suggested_val = f"{current_care} | Email: care@{re.sub(r'[^a-zA-Z0-9]', '', (product.brand or 'company').lower())}.com"
             else:
-                brand_name = product.brand or "Company"
-                suggested_val = f"For consumer complaints: Consumer Care Cell, {brand_name}. Toll-Free: 1800-425-9988 | Email: care@{re.sub(r'[^a-zA-Z0-9]', '', brand_name.lower())}.com"
+                suggested_val = "Consumer Care: [Insert Address, Helpline Phone & Email]"
 
             return {
                 "change_id": change_id,
@@ -503,13 +500,12 @@ class SuggestedDesignEngine:
         # 5. Manufacturer / Packer Address (LMPC-DECL-MFG-ADDR - Rule 6(1)(a))
         elif rule_code == "LMPC-DECL-MFG-ADDR":
             current_addr = fields.get("mfg_address", {}).get("extracted_value") or "Not Detected"
-            brand_name = product.brand or "Brand"
             
             # Preserve existing address details without inventing fictional locations
             if current_addr and current_addr != "Not Detected":
                 suggested_val = f"Manufactured by: {current_addr}"
             else:
-                suggested_val = f"Manufactured by: {brand_name} Consumer Products Pvt Ltd, Registered Office Address, India"
+                suggested_val = "Manufactured by: [Insert Registered Company Name & Complete Physical Address]"
 
             return {
                 "change_id": change_id,
@@ -534,13 +530,12 @@ class SuggestedDesignEngine:
         # 6. Date of Manufacture / Packaging (LMPC-DECL-DATE - Rule 6(1)(d))
         elif rule_code == "LMPC-DECL-DATE":
             current_date = fields.get("date_marking", {}).get("extracted_value") or "Not Detected"
-            now_m = datetime.utcnow().strftime("%m/%Y")
             
-            # Preserve date if extracted; otherwise standard MM/YYYY
+            # Preserve date if extracted; otherwise standard placeholder (never invent arbitrary date)
             if current_date and current_date != "Not Detected" and re.search(r"\d{2}/\d{2,4}", current_date):
                 suggested_val = f"MFD: {current_date}"
             else:
-                suggested_val = f"MFG: {now_m}"
+                suggested_val = "MFG: [MM/YYYY]"
 
             return {
                 "change_id": change_id,
@@ -565,7 +560,10 @@ class SuggestedDesignEngine:
         # 7. Country of Origin (LMPC-DECL-COUNTRY-ORIGIN - Rule 6(1)(aa))
         elif rule_code == "LMPC-DECL-COUNTRY-ORIGIN":
             current_origin = fields.get("country_of_origin", {}).get("extracted_value") or "Not Detected"
-            suggested_val = "Country of Origin: India"
+            if current_origin and current_origin != "Not Detected":
+                suggested_val = f"Country of Origin: {current_origin}"
+            else:
+                suggested_val = "Country of Origin: [Insert Country of Origin]"
 
             return {
                 "change_id": change_id,

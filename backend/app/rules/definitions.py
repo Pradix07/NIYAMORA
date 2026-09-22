@@ -391,5 +391,33 @@ VERIFIED_RULES_CATALOG = [
                 "status": "FUTURE_EFFECTIVE"
             }
         ]
+    },
+    {
+        "rule_id": "RULE-LMPC-LANGUAGE",
+        "domain": "LEGAL_METROLOGY_PACKAGED_COMMODITIES",
+        "rule_code": "LMPC-DECL-LANG",
+        "title": "Language of Declarations (Hindi or English)",
+        "category": "Legal Metrology",
+        "severity": "CRITICAL",
+        "description": "Rule 9(1) mandates that every declaration which is required to be made on package shall appear in Hindi in Devanagari script or in English.",
+        "versions": [
+            {
+                "version_id": "RV-LMPC-LANGUAGE-2011-V1",
+                "version_number": 1,
+                "title": "Statutory Language Compliance (Rule 9(1))",
+                "requirement_text": "Every declaration which is required to be made on package shall appear in Hindi in Devanagari script or in English.",
+                "source_id": "SRC-DCA-LMPC-2011",
+                "source_reference": "Rule 9(1)",
+                "source_url": "https://consumeraffairs.gov.in/pages/legal-metrology-act",
+                "effective_from": "2011-04-01",
+                "effective_to": None,
+                "applicability": "ALL_PREPACKAGED_COMMODITIES",
+                "evaluation_type": "DETERMINISTIC_FIELD",
+                "parameters": {
+                    "allowed_languages": ["English", "Hindi"]
+                },
+                "status": "ACTIVE"
+            }
+        ]
     }
 ]

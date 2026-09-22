@@ -18,9 +18,10 @@ class ConsumerCareEvaluator(BaseRuleEvaluator):
     ) -> Tuple[str, Optional[str], str, str, Optional[Dict[str, Any]], Optional[str]]:
         expected_cond = "Must declare contact details (telephone number, e-mail address, contact person/office address) for consumer complaints (Rule 6(2))."
 
-        care_field = extracted_fields.get("consumer_care") or {}
-        extracted_val = care_field.get("extracted_value")
-        evidence_box = care_field.get("evidence_box")
+        care_field = extracted_fields.get("consumer_care")
+        extracted_val = care_field.get("extracted_value") if isinstance(care_field, dict) else getattr(care_field, "extracted_value", None)
+        box = care_field.get("evidence_box") if isinstance(care_field, dict) else getattr(care_field, "evidence_box", None)
+        evidence_box = box.model_dump() if hasattr(box, "model_dump") else (box.dict() if hasattr(box, "dict") else box)
 
         candidate_text = extracted_val
         if not candidate_text:

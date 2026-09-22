@@ -16,7 +16,8 @@ import {
   Loader2,
   Package,
   Sliders,
-  Boxes
+  Boxes,
+  Sparkles
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
@@ -116,8 +117,17 @@ export const DashboardPage: React.FC = () => {
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.875rem', flexWrap: 'wrap' }}>
               <button
-                onClick={() => navigate('/new-check')}
+                onClick={() => navigate('/create-packaging')}
                 className="btn btn-primary btn-lg"
+                style={{ gap: '0.5rem', backgroundColor: '#7C3AED' }}
+              >
+                <Sparkles size={18} />
+                <span>Create Packaging</span>
+              </button>
+
+              <button
+                onClick={() => navigate('/new-check')}
+                className="btn btn-secondary btn-lg"
                 style={{ gap: '0.5rem' }}
               >
                 <PlusCircle size={18} />

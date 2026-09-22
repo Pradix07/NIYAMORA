@@ -18,7 +18,8 @@ import {
   BookOpen,
   Settings,
   ChevronRight,
-  ChevronDown
+  ChevronDown,
+  Sparkles
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -40,7 +41,8 @@ export const Sidebar: React.FC<SidebarProps> = ({ onItemClick }) => {
   const navItems: NavItem[] = [
     { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { label: 'Products', path: '/products', icon: Boxes },
-    { label: 'New Check', path: '/new-check', icon: PlusCircle, highlight: true },
+    { label: 'New Check', path: '/new-check', icon: PlusCircle },
+    { label: 'Create Packaging', path: '/create-packaging', icon: Sparkles, highlight: true, badge: 'Studio' },
     { label: 'Processing', path: '/processing', icon: Cpu },
     { label: 'Results / Workbench', path: '/workbench', icon: SearchCheck },
     { label: 'Improve Design', path: '/improve', icon: Wand2 },

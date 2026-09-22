@@ -1,6 +1,6 @@
 from datetime import datetime
 import uuid
-from sqlalchemy import Column, String, Integer, Float, DateTime, ForeignKey
+from sqlalchemy import Column, String, Integer, Float, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import relationship
 from app.db.session import Base
 
@@ -20,6 +20,8 @@ class ArtworkPanel(Base):
     file_size_bytes = Column(Integer, nullable=False)
     width = Column(Integer, nullable=True)
     height = Column(Integer, nullable=True)
+    image_hash = Column(String(64), nullable=True)
+    panel_metadata = Column(JSON, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     artwork_version = relationship("ArtworkVersion", back_populates="panels")

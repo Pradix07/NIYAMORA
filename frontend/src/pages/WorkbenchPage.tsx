@@ -132,7 +132,8 @@ export const WorkbenchPage: React.FC = () => {
     if (detected && !isFilenameLike(detected)) {
       return detected;
     }
-    return 'Nutriva California Almonds';
+    const cleaned = inspection.product_name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+    return cleaned || 'Packaging Artwork';
   };
 
   // Build custom boxes from live extraction & evaluation evidence
@@ -445,12 +446,14 @@ export const WorkbenchPage: React.FC = () => {
 
           {/* Right: Simplified Findings & Extracted Information Panel */}
           <FindingPanel
+            inspectionId={inspectionId || undefined}
             evaluations={evaluations}
             findings={findings}
             extractedFields={inspection?.extracted_data?.fields}
             selectedFindingId={selectedFindingId}
             onSelectFinding={handleSelectFinding}
             onOpenImprove={() => navigate(`/improve?productId=${productId}${versionId ? `&versionId=${versionId}` : ''}`)}
+            onReviewActionCompleted={() => loadInspectionData()}
             complianceVerdict={complianceVerdict}
           />
         </div>

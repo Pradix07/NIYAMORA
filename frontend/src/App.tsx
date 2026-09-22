@@ -29,6 +29,7 @@ import { ReportsPage } from './pages/ReportsPage';
 import { PassportPage } from './pages/PassportPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { CreatePackagingPage } from './pages/CreatePackagingPage';
 
 import { useLocation } from 'react-router-dom';
 
@@ -63,6 +64,7 @@ export const App: React.FC = () => {
             <Route path="/resources" element={<ResourcesPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
+            <Route path="/create-account" element={<SignupPage />} />
 
             {/* Authenticated Workspace Routes */}
             <Route
@@ -94,6 +96,22 @@ export const App: React.FC = () => {
               element={
                 <ProtectedRoute>
                   <NewCheckPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/create-packaging"
+              element={
+                <ProtectedRoute>
+                  <CreatePackagingPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/packaging-studio"
+              element={
+                <ProtectedRoute>
+                  <CreatePackagingPage />
                 </ProtectedRoute>
               }
             />

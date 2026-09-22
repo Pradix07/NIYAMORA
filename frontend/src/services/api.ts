@@ -1,4 +1,9 @@
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000';
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL !== undefined
+    ? import.meta.env.VITE_API_BASE_URL
+    : (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'))
+      ? ''
+      : 'http://127.0.0.1:8000';
 
 export interface ApiUser {
   id: string;
@@ -245,7 +250,6 @@ export interface ApiInspection {
   panels?: ApiPanel[];
   error_message?: string;
   created_at: string;
-  completed_at?: string;
 }
 
 export interface ApiStructuredUSP {
@@ -499,7 +503,7 @@ export const clearAuthToken = () => {
 async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const token = getAuthToken();
   const headers = new Headers(options.headers || {});
-  
+
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
@@ -515,6 +519,122 @@ async function authFetch(url: string, options: RequestInit = {}): Promise<Respon
   }
 
   return res;
+}
+
+export interface ApiPackagingProject {
+  id: string;
+  company_id: string;
+  product_id?: string;
+  artwork_id?: string;
+  artwork_version_id?: string;
+  inspection_id?: string;
+  title: string;
+  status: 'DRAFT' | 'GENERATED' | 'REVIEWED' | 'APPROVED';
+  packaging_format: string;
+  dimensions: {
+    width_mm?: number;
+    height_mm?: number;
+    depth_mm?: number;
+    bleed_mm?: number;
+  };
+  product_data: {
+    product_name?: string;
+    brand_name?: string;
+    category?: string;
+    sub_category?: string;
+    description?: string;
+    net_quantity?: string;
+    unit?: string;
+  };
+  business_data: {
+    manufacturer_name?: string;
+    manufacturer_address?: string;
+    packer_name?: string;
+    packer_address?: string;
+    importer_name?: string;
+    importer_address?: string;
+    marketer_name?: string;
+    marketer_address?: string;
+    country_of_origin?: string;
+    consumer_care_phone?: string;
+    consumer_care_email?: string;
+    consumer_care_website?: string;
+    consumer_care_address?: string;
+    fssai_license?: string;
+  };
+  food_data: {
+    ingredients?: Array<{ name: string; percentage?: string }>;
+    contains_allergens?: string[];
+    may_contain_allergens?: string[];
+    veg_non_veg?: 'VEG' | 'NON_VEG' | 'NOT_APPLICABLE';
+  };
+  nutrition_data: {
+    basis?: string;
+    serving_size?: string;
+    nutrients?: Array<{ nutrient_name: string; amount: string; unit: string; rda_percentage?: string }>;
+  };
+  declaration_data: {
+    mrp?: string;
+    unit_sale_price?: string;
+    batch_number?: string;
+    mfg_date?: string;
+    pack_date?: string;
+    expiry_date?: string;
+    best_before?: string;
+    storage_instructions?: string;
+    preparation_instructions?: string;
+    user_claims?: string[];
+    barcode?: string;
+  };
+  brand_data: {
+    logo_url?: string;
+    use_text_logo?: boolean;
+    primary_color?: string;
+    secondary_color?: string;
+    accent_color?: string;
+    design_style?: string;
+    custom_direction?: string;
+  };
+  design_brief: {
+    summary?: string;
+    style_theme?: string;
+    primary_color?: string;
+    secondary_color?: string;
+    accent_color?: string;
+    typography_notes?: string;
+    hierarchy_notes?: string;
+    custom_direction?: string;
+  };
+  panel_designs: Record<string, {
+    panel_type: string;
+    file_path: string;
+    preview_url: string;
+    width: number;
+    height: number;
+    elements: any[];
+    is_applicable: boolean;
+  }>;
+  active_version_number: number;
+  compliance_summary?: {
+    score?: number;
+    verdict?: string;
+    findings_summary?: {
+      pass_count?: number;
+      issue_count?: number;
+      review_count?: number;
+      total?: number;
+    };
+  };
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ApiPackagingRedesignResponse {
+  project_id: string;
+  proposed_version_number: number;
+  changes_summary: string[];
+  style_overrides?: Record<string, any>;
+  feedback_prompt: string;
 }
 
 export const api = {
@@ -925,13 +1045,121 @@ export const api = {
     return res.json();
   },
 
-  getFileUrl(path: string): string {
+  // Packaging Studio Methods
+  async createPackagingProject(payload: any): Promise<ApiPackagingProject> {
+    const res = await authFetch(`${API_BASE_URL}/api/packaging-studio/projects`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to create packaging project');
+    }
+    return res.json();
+  },
+
+  async listPackagingProjects(): Promise<ApiPackagingProject[]> {
+    const res = await authFetch(`${API_BASE_URL}/api/packaging-studio/projects`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to list packaging projects');
+    }
+    return res.json();
+  },
+
+  async getPackagingProject(id: string): Promise<ApiPackagingProject> {
+    const res = await authFetch(`${API_BASE_URL}/api/packaging-studio/projects/${id}`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to fetch packaging project');
+    }
+    return res.json();
+  },
+
+  async updatePackagingProject(id: string, payload: any): Promise<ApiPackagingProject> {
+    const res = await authFetch(`${API_BASE_URL}/api/packaging-studio/projects/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to update packaging project');
+    }
+    return res.json();
+  },
+
+  async generatePackaging(id: string): Promise<ApiPackagingProject> {
+    const res = await authFetch(`${API_BASE_URL}/api/packaging-studio/projects/${id}/generate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to generate packaging artwork');
+    }
+    return res.json();
+  },
+
+  async requestRedesign(id: string, feedback_prompt: string): Promise<ApiPackagingRedesignResponse> {
+    const res = await authFetch(`${API_BASE_URL}/api/packaging-studio/projects/${id}/redesign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feedback_prompt }),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to request redesign');
+    }
+    return res.json();
+  },
+
+  async acceptRedesign(id: string): Promise<ApiPackagingProject> {
+    const res = await authFetch(`${API_BASE_URL}/api/packaging-studio/projects/${id}/accept-redesign`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to accept redesign proposal');
+    }
+    return res.json();
+  },
+
+  getPackagingPdfUrl(id: string): string {
     const token = localStorage.getItem('niyamora_token');
-    let url = path.startsWith('http') ? path : `${API_BASE_URL}${path.startsWith('/') ? '' : '/'}${path}`;
-    if (token && !url.includes('token=')) {
-      const sep = url.includes('?') ? '&' : '?';
-      url = `${url}${sep}token=${encodeURIComponent(token)}`;
+    let url = `${API_BASE_URL}/api/packaging-studio/projects/${id}/export-pdf`;
+    if (token) {
+      url += `?token=${encodeURIComponent(token)}`;
     }
     return url;
   },
+
+  getPackagingPanelImageUrl(projectId: string, panelType: string): string {
+    const token = localStorage.getItem('niyamora_token');
+    let url = `${API_BASE_URL}/api/packaging-studio/projects/${projectId}/panels/${panelType.toUpperCase()}`;
+    if (token) {
+      url += `?token=${encodeURIComponent(token)}`;
+    }
+    return url;
+  },
+
+  getFileUrl(path: string): string {
+    if (!path) return '';
+    const token = localStorage.getItem('niyamora_token');
+    let cleanPath = path;
+    if (!cleanPath.startsWith('http://') && !cleanPath.startsWith('https://')) {
+      if (!cleanPath.startsWith('/')) {
+        cleanPath = `/${cleanPath}`;
+      }
+      cleanPath = `${API_BASE_URL}${cleanPath}`;
+    }
+    if (token && !cleanPath.includes('token=')) {
+      const sep = cleanPath.includes('?') ? '&' : '?';
+      cleanPath = `${cleanPath}${sep}token=${encodeURIComponent(token)}`;
+    }
+    return cleanPath;
+  },
 };
+

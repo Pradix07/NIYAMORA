@@ -1,46 +1,82 @@
 import React, { useState } from 'react';
 import type { ApiEvaluation, ApiFinding, ApiExtractedField } from '../../services/api';
-import { Wand2, BookOpen, AlertCircle, CheckCircle2, XCircle, HelpCircle, MinusCircle, ChevronDown, ChevronUp, MapPin, Shield } from 'lucide-react';
+import { api } from '../../services/api';
+import { Wand2, BookOpen, AlertCircle, CheckCircle2, XCircle, HelpCircle, MinusCircle, ChevronDown, ChevronUp, MapPin, Shield, Camera, MessageSquare } from 'lucide-react';
 
 interface FindingPanelProps {
+  inspectionId?: string;
   evaluations?: ApiEvaluation[];
   findings?: ApiFinding[];
   extractedFields?: Record<string, ApiExtractedField>;
   selectedFindingId: string | null;
   onSelectFinding: (id: string) => void;
   onOpenImprove?: () => void;
+  onReviewActionCompleted?: () => void;
   complianceVerdict?: string;
 }
 
 export const FindingPanel: React.FC<FindingPanelProps> = ({
+  inspectionId,
   evaluations = [],
   findings = [],
   extractedFields,
   selectedFindingId,
   onSelectFinding,
   onOpenImprove,
+  onReviewActionCompleted,
 }) => {
   const [filter, setFilter] = useState<'ALL' | 'ISSUE' | 'REVIEW' | 'PASS' | 'N/A'>('ALL');
   const [activeTab, setActiveTab] = useState<'RULES' | 'EXTRACTION'>('RULES');
   const [expandedDetails, setExpandedDetails] = useState<Record<string, boolean>>({});
+  const [localStatuses, setLocalStatuses] = useState<Record<string, string>>({});
+  const [activeNoteInput, setActiveNoteInput] = useState<string | null>(null);
+  const [noteText, setNoteText] = useState<string>('');
+  const [isSubmittingReview, setIsSubmittingReview] = useState<string | null>(null);
 
   const hasEvaluations = evaluations && evaluations.length > 0;
   const hasLiveFields = extractedFields && Object.keys(extractedFields).length > 0;
   const fieldList = hasLiveFields ? Object.values(extractedFields!) : [];
 
-  const issueCount = evaluations.filter((e) => e.status === 'ISSUE').length;
-  const reviewCount = evaluations.filter((e) => e.status === 'REVIEW').length;
-  const passCount = evaluations.filter((e) => e.status === 'PASS').length;
-  const naCount = evaluations.filter((e) => e.status === 'N/A').length;
+  const getEffectiveStatus = (e: ApiEvaluation) => localStatuses[e.id] || e.status;
+
+  const issueCount = evaluations.filter((e) => getEffectiveStatus(e) === 'ISSUE').length;
+  const reviewCount = evaluations.filter((e) => getEffectiveStatus(e) === 'REVIEW').length;
+  const passCount = evaluations.filter((e) => getEffectiveStatus(e) === 'PASS').length;
+  const naCount = evaluations.filter((e) => getEffectiveStatus(e) === 'N/A').length;
 
   const filteredEvaluations = evaluations.filter((e) => {
     if (filter === 'ALL') return true;
-    return e.status === filter;
+    return getEffectiveStatus(e) === filter;
   });
 
   const toggleDetails = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setExpandedDetails((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const handleReviewAction = async (evId: string, findingId: string | undefined, decision: string, note?: string) => {
+    setIsSubmittingReview(evId);
+    const targetStatus = decision === 'CONFIRM_PASS' ? 'PASS' : decision === 'MARK_AS_ISSUE' ? 'ISSUE' : 'REVIEW';
+    setLocalStatuses((prev) => ({ ...prev, [evId]: targetStatus }));
+
+    try {
+      await api.submitReview({
+        inspection_id: inspectionId,
+        finding_id: findingId,
+        decision: decision,
+        reviewer_name: 'Compliance Specialist',
+        notes: note || (decision === 'CONFIRM_PASS' ? 'Manually verified as compliant' : decision === 'MARK_AS_ISSUE' ? 'Confirmed packaging non-compliance' : 'Clearer packshot requested'),
+      });
+      if (onReviewActionCompleted) {
+        onReviewActionCompleted();
+      }
+    } catch (err) {
+      console.error('Failed to submit review decision:', err);
+    } finally {
+      setIsSubmittingReview(null);
+      setActiveNoteInput(null);
+      setNoteText('');
+    }
   };
 
   const getStatusBadge = (status: string) => {
@@ -317,6 +353,8 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
               const simpleExplanation = getSimpleExplanation(ev);
               const actionableStep = getActionableGuidance(ev, relatedFinding);
 
+              const effectiveStatus = getEffectiveStatus(ev);
+
               return (
                 <div
                   key={ev.id}
@@ -328,9 +366,9 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
                     backgroundColor: isSelected ? 'var(--brand-primary-light)' : 'transparent',
                     borderLeft: isSelected
                       ? '3px solid var(--brand-primary)'
-                      : ev.status === 'ISSUE'
+                      : effectiveStatus === 'ISSUE'
                       ? '3px solid var(--status-issue-solid)'
-                      : ev.status === 'REVIEW'
+                      : effectiveStatus === 'REVIEW'
                       ? '3px solid var(--status-review-solid)'
                       : '3px solid transparent',
                     transition: 'background-color var(--transition-fast)',
@@ -341,7 +379,7 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
                     <h4 style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
                       {simpleTitle}
                     </h4>
-                    {getStatusBadge(ev.status)}
+                    {getStatusBadge(effectiveStatus)}
                   </div>
 
                   {/* Plain English Explanation */}
@@ -356,6 +394,88 @@ export const FindingPanel: React.FC<FindingPanelProps> = ({
                         What you can do:
                       </span>
                       <span style={{ color: 'var(--text-secondary)' }}>{actionableStep}</span>
+                    </div>
+                  )}
+
+                  {/* Interactive Specialist Review Actions for REVIEW state */}
+                  {effectiveStatus === 'REVIEW' && (
+                    <div 
+                      style={{ 
+                        marginTop: '0.5rem', 
+                        padding: '0.6rem 0.75rem', 
+                        backgroundColor: 'var(--bg-surface-subtle)', 
+                        borderRadius: 'var(--radius-md)', 
+                        border: '1px solid var(--border-default)' 
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.35rem' }}>
+                        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                          Specialist Verification:
+                        </span>
+                        {isSubmittingReview === ev.id && (
+                          <span style={{ fontSize: '0.7rem', color: 'var(--brand-primary)' }}>Saving...</span>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          style={{ backgroundColor: 'var(--status-pass-bg)', color: 'var(--status-pass-solid)', border: '1px solid var(--status-pass-border)', fontSize: '0.72rem', padding: '3px 8px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                          onClick={() => handleReviewAction(ev.id, relatedFinding?.id, 'CONFIRM_PASS')}
+                          disabled={isSubmittingReview === ev.id}
+                        >
+                          <CheckCircle2 size={12} /> Confirm Pass
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          style={{ backgroundColor: 'var(--status-issue-bg)', color: 'var(--status-issue-solid)', border: '1px solid var(--status-issue-border)', fontSize: '0.72rem', padding: '3px 8px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                          onClick={() => handleReviewAction(ev.id, relatedFinding?.id, 'MARK_AS_ISSUE')}
+                          disabled={isSubmittingReview === ev.id}
+                        >
+                          <XCircle size={12} /> Mark as Issue
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border-default)', fontSize: '0.72rem', padding: '3px 8px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                          onClick={() => handleReviewAction(ev.id, relatedFinding?.id, 'REQUEST_CLEARER_IMAGE')}
+                          disabled={isSubmittingReview === ev.id}
+                        >
+                          <Camera size={12} /> Clearer Image
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn-sm"
+                          style={{ backgroundColor: 'var(--bg-surface)', color: 'var(--text-secondary)', border: '1px solid var(--border-default)', fontSize: '0.72rem', padding: '3px 8px', display: 'flex', alignItems: 'center', gap: '4px', cursor: 'pointer' }}
+                          onClick={() => setActiveNoteInput(activeNoteInput === ev.id ? null : ev.id)}
+                        >
+                          <MessageSquare size={12} /> Note
+                        </button>
+                      </div>
+
+                      {activeNoteInput === ev.id && (
+                        <div style={{ marginTop: '0.45rem', display: 'flex', gap: '0.35rem' }}>
+                          <input
+                            type="text"
+                            placeholder="Enter specialist verification remarks..."
+                            value={noteText}
+                            onChange={(e) => setNoteText(e.target.value)}
+                            style={{ flex: 1, fontSize: '0.75rem', padding: '4px 8px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)' }}
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            style={{ fontSize: '0.72rem', padding: '3px 8px' }}
+                            onClick={() => handleReviewAction(ev.id, relatedFinding?.id, 'ADD_NOTE', noteText)}
+                            disabled={!noteText.trim() || isSubmittingReview === ev.id}
+                          >
+                            Save
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
 

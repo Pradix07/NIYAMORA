@@ -87,11 +87,13 @@ class RegressionEngine:
             e_a = eval_map_a.get(code)
             e_b = eval_map_b.get(code)
 
-            status_a = e_a.status if e_a else "ISSUE"
-            status_b = e_b.status if e_b else ("PASS" if ver_b.version_number > ver_a.version_number else status_a)
+            status_a = e_a.status if e_a else "NOT_EVALUATED"
+            status_b = e_b.status if e_b else "NOT_EVALUATED"
 
-            summary_a[status_a] = summary_a.get(status_a, 0) + 1
-            summary_b[status_b] = summary_b.get(status_b, 0) + 1
+            if status_a in summary_a:
+                summary_a[status_a] = summary_a.get(status_a, 0) + 1
+            if status_b in summary_b:
+                summary_b[status_b] = summary_b.get(status_b, 0) + 1
 
             rule_title = (e_b.rule_version.title if e_b and e_b.rule_version else None) or (e_a.rule_version.title if e_a and e_a.rule_version else code)
 
@@ -106,14 +108,14 @@ class RegressionEngine:
             )
 
             # Evidence-aware regression mapping
-            if status_a == "ISSUE" and status_b == "PASS":
-                fixed_issues.append(item)
-            elif status_a == "PASS" and status_b == "ISSUE":
+            if status_a == "PASS" and status_b == "ISSUE":
                 item.description = f"Accidental regression introduced in {ver_b.version_label}: previously PASS, now ISSUE."
                 new_issues.append(item)
             elif status_a == "PASS" and status_b == "REVIEW":
                 item.description = f"Evidence degraded in {ver_b.version_label}: previously PASS, now requires human review."
                 review_changed_issues.append(item)
+            elif status_a == "ISSUE" and status_b == "PASS":
+                fixed_issues.append(item)
             elif status_a == "REVIEW" and status_b == "PASS":
                 item.description = f"Clarity improved to satisfy requirement in {ver_b.version_label}."
                 improved_issues.append(item)

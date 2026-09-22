@@ -109,13 +109,60 @@ def submit_human_review(
     )
     db.add(review)
 
-    # If finding is referenced, update its status
+    # If finding is referenced, update its status and associated evaluation
+    norm_decision = payload.decision.upper()
     if payload.finding_id:
         finding = db.query(Finding).filter(Finding.id == payload.finding_id).first()
         if finding:
-            finding.status = "REVIEWED"
+            evaluation = db.query(Evaluation).filter(Evaluation.id == finding.evaluation_id).first() if finding.evaluation_id else None
+            if not evaluation:
+                evaluation = (
+                    db.query(Evaluation)
+                    .join(RuleVersion, Evaluation.rule_version_id == RuleVersion.id)
+                    .filter(Evaluation.inspection_id == payload.inspection_id, RuleVersion.rule_code == finding.rule_code)
+                    .first()
+                )
+
+            if norm_decision in ("APPROVED_PASS", "CONFIRM_PASS", "PASS"):
+                finding.status = "RESOLVED"
+                if evaluation:
+                    evaluation.status = "PASS"
+                    evaluation.explanation = f"Specialist confirmation: {payload.notes or 'Manually verified as compliant.'}"
+            elif norm_decision in ("CONFIRMED_ISSUE", "MARK_AS_ISSUE", "ISSUE"):
+                finding.status = "OPEN"
+                if evaluation:
+                    evaluation.status = "ISSUE"
+                    evaluation.explanation = f"Specialist confirmation: {payload.notes or 'Identified non-compliance.'}"
+            elif norm_decision in ("NEW_IMAGE_REQUESTED", "REQUEST_CLEARER_IMAGE"):
+                finding.status = "IMAGE_REQUESTED"
+                if evaluation:
+                    evaluation.status = "REVIEW"
+            else:
+                finding.status = "REVIEWED"
+
+    # Dynamically recalculate inspection summary counts & compliance score
+    evals = db.query(Evaluation).filter(Evaluation.inspection_id == payload.inspection_id).all()
+    pass_cnt = sum(1 for e in evals if e.status == "PASS")
+    issue_cnt = sum(1 for e in evals if e.status == "ISSUE")
+    review_cnt = sum(1 for e in evals if e.status == "REVIEW")
+    na_cnt = sum(1 for e in evals if e.status == "N/A")
+    total_cnt = len(evals)
+
+    inspection.findings_summary = {
+        "total": total_cnt,
+        "pass_count": pass_cnt,
+        "issue_count": issue_cnt,
+        "review_count": review_cnt,
+        "na_count": na_cnt
+    }
+    inspection.compliance_score = round((pass_cnt / total_cnt * 100), 1) if total_cnt > 0 else 0.0
+    inspection.compliance_verdict = (
+        "NON_COMPLIANT" if issue_cnt > 0
+        else ("NEEDS_REVIEW" if review_cnt > 0 else "COMPLIANT")
+    )
 
     db.commit()
+    db.refresh(inspection)
     db.refresh(review)
     return review
 

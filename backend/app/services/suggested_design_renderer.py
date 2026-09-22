@@ -263,14 +263,11 @@ class SuggestedDesignRenderer:
 
     @classmethod
     def _create_default_packaging_canvas(cls, product: Product) -> Image.Image:
-        """Creates a clean neutral packaging dieline canvas."""
-        img = Image.new("RGB", (800, 1100), color=(248, 250, 252))
+        """Creates a minimal canvas indicating artwork could not be loaded."""
+        img = Image.new("RGB", (800, 1100), color=(245, 245, 245))
         draw = ImageDraw.Draw(img)
-        draw.rectangle([40, 40, 760, 1060], outline=(203, 213, 225), width=2)
-        brand_name = (product.brand or "Brand").upper()
-        prod_name = (product.name or "Packaging Product").upper()
-        draw.text((60, 70), brand_name, fill=(100, 116, 139))
-        draw.text((60, 100), prod_name, fill=(15, 23, 42))
+        draw.rectangle([40, 40, 760, 1060], outline=(200, 200, 200), width=1)
+        draw.text((60, 100), "Artwork could not be loaded.", fill=(120, 120, 120))
         return img
 
     @classmethod
