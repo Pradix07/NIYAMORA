@@ -185,6 +185,7 @@ def download_inspection_pdf(
         media_type="application/pdf",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
-            "Content-Type": "application/pdf"
+            "Content-Type": "application/pdf",
+            "Access-Control-Expose-Headers": "Content-Disposition"
         }
     )

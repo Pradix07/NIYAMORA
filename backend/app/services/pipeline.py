@@ -7,6 +7,7 @@ from app.models.product import Product
 from app.processors.quality import ImageQualityAnalyzer
 from app.processors.extractor import ContentExtractor
 from app.processors.structurer import PackagingFieldStructurer
+from app.services.ai_extractor import AIExtractionService
 from app.models.artwork_panel import ArtworkPanel
 from app.schemas.inspection import ExtractionResult, TextBlock, BoundingBoxCoord
 from app.rules.engine import ComplianceEngine
@@ -121,6 +122,7 @@ class InspectionPipelineService:
             # Stage 3: Text & Bounding Box Extraction across ALL panels
             all_blocks: list[TextBlock] = []
             raw_text_parts: list[str] = []
+            panel_contexts: list[dict] = []
             first_preview_path = None
 
             for p in panels:
@@ -132,6 +134,12 @@ class InspectionPipelineService:
 
                 if p_raw and p_raw.strip():
                     raw_text_parts.append(p_raw.strip())
+                    panel_contexts.append({
+                        "panel_type": p.panel_type,
+                        "panel_id": p.id,
+                        "filename": p.original_filename,
+                        "raw_text": p_raw.strip()
+                    })
 
                 # Tag each block with panel identifier
                 for blk in p_blocks:
@@ -161,7 +169,7 @@ class InspectionPipelineService:
             inspection.current_stage = "STRUCTURED_PARSING"
             db.commit()
 
-            # Stage 4: Structured Packaging Entity Parsing
+            # Stage 4: Structured Packaging Entity Parsing (Deterministic + AI Extraction Layer)
             logger.info(f"Structuring {len(all_blocks)} blocks from {len(panels)} panel(s) into packaging fields")
             fields = PackagingFieldStructurer.structure_fields(
                 raw_text=combined_raw_text,
@@ -169,6 +177,18 @@ class InspectionPipelineService:
                 product_name_hint=name_hint,
                 brand_hint=brand_hint
             )
+
+            # AI-assisted structured extraction enrichment (Groq LLM)
+            try:
+                ai_data = AIExtractionService.extract_fields(
+                    raw_text=combined_raw_text,
+                    panel_context=panel_contexts
+                )
+                if ai_data:
+                    logger.info("Enriching packaging declarations with AI-assisted structured extraction")
+                    fields = AIExtractionService.enrich_fields_with_ai(fields, ai_data, all_blocks)
+            except Exception as ai_err:
+                logger.warning(f"AI extraction skipped; proceeding with deterministic extraction: {ai_err}")
 
             extraction_result = ExtractionResult(
                 raw_text=combined_raw_text,

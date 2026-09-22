@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     ALLOWED_DOC_TYPES: List[str] = ["application/pdf"]
     ALLOWED_EXTENSIONS: List[str] = [".png", ".jpg", ".jpeg", ".webp", ".pdf"]
 
+    # AI Packaging Extractor (Groq LLM)
+    GROQ_API_KEY: Optional[str] = os.getenv("GROQ_API_KEY", None)
+    GROQ_MODEL: str = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
+
     def get_jwt_secret_key(self) -> str:
         env = (os.getenv("ENVIRONMENT") or self.ENVIRONMENT).lower().strip()
         secret = (

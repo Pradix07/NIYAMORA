@@ -82,10 +82,15 @@ export const ProcessingPage: React.FC = () => {
           if (pollIntervalRef.current) {
             clearInterval(pollIntervalRef.current);
           }
+          setTimeout(() => {
+            if (isSubscribed) {
+              navigate(`/workbench?inspectionId=${inspectionId}`);
+            }
+          }, 1200);
         } else if (data.status === 'FAILED') {
           setSteps((prev) =>
             prev.map((s, idx) =>
-              idx === 1
+              idx === 1 || idx === 2
                 ? { ...s, status: 'failed', detail: data.error_message || 'Could not complete analysis' }
                 : s
             )

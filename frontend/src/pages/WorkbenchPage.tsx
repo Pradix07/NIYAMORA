@@ -378,7 +378,19 @@ export const WorkbenchPage: React.FC = () => {
                   </button>
 
                   <button
-                    onClick={() => { setShowMoreMenu(false); navigate('/reports'); }}
+                    onClick={async () => {
+                      setShowMoreMenu(false);
+                      if (inspection) {
+                        try {
+                          const safe = productName.replace(/[^a-zA-Z0-9_\-]/g, '_');
+                          await api.downloadInspectionPdf(inspection.id, `${safe}_NIYAMORA_Inspection_${versionLabel}.pdf`);
+                        } catch (err: any) {
+                          alert(`Download failed: ${err.message || 'Could not download inspection report PDF'}`);
+                        }
+                      } else {
+                        navigate('/reports');
+                      }
+                    }}
                     className="btn-ghost"
                     style={{
                       width: '100%',
@@ -392,7 +404,7 @@ export const WorkbenchPage: React.FC = () => {
                     }}
                   >
                     <FileText size={14} />
-                    <span>Download report</span>
+                    <span>Download PDF Report</span>
                   </button>
 
                   <button

@@ -14,6 +14,20 @@ from app.api.deps import get_current_company, verify_product_ownership
 
 router = APIRouter(prefix="/files", tags=["Files & Previews"])
 
+def _resolve_existing_path(path_str: Optional[str]) -> Optional[Path]:
+    if not path_str:
+        return None
+    p = Path(path_str)
+    if p.exists():
+        return p
+    alt1 = Path("backend") / path_str
+    if alt1.exists():
+        return alt1
+    alt2 = storage.base_dir / path_str
+    if alt2.exists():
+        return alt2
+    return None
+
 @router.get("/preview/{version_id}")
 def get_artwork_preview(
     version_id: str,
@@ -30,18 +44,20 @@ def get_artwork_preview(
         if product:
             verify_product_ownership(product, company)
 
-    target_path = version.preview_image_path or version.file_path
-    if not target_path or not Path(target_path).exists():
+    raw_path = version.preview_image_path or version.file_path
+    resolved = _resolve_existing_path(raw_path)
+    if not resolved:
         raise HTTPException(status_code=404, detail="Preview file not found.")
 
-    ext = Path(target_path).suffix.lower()
+    ext = resolved.suffix.lower()
     media_type = "image/png" if ext == ".png" else "image/jpeg" if ext in [".jpg", ".jpeg"] else "image/webp" if ext == ".webp" else "application/pdf"
     
     return FileResponse(
-        path=target_path,
+        path=str(resolved),
         media_type=media_type,
-        filename=Path(target_path).name
+        filename=resolved.name
     )
+
 
 @router.get("/panels/{panel_id}")
 def get_panel_preview(
@@ -61,17 +77,18 @@ def get_panel_preview(
             if product:
                 verify_product_ownership(product, company)
 
-    target_path = panel.file_path
-    if not target_path or not Path(target_path).exists():
+    raw_path = panel.file_path
+    resolved = _resolve_existing_path(raw_path)
+    if not resolved:
         raise HTTPException(status_code=404, detail="Panel file not found.")
 
-    ext = Path(target_path).suffix.lower()
+    ext = resolved.suffix.lower()
     media_type = "image/png" if ext == ".png" else "image/jpeg" if ext in [".jpg", ".jpeg"] else "image/webp" if ext == ".webp" else "application/pdf"
     
     return FileResponse(
-        path=target_path,
+        path=str(resolved),
         media_type=media_type,
-        filename=Path(target_path).name
+        filename=resolved.name
     )
 
 @router.get("/{storage_key:path}")

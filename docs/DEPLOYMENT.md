@@ -36,6 +36,8 @@ Render PostgreSQL Database
   - `SECRET_KEY`: Secure random string for JWT signing (or `JWT_SECRET_KEY`)
   - `ENVIRONMENT`: `production`
   - `CORS_ORIGINS`: `https://niyamura-frontend.onrender.com,https://niyamora-frontend.onrender.com`
+  - `GROQ_API_KEY`: (Optional) Groq Cloud API key for AI-assisted statutory extraction layer
+  - `GROQ_MODEL`: `openai/gpt-oss-120b` (Default model identifier)
 
 ### 3. Database — Render PostgreSQL
 - Managed PostgreSQL instance configured and linked to the backend service via `DATABASE_URL`.

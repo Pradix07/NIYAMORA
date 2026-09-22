@@ -7,9 +7,7 @@ import { CameraCapture, type PackagingPanelType } from '../components/common/Cam
 import {
   UploadCloud,
   FileText,
-  Image,
   Layers,
-  Link2,
   CheckCircle2,
   X,
   ArrowRight,
@@ -34,11 +32,12 @@ export const NewCheckPage: React.FC = () => {
   const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [uploadMode, setUploadMode] = useState<'artwork' | 'photo' | 'multi' | 'ecom'>('artwork');
+  const [uploadMode, setUploadMode] = useState<'artwork' | 'multi'>('artwork');
 
-  // Single file state (for artwork, photo, ecom modes)
+  // Single file state (for artwork mode)
   const [actualFile, setActualFile] = useState<File | null>(null);
   const [selectedFileMeta, setSelectedFileMeta] = useState<{ name: string; size: string; type: string } | null>(null);
+
 
   // Multi-panel state (for multi mode)
   const [uploadedPanels, setUploadedPanels] = useState<UploadedPanelItem[]>([]);
@@ -217,7 +216,7 @@ export const NewCheckPage: React.FC = () => {
       formData.append('brand', brandName.trim());
       formData.append('packaging_type', productType);
       formData.append('net_quantity', netQuantity.trim());
-      formData.append('source_type', uploadMode === 'photo' ? 'PRODUCT_PHOTO' : uploadMode === 'multi' ? 'MULTIPLE_IMAGES' : 'PACKAGING_ARTWORK');
+      formData.append('source_type', uploadMode === 'multi' ? 'MULTIPLE_IMAGES' : 'PACKAGING_ARTWORK');
 
       const response = await api.uploadCheck(formData);
       navigate(`/processing?inspectionId=${response.inspection_id}`);
@@ -256,13 +255,13 @@ export const NewCheckPage: React.FC = () => {
               1. Select Input Source
             </h3>
 
-            <div className="grid-4" style={{ gap: '0.75rem' }}>
+            <div className="grid-2" style={{ gap: '1rem' }}>
               <button
                 type="button"
                 onClick={() => setUploadMode('artwork')}
                 className="card-tactile"
                 style={{
-                  padding: '1rem',
+                  padding: '1.25rem 1rem',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -272,29 +271,9 @@ export const NewCheckPage: React.FC = () => {
                   cursor: 'pointer',
                 }}
               >
-                <FileText size={22} style={{ color: uploadMode === 'artwork' ? 'var(--brand-primary)' : 'var(--text-secondary)', marginBottom: '0.5rem' }} />
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700 }}>Packaging Artwork</span>
-                <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '2px' }}>Upload your packaging design file</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setUploadMode('photo')}
-                className="card-tactile"
-                style={{
-                  padding: '1rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  textAlign: 'center',
-                  border: uploadMode === 'photo' ? '2px solid var(--brand-primary)' : '1px solid var(--border-default)',
-                  backgroundColor: uploadMode === 'photo' ? 'var(--brand-primary-light)' : 'var(--bg-surface)',
-                  cursor: 'pointer',
-                }}
-              >
-                <Image size={22} style={{ color: uploadMode === 'photo' ? 'var(--brand-primary)' : 'var(--text-secondary)', marginBottom: '0.5rem' }} />
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700 }}>High-Res Packshot</span>
-                <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '2px' }}>300 DPI Photo</span>
+                <FileText size={24} style={{ color: uploadMode === 'artwork' ? 'var(--brand-primary)' : 'var(--text-secondary)', marginBottom: '0.5rem' }} />
+                <span style={{ fontSize: '0.875rem', fontWeight: 700 }}>Packaging Artwork Dieline</span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Upload your primary packaging PDF or artwork image</span>
               </button>
 
               <button
@@ -302,7 +281,7 @@ export const NewCheckPage: React.FC = () => {
                 onClick={() => setUploadMode('multi')}
                 className="card-tactile"
                 style={{
-                  padding: '1rem',
+                  padding: '1.25rem 1rem',
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -312,29 +291,9 @@ export const NewCheckPage: React.FC = () => {
                   cursor: 'pointer',
                 }}
               >
-                <Layers size={22} style={{ color: uploadMode === 'multi' ? 'var(--brand-primary)' : 'var(--text-secondary)', marginBottom: '0.5rem' }} />
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700 }}>Multiple Image Panels</span>
-                <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '2px' }}>Front / Back / Sides / Top</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setUploadMode('ecom')}
-                className="card-tactile"
-                style={{
-                  padding: '1rem',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  textAlign: 'center',
-                  border: uploadMode === 'ecom' ? '2px solid var(--brand-primary)' : '1px solid var(--border-default)',
-                  backgroundColor: uploadMode === 'ecom' ? 'var(--brand-primary-light)' : 'var(--bg-surface)',
-                  cursor: 'pointer',
-                }}
-              >
-                <Link2 size={22} style={{ color: uploadMode === 'ecom' ? 'var(--brand-primary)' : 'var(--text-secondary)', marginBottom: '0.5rem' }} />
-                <span style={{ fontSize: '0.8125rem', fontWeight: 700 }}>E-Commerce Listing</span>
-                <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '2px' }}>Product Photo & Declarations</span>
+                <Layers size={24} style={{ color: uploadMode === 'multi' ? 'var(--brand-primary)' : 'var(--text-secondary)', marginBottom: '0.5rem' }} />
+                <span style={{ fontSize: '0.875rem', fontWeight: 700 }}>Multiple Packaging Panels</span>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Upload Front, Back, Left, Right, Top & Bottom panels</span>
               </button>
             </div>
           </div>
