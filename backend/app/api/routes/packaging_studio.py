@@ -27,12 +27,20 @@ def create_packaging_project(
     db: Session = Depends(get_db)
 ):
     """Create a new AI Packaging Studio project from wizard inputs."""
-    project = PackagingDesignService.create_project(
-        db=db,
-        company_id=company.id,
-        payload_dict=payload.model_dump()
-    )
-    return project
+    try:
+        project = PackagingDesignService.create_project(
+            db=db,
+            company_id=company.id,
+            payload_dict=payload.model_dump()
+        )
+        return project
+    except Exception as exc:
+        import logging
+        logging.getLogger("niyamora.packaging_studio").exception("Failed to create packaging project: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to create packaging project: {str(exc)}"
+        )
 
 @router.get("/projects", response_model=List[PackagingProjectRead])
 def list_packaging_projects(
@@ -157,19 +165,27 @@ def generate_packaging_panels(
     if not project:
         raise HTTPException(status_code=404, detail="Packaging project not found")
 
-    updated_project, inspection = PackagingDesignService.generate_packaging_version(
-        db=db,
-        project_id=project.id,
-        version_number=project.active_version_number or 1
-    )
-    res = PackagingProjectRead.model_validate(updated_project)
-    res.inspection_id = inspection.id
-    res.compliance_summary = {
-        "score": inspection.compliance_score,
-        "verdict": inspection.compliance_verdict,
-        "findings_summary": inspection.findings_summary
-    }
-    return res
+    try:
+        updated_project, inspection = PackagingDesignService.generate_packaging_version(
+            db=db,
+            project_id=project.id,
+            version_number=project.active_version_number or 1
+        )
+        res = PackagingProjectRead.model_validate(updated_project)
+        res.inspection_id = inspection.id
+        res.compliance_summary = {
+            "score": inspection.compliance_score,
+            "verdict": inspection.compliance_verdict,
+            "findings_summary": inspection.findings_summary
+        }
+        return res
+    except Exception as exc:
+        import logging
+        logging.getLogger("niyamora.packaging_studio").exception("Failed to generate packaging panels: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to generate packaging artwork: {str(exc)}"
+        )
 
 @router.post("/projects/{project_id}/redesign", response_model=PackagingRedesignResponse)
 def request_redesign_proposal(
