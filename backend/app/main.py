@@ -12,6 +12,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.db.session import engine, Base, SessionLocal
+import app.models  # Registers all models (including PackagingProject) on Base.metadata
 from app.models.company import Company
 from app.models.user import User
 from app.models.product import Product
