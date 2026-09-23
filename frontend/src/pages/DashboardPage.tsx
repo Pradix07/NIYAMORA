@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { AppShell } from '../components/layout/AppShell';
-import { ProductCard } from '../components/products/ProductCard';
 import { api, type ApiProduct, type ApiInspection } from '../services/api';
 import type { Product, PackagingType } from '../types';
 import pouch3D from '../assets/pouch_3d.jpg';
@@ -17,8 +16,17 @@ import {
   Package,
   Sliders,
   Boxes,
-  Sparkles
+  Sparkles,
+  TrendingUp,
+  ShieldCheck,
+  Search,
 } from 'lucide-react';
+
+// shadcn UI Components
+import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/card';
+import { Badge } from '../components/ui/badge';
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '../components/ui/table';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
 
 export const DashboardPage: React.FC = () => {
   const { user } = useAuth();
@@ -28,6 +36,8 @@ export const DashboardPage: React.FC = () => {
   const [inspections, setInspections] = useState<ApiInspection[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<string>('products');
+  const [searchQuery, setSearchQuery] = useState<string>('');
 
   useEffect(() => {
     async function loadDashboardData() {
@@ -81,15 +91,21 @@ export const DashboardPage: React.FC = () => {
 
   const isNewWorkspace = !loading && products.length === 0 && totalInspections === 0;
 
+  const filteredProducts = products.filter(
+    (p) =>
+      p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.brand.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      p.sku.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   return (
     <AppShell breadcrumbs={[{ label: 'Dashboard' }]}>
       <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '2rem' }}>
         
-        {/* Top Greeting Banner */}
+        {/* Top Header Banner */}
         <div
-          className="glass-panel"
+          className="rounded-2xl border border-[var(--border-default)] bg-[var(--card-bg)] p-8 shadow-sm"
           style={{
-            padding: '2rem 2.25rem',
             display: 'grid',
             gridTemplateColumns: '1.2fr 0.8fr',
             gap: '2rem',
@@ -100,9 +116,9 @@ export const DashboardPage: React.FC = () => {
         >
           <div>
             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-              <span className="badge badge-neutral" style={{ fontSize: '0.75rem', fontWeight: 600 }}>
+              <Badge variant="neutral">
                 {user?.company || 'Packaging Workspace'}
-              </span>
+              </Badge>
             </div>
 
             <h1 style={{ fontSize: '2.1rem', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: '0.5rem' }}>
@@ -145,7 +161,7 @@ export const DashboardPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Right: 3D Packaging Hero Card */}
+          {/* Right: 3D Artwork Hero Card */}
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <div
               style={{
@@ -156,7 +172,7 @@ export const DashboardPage: React.FC = () => {
                 overflow: 'hidden',
                 position: 'relative',
                 boxShadow: 'var(--shadow-lg)',
-                border: '1px solid var(--glass-border)',
+                border: '1px solid var(--border-default)',
               }}
             >
               <img src={pouch3D} alt="Packaging Artwork Inspection" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
@@ -189,186 +205,252 @@ export const DashboardPage: React.FC = () => {
           </div>
         )}
 
-        {/* Workspace Summary Cards */}
+        {/* KPI Summary Cards (shadcn Style) */}
         <div>
           <div style={{ marginBottom: '1rem' }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.02em' }}>Workspace Overview</h2>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Key statutory findings, review items, and verified audit counts.</p>
           </div>
 
-          <div className="grid-4" style={{ gap: '1.25rem' }}>
-            {/* Products Card */}
-            <div 
-              className="glass-card"
-              style={{
-                padding: '1.5rem',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-              }}
-              onClick={() => navigate('/products')}
-            >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Products
-                  </span>
-                  <Boxes size={17} style={{ color: 'var(--brand-primary)' }} />
-                </div>
-                <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--text-primary)', fontFamily: 'var(--font-heading)' }}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {/* Metric 1: Registered Products */}
+            <Card className="cursor-pointer" onClick={() => navigate('/products')}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-bold uppercase tracking-wider text-[var(--text-muted)]">
+                  Products
+                </CardTitle>
+                <Boxes className="h-4 w-4 text-[var(--brand-primary)]" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-extrabold text-[var(--text-primary)]">
                   {loading ? '...' : products.length}
                 </div>
-                <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.4 }}>
-                  Registered packaging SKUs in workspace.
-                </p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8125rem', color: 'var(--brand-primary)', fontWeight: 700, marginTop: '1.25rem' }}>
-                <span>View Products</span>
-                <ChevronRight size={14} />
-              </div>
-            </div>
-
-            {/* Completed Audits */}
-            <div 
-              className="glass-card"
-              style={{
-                padding: '1.5rem',
-                borderLeft: '4px solid var(--status-good-solid)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-              }}
-              onClick={() => navigate('/products')}
-            >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--status-good-text)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Completed Audits
-                  </span>
-                  <FileCheck size={17} style={{ color: 'var(--status-good-solid)' }} />
+                <div className="flex items-center gap-1 mt-1 text-xs text-[var(--text-secondary)]">
+                  <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
+                  <span>Registered SKUs in workspace</span>
                 </div>
-                <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--status-good-text)', fontFamily: 'var(--font-heading)' }}>
+              </CardContent>
+            </Card>
+
+            {/* Metric 2: Completed Audits */}
+            <Card className="cursor-pointer border-l-4 border-l-emerald-500" onClick={() => navigate('/products')}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                  Completed Audits
+                </CardTitle>
+                <FileCheck className="h-4 w-4 text-emerald-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-extrabold text-emerald-600 dark:text-emerald-400">
                   {loading ? '...' : completedInspections}
                 </div>
-                <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.4 }}>
-                  Artworks evaluated deterministically.
-                </p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8125rem', color: 'var(--brand-primary)', fontWeight: 700, marginTop: '1.25rem' }}>
-                <span>View History</span>
-                <ChevronRight size={14} />
-              </div>
-            </div>
-
-            {/* Statutory Issues */}
-            <div 
-              className="glass-card"
-              style={{
-                padding: '1.5rem',
-                borderLeft: '4px solid var(--status-issue-solid)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-              }}
-              onClick={() => navigate('/workbench')}
-            >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--status-issue-text)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Statutory Issues
-                  </span>
-                  <AlertTriangle size={17} style={{ color: 'var(--status-issue-solid)' }} />
+                <div className="flex items-center gap-1 mt-1 text-xs text-[var(--text-secondary)]">
+                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" />
+                  <span>Determined compliant</span>
                 </div>
-                <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--status-issue-text)', fontFamily: 'var(--font-heading)' }}>
+              </CardContent>
+            </Card>
+
+            {/* Metric 3: Statutory Issues */}
+            <Card className="cursor-pointer border-l-4 border-l-red-500" onClick={() => navigate('/workbench')}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-bold uppercase tracking-wider text-red-600 dark:text-red-400">
+                  Statutory Issues
+                </CardTitle>
+                <AlertTriangle className="h-4 w-4 text-red-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-extrabold text-red-600 dark:text-red-400">
                   {loading ? '...' : issueCount}
                 </div>
-                <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.4 }}>
-                  Non-compliant values requiring re-formatting.
-                </p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8125rem', color: 'var(--brand-primary)', fontWeight: 700, marginTop: '1.25rem' }}>
-                <span>Inspect Issues</span>
-                <ChevronRight size={14} />
-              </div>
-            </div>
-
-            {/* Review Queue */}
-            <div 
-              className="glass-card"
-              style={{
-                padding: '1.5rem',
-                borderLeft: '4px solid var(--status-review-solid)',
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                cursor: 'pointer',
-              }}
-              onClick={() => navigate('/review')}
-            >
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-                  <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--status-review-text)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                    Review Queue
-                  </span>
-                  <Clock size={17} style={{ color: 'var(--status-review-solid)' }} />
+                <div className="flex items-center gap-1 mt-1 text-xs text-[var(--text-secondary)]">
+                  <span>Non-compliant parameters</span>
                 </div>
-                <div style={{ fontSize: '2.25rem', fontWeight: 800, color: 'var(--status-review-text)', fontFamily: 'var(--font-heading)' }}>
+              </CardContent>
+            </Card>
+
+            {/* Metric 4: Review Queue */}
+            <Card className="cursor-pointer border-l-4 border-l-amber-500" onClick={() => navigate('/review')}>
+              <CardHeader className="flex flex-row items-center justify-between pb-2">
+                <CardTitle className="text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                  Review Queue
+                </CardTitle>
+                <Clock className="h-4 w-4 text-amber-500" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-extrabold text-amber-600 dark:text-amber-400">
                   {loading ? '...' : reviewCount}
                 </div>
-                <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '0.35rem', lineHeight: 1.4 }}>
-                  Items flagged for specialist confirmation.
-                </p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.8125rem', color: 'var(--brand-primary)', fontWeight: 700, marginTop: '1.25rem' }}>
-                <span>Review Center</span>
-                <ChevronRight size={14} />
-              </div>
-            </div>
+                <div className="flex items-center gap-1 mt-1 text-xs text-[var(--text-secondary)]">
+                  <span>Flagged for verification</span>
+                </div>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
-        {/* Company Products Section */}
+        {/* Tabbed Workspace Table View (shadcn Style) */}
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-            <div>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Registered Packaging Products</h2>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Select a product SKU to view versions, dielines, and inspection history.</p>
-            </div>
-            {products.length > 0 && (
-              <Link to="/products" className="btn btn-secondary btn-sm" style={{ gap: '0.25rem' }}>
-                <span>View All ({products.length})</span>
-                <ArrowRight size={14} />
-              </Link>
-            )}
-          </div>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <div className="flex items-center justify-between mb-4 flex-wrap gap-4">
+              <TabsList>
+                <TabsTrigger value="products">Registered Products ({products.length})</TabsTrigger>
+                <TabsTrigger value="inspections">Inspection History ({inspections.length})</TabsTrigger>
+              </TabsList>
 
-          {loading ? (
-            <div className="card" style={{ padding: '3.5rem', textAlign: 'center', color: 'var(--text-secondary)' }}>
-              <Loader2 size={28} className="animate-spin" style={{ margin: '0 auto 0.75rem auto', color: 'var(--brand-primary)' }} />
-              <p style={{ fontWeight: 600 }}>Loading company products and inspections...</p>
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-[var(--text-muted)]" />
+                  <input
+                    type="text"
+                    placeholder="Search SKU or Brand..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-9 pr-4 py-1.5 text-xs w-64"
+                  />
+                </div>
+                {products.length > 0 && (
+                  <Link to="/products" className="btn btn-secondary btn-sm gap-1">
+                    <span>View All</span>
+                    <ArrowRight size={14} />
+                  </Link>
+                )}
+              </div>
             </div>
-          ) : products.length === 0 ? (
-            <div className="card" style={{ padding: '3.5rem 2rem', textAlign: 'center', backgroundColor: 'var(--bg-surface)' }}>
-              <Package size={44} style={{ color: 'var(--brand-primary)', margin: '0 auto 1rem auto', opacity: 0.8 }} />
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '0.5rem' }}>No packaging products registered yet</h3>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', maxWidth: '440px', margin: '0 auto 1.5rem auto', lineHeight: 1.5 }}>
-                Start your first packaging compliance check to begin building your workspace.
-              </p>
-              <button onClick={() => navigate('/new-check')} className="btn btn-primary" style={{ gap: '0.4rem', margin: '0 auto' }}>
-                <PlusCircle size={16} />
-                <span>Start a Check</span>
-              </button>
-            </div>
-          ) : (
-            <div className="grid-3" style={{ gap: '1.25rem' }}>
-              {products.slice(0, 6).map((p) => (
-                <ProductCard key={p.id} product={p} />
-              ))}
-            </div>
-          )}
+
+            {/* Tab 1: Products Table */}
+            <TabsContent value="products">
+              {loading ? (
+                <Card className="p-12 text-center text-[var(--text-secondary)]">
+                  <Loader2 size={28} className="animate-spin mx-auto mb-3 text-[var(--brand-primary)]" />
+                  <p className="font-semibold">Loading registered packaging products...</p>
+                </Card>
+              ) : filteredProducts.length === 0 ? (
+                <Card className="p-12 text-center">
+                  <Package size={44} className="mx-auto mb-4 text-[var(--brand-primary)] opacity-80" />
+                  <h3 className="text-lg font-bold mb-1">No matching packaging products found</h3>
+                  <p className="text-sm text-[var(--text-secondary)] mb-4">
+                    Start a new check to add artwork and SKUs to your catalog.
+                  </p>
+                  <button onClick={() => navigate('/new-check')} className="btn btn-primary btn-sm gap-1 mx-auto">
+                    <PlusCircle size={16} />
+                    <span>Start a Check</span>
+                  </button>
+                </Card>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Product Name & SKU</TableHead>
+                      <TableHead>Brand</TableHead>
+                      <TableHead>Format</TableHead>
+                      <TableHead>Net Quantity</TableHead>
+                      <TableHead>Latest Version</TableHead>
+                      <TableHead>Compliance Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredProducts.map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell>
+                          <div className="font-bold text-[var(--text-primary)]">{p.name}</div>
+                          <div className="text-xs font-mono text-[var(--text-muted)]">SKU: {p.sku}</div>
+                        </TableCell>
+                        <TableCell className="text-xs font-semibold">{p.brand}</TableCell>
+                        <TableCell className="text-xs text-[var(--text-secondary)]">{p.type}</TableCell>
+                        <TableCell className="text-xs font-mono">{p.netQuantity}</TableCell>
+                        <TableCell>
+                          <Badge variant="neutral">{p.latestVersion}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="success">PCR 2011 GOOD</Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <button
+                            onClick={() => navigate(`/workbench?productId=${p.id}`)}
+                            className="btn btn-ghost btn-sm text-[var(--brand-primary)] gap-1"
+                          >
+                            <span>Inspect</span>
+                            <ChevronRight size={14} />
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </TabsContent>
+
+            {/* Tab 2: Inspection History */}
+            <TabsContent value="inspections">
+              {loading ? (
+                <Card className="p-12 text-center text-[var(--text-secondary)]">
+                  <Loader2 size={28} className="animate-spin mx-auto mb-3 text-[var(--brand-primary)]" />
+                  <p className="font-semibold">Loading inspection audits...</p>
+                </Card>
+              ) : inspections.length === 0 ? (
+                <Card className="p-12 text-center">
+                  <FileCheck size={44} className="mx-auto mb-4 text-[var(--brand-primary)] opacity-80" />
+                  <h3 className="text-lg font-bold mb-1">No inspection history recorded yet</h3>
+                  <p className="text-sm text-[var(--text-secondary)] mb-4">
+                    Upload an artwork file to run your first automated statutory compliance check.
+                  </p>
+                  <button onClick={() => navigate('/new-check')} className="btn btn-primary btn-sm gap-1 mx-auto">
+                    <PlusCircle size={16} />
+                    <span>Start a Check</span>
+                  </button>
+                </Card>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Inspection ID</TableHead>
+                      <TableHead>Product Name</TableHead>
+                      <TableHead>Issues Found</TableHead>
+                      <TableHead>Reviews Required</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {inspections.map((insp) => (
+                      <TableRow key={insp.id}>
+                        <TableCell className="font-mono text-xs font-bold text-[var(--brand-primary)]">
+                          {insp.id.substring(0, 8)}...
+                        </TableCell>
+                        <TableCell className="font-semibold text-xs">{insp.product_name}</TableCell>
+                        <TableCell>
+                          <Badge variant={insp.findings_summary?.issue_count ? 'destructive' : 'neutral'}>
+                            {insp.findings_summary?.issue_count || 0} Issues
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={insp.findings_summary?.review_count ? 'warning' : 'neutral'}>
+                            {insp.findings_summary?.review_count || 0} Review
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={insp.status === 'COMPLETED' ? 'success' : 'secondary'}>
+                            {insp.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <button
+                            onClick={() => navigate(`/workbench?inspectionId=${insp.id}`)}
+                            className="btn btn-secondary btn-sm gap-1"
+                          >
+                            <span>Open Workbench</span>
+                            <ChevronRight size={14} />
+                          </button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </TabsContent>
+          </Tabs>
         </div>
 
       </div>

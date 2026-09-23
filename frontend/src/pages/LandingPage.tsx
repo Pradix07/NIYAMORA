@@ -5,24 +5,29 @@ import { NiyamuraLogo } from '../components/common/NiyamuraLogo';
 import { ThemeSwitch } from '../components/common/ThemeSwitch';
 import { AuthRequiredModal } from '../components/common/AuthRequiredModal';
 import pouch3D from '../assets/pouch_3d.jpg';
-import bottle3D from '../assets/bottle_3d.jpg';
 import carton3D from '../assets/carton_3d.jpg';
-import jar3D from '../assets/jar_3d.jpg';
 import {
   ArrowRight,
   CheckCircle2,
   ShieldCheck,
-  BarChart3,
   SearchCheck,
   Wand2,
   GitCompare,
   Sliders,
   FileCheck2,
   UploadCloud,
-  FileCheck,
   Package,
-  BookOpen,
+  Sparkles,
+  Layers,
+  Scale,
 } from 'lucide-react';
+
+// Aceternity UI Components
+import { Spotlight } from '../components/ui/spotlight';
+import { BentoGrid, BentoGridItem } from '../components/ui/bento-grid';
+import { Button as MovingBorderButton } from '../components/ui/moving-border';
+import { ContainerScroll } from '../components/ui/container-scroll';
+import { motion } from 'framer-motion';
 
 export const LandingPage: React.FC = () => {
   const { user } = useAuth();
@@ -33,7 +38,6 @@ export const LandingPage: React.FC = () => {
     description: 'Create an account or sign in to check your packaging artwork and manage your inspection history.',
     targetWorkflow: '/new-check',
   });
-  const [activeFeatureIndex, setActiveFeatureIndex] = useState(0);
   const [activeNav, setActiveNav] = useState('home');
 
   // Dynamic active navigation indicator tracking scroll position
@@ -89,20 +93,6 @@ export const LandingPage: React.FC = () => {
     }
   };
 
-  const handleDownloadResourceClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (user) {
-      navigate('/rules');
-    } else {
-      setAuthModalConfig({
-        title: 'SIGN IN REQUIRED TO DOWNLOAD',
-        description: 'Create an account to download and save this resource.',
-        targetWorkflow: '/rules',
-      });
-      setAuthModalOpen(true);
-    }
-  };
-
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
     e.preventDefault();
     setActiveNav(id);
@@ -136,43 +126,48 @@ export const LandingPage: React.FC = () => {
   const featureCards = [
     {
       id: 'analysis',
-      icon: SearchCheck,
+      icon: <SearchCheck className="h-6 w-6 text-blue-500" />,
       title: 'Compliance Evaluation',
-      desc: 'Detects packaging compliance issues across Legal Metrology and FSSAI rules.',
+      desc: 'Detects packaging compliance issues across Legal Metrology PCR 2011 and FSSAI 2020 rules.',
       path: '/workbench',
       color: '#3B82F6',
+      badge: 'Legal Metrology',
     },
     {
       id: 'improve',
-      icon: Wand2,
+      icon: <Wand2 className="h-6 w-6 text-emerald-500" />,
       title: 'Design Improvement',
-      desc: 'Actionable millimeter font height and contrast suggestions to resolve issues.',
+      desc: 'Actionable millimeter font height and contrast suggestions to resolve issues before print.',
       path: '/improve',
       color: '#10B981',
+      badge: 'Design Fixes',
     },
     {
       id: 'compare',
-      icon: GitCompare,
+      icon: <GitCompare className="h-6 w-6 text-purple-500" />,
       title: 'Side-by-Side Compare',
-      desc: 'Track visual and statutory changes between artwork revisions.',
+      desc: 'Track visual and statutory changes between artwork revisions seamlessly.',
       path: '/compare',
       color: '#8B5CF6',
+      badge: 'Visual Diff',
     },
     {
       id: 'simulation',
-      icon: Sliders,
+      icon: <Sliders className="h-6 w-6 text-amber-500" />,
       title: 'Simulation & Revalidation',
-      desc: 'Test hypothetical parameter adjustments against statutory thresholds before print.',
+      desc: 'Test hypothetical parameter adjustments against statutory thresholds before printing.',
       path: '/simulator',
       color: '#F59E0B',
+      badge: 'What-If Engine',
     },
     {
       id: 'passport',
-      icon: FileCheck2,
+      icon: <FileCheck2 className="h-6 w-6 text-pink-500" />,
       title: 'Label Passport',
-      desc: 'Chronological provenance ledger and inspection verification repository.',
+      desc: 'Chronological provenance ledger and inspection verification repository for enterprise audit readiness.',
       path: '/passport',
       color: '#EC4899',
+      badge: 'Audit Trail',
     },
   ];
 
@@ -333,28 +328,20 @@ export const LandingPage: React.FC = () => {
         </div>
       </header>
 
-      {/* 2. Hero Section */}
+      {/* 2. Hero Section with Aceternity Spotlight */}
       <section style={{ padding: '4rem 0 3.5rem', position: 'relative', overflow: 'hidden' }}>
-        {/* Subtle radial ambient background light */}
-        <div
-          style={{
-            position: 'absolute',
-            top: '-10%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '900px',
-            height: '500px',
-            background: 'radial-gradient(ellipse at center, rgba(124, 58, 237, 0.1) 0%, rgba(99, 102, 241, 0.02) 50%, transparent 75%)',
-            pointerEvents: 'none',
-            zIndex: 0,
-          }}
-        />
+        <Spotlight className="-top-40 left-0 md:left-60 md:-top-20" fill="rgba(124, 58, 237, 0.3)" />
 
         <div className="container" style={{ position: 'relative', zIndex: 1 }}>
           <div style={{ display: 'grid', gridTemplateColumns: '1.05fr 1.15fr', gap: '3rem', alignItems: 'center' }}>
             
             {/* Left Hero Column */}
             <div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--brand-primary-light)] border border-[var(--brand-primary)]/30 mb-4 text-xs font-semibold text-[var(--brand-primary)]">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Legal Metrology & FSSAI Pre-Print Verification</span>
+              </div>
+
               {/* Main Headline */}
               <h1
                 style={{
@@ -383,7 +370,7 @@ export const LandingPage: React.FC = () => {
                 From design to compliance.
               </p>
 
-              {/* Supporting Text - Accurate, clean copy without AI buzzwords */}
+              {/* Supporting Text */}
               <p
                 style={{
                   fontSize: '1.05rem',
@@ -393,31 +380,27 @@ export const LandingPage: React.FC = () => {
                   marginBottom: '2rem',
                 }}
               >
-                Pre-print compliance for FSSAI, Legal Metrology and mandatory declaration requirements. Catch issues early, improve designs, and go to print with confidence.
+                Pre-print compliance screening for FSSAI, Legal Metrology PCR 2011, and mandatory declaration requirements. Detect issues early, adjust design parameters, and go to print with total confidence.
               </p>
 
               {/* CTA Button: START A CHECK */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', marginBottom: '2.5rem' }}>
+                <MovingBorderButton onClick={handleStartCheckClick} borderRadius="0.75rem">
+                  <span>START A CHECK</span>
+                  <ArrowRight size={18} />
+                </MovingBorderButton>
+
                 <button
-                  onClick={handleStartCheckClick}
-                  className="btn btn-primary btn-lg"
-                  style={{
-                    padding: '0.9rem 2.25rem',
-                    borderRadius: 'var(--radius-lg)',
-                    boxShadow: '0 8px 24px rgba(124, 58, 237, 0.4)',
-                    fontSize: '1.05rem',
-                    fontWeight: 700,
-                    letterSpacing: '0.02em',
-                  }}
+                  onClick={() => navigate('/create-packaging')}
+                  className="btn btn-secondary btn-lg"
+                  style={{ padding: '0.75rem 1.5rem', borderRadius: '0.75rem', gap: '0.5rem' }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <span>START A CHECK</span>
-                    <ArrowRight size={18} />
-                  </div>
+                  <Sparkles size={16} />
+                  <span>AI Packaging Studio</span>
                 </button>
               </div>
 
-              {/* Lower Four-Part Brand Strip: Refined, Subtle 3D, Premium with COMPLIANCE */}
+              {/* Four-Part Brand Pillars */}
               <div
                 style={{
                   display: 'grid',
@@ -428,477 +411,244 @@ export const LandingPage: React.FC = () => {
                   maxWidth: '520px',
                 }}
               >
-                {/* Pillar 1: TRUST */}
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    textAlign: 'center',
-                    gap: '0.45rem',
-                    padding: '0.85rem 0.5rem',
-                    borderRadius: 'var(--radius-lg)',
-                    backgroundColor: 'var(--bg-surface)',
-                    border: '1px solid var(--border-default)',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
-                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                  }}
-                  className="brand-pillar-card"
-                >
-                  <div
-                    style={{
-                      width: '38px',
-                      height: '38px',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: 'var(--brand-primary-light)',
-                      border: '1px solid rgba(124, 58, 237, 0.2)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--brand-primary)',
-                      boxShadow: '0 2px 6px rgba(124, 58, 237, 0.15)',
-                    }}
-                  >
-                    <ShieldCheck size={20} />
-                  </div>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', color: 'var(--text-primary)', textTransform: 'uppercase' }}>
-                    TRUST
-                  </span>
+                <div className="brand-pillar-card" style={{ padding: '0.75rem 0.5rem', textAlign: 'center', borderRadius: 'var(--radius-lg)' }}>
+                  <ShieldCheck size={20} className="mx-auto text-purple-600 mb-1" />
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800 }}>TRUST</div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Proven Audit</div>
                 </div>
 
-                {/* Pillar 2: COMPLIANCE */}
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    textAlign: 'center',
-                    gap: '0.45rem',
-                    padding: '0.85rem 0.5rem',
-                    borderRadius: 'var(--radius-lg)',
-                    backgroundColor: 'var(--bg-surface)',
-                    border: '1px solid var(--border-default)',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
-                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                  }}
-                  className="brand-pillar-card"
-                >
-                  <div
-                    style={{
-                      width: '38px',
-                      height: '38px',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: 'rgba(16, 185, 129, 0.12)',
-                      border: '1px solid rgba(16, 185, 129, 0.25)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: 'var(--status-good-solid)',
-                      boxShadow: '0 2px 6px rgba(16, 185, 129, 0.15)',
-                    }}
-                  >
-                    <FileCheck size={20} />
-                  </div>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', color: 'var(--text-primary)', textTransform: 'uppercase' }}>
-                    COMPLIANCE
-                  </span>
+                <div className="brand-pillar-card" style={{ padding: '0.75rem 0.5rem', textAlign: 'center', borderRadius: 'var(--radius-lg)' }}>
+                  <Scale size={20} className="mx-auto text-emerald-600 mb-1" />
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800 }}>COMPLIANCE</div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>PCR 2011 & FSSAI</div>
                 </div>
 
-                {/* Pillar 3: PRINT */}
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    textAlign: 'center',
-                    gap: '0.45rem',
-                    padding: '0.85rem 0.5rem',
-                    borderRadius: 'var(--radius-lg)',
-                    backgroundColor: 'var(--bg-surface)',
-                    border: '1px solid var(--border-default)',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
-                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                  }}
-                  className="brand-pillar-card"
-                >
-                  <div
-                    style={{
-                      width: '38px',
-                      height: '38px',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: 'rgba(249, 115, 22, 0.12)',
-                      border: '1px solid rgba(249, 115, 22, 0.25)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#F97316',
-                      boxShadow: '0 2px 6px rgba(249, 115, 22, 0.15)',
-                    }}
-                  >
-                    <Package size={20} />
-                  </div>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', color: 'var(--text-primary)', textTransform: 'uppercase' }}>
-                    PRINT
-                  </span>
+                <div className="brand-pillar-card" style={{ padding: '0.75rem 0.5rem', textAlign: 'center', borderRadius: 'var(--radius-lg)' }}>
+                  <Package size={20} className="mx-auto text-blue-600 mb-1" />
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800 }}>PRINT</div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Zero Recall</div>
                 </div>
 
-                {/* Pillar 4: WITH CONFIDENCE */}
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    textAlign: 'center',
-                    gap: '0.45rem',
-                    padding: '0.85rem 0.5rem',
-                    borderRadius: 'var(--radius-lg)',
-                    backgroundColor: 'var(--bg-surface)',
-                    border: '1px solid var(--border-default)',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04)',
-                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                  }}
-                  className="brand-pillar-card"
-                >
-                  <div
-                    style={{
-                      width: '38px',
-                      height: '38px',
-                      borderRadius: 'var(--radius-md)',
-                      backgroundColor: 'rgba(59, 130, 246, 0.12)',
-                      border: '1px solid rgba(59, 130, 246, 0.25)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#3B82F6',
-                      boxShadow: '0 2px 6px rgba(59, 130, 246, 0.15)',
-                    }}
-                  >
-                    <BarChart3 size={20} />
-                  </div>
-                  <span style={{ fontSize: '0.72rem', fontWeight: 800, letterSpacing: '0.06em', color: 'var(--text-primary)', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>
-                    WITH CONFIDENCE
-                  </span>
+                <div className="brand-pillar-card" style={{ padding: '0.75rem 0.5rem', textAlign: 'center', borderRadius: 'var(--radius-lg)' }}>
+                  <CheckCircle2 size={20} className="mx-auto text-amber-600 mb-1" />
+                  <div style={{ fontSize: '0.75rem', fontWeight: 800 }}>CONFIDENCE</div>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>Pre-Print Ready</div>
                 </div>
               </div>
-
             </div>
 
-            {/* Right Hero Column: 3D Packaging Centerpiece + Floating Compliance Card */}
-            <div style={{ position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-              
-              {/* Main Realistic 3D Packaging Container */}
+            {/* Right Hero Column: Interactive Artwork Showcase */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              style={{ position: 'relative' }}
+            >
               <div
+                className="card"
                 style={{
-                  width: '100%',
-                  maxWidth: '560px',
+                  padding: '1.5rem',
+                  borderRadius: 'var(--radius-xl)',
+                  boxShadow: 'var(--shadow-xl)',
                   position: 'relative',
-                  borderRadius: 'var(--radius-2xl)',
                   overflow: 'hidden',
-                  boxShadow: '0 24px 60px -15px rgba(0, 0, 0, 0.45)',
-                  border: '1px solid var(--glass-border)',
+                  background: 'var(--card-bg)',
+                  border: '1px solid var(--border-strong)',
                 }}
               >
-                <img
-                  src={pouch3D}
-                  alt="Niyamura 3D Stand-Up Pouch Packaging Mockup"
-                  style={{
-                    width: '100%',
-                    height: 'auto',
-                    display: 'block',
-                    objectFit: 'cover',
-                  }}
-                />
-              </div>
-
-              {/* Floating Glass Compliance Card on Outer Right */}
-              <div
-                className="glass-card animate-float"
-                style={{
-                  position: 'absolute',
-                  top: '8%',
-                  right: '-12px',
-                  width: '240px',
-                  padding: '1.25rem',
-                  borderRadius: 'var(--radius-lg)',
-                  zIndex: 20,
-                  boxShadow: '0 16px 40px rgba(0, 0, 0, 0.45)',
-                  backdropFilter: 'blur(20px)',
-                  WebkitBackdropFilter: 'blur(20px)',
-                  border: '1px solid var(--glass-border)',
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '0.72rem',
-                    color: 'var(--brand-lavender)',
-                    fontStyle: 'italic',
-                    marginBottom: '0.65rem',
-                    textAlign: 'right',
-                    fontWeight: 600,
-                  }}
-                >
-                  From design to compliance ↗
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <span className="badge badge-good">COMPLIANCE PASS</span>
+                    <span style={{ fontSize: '0.81rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>SKU: ORG-P250</span>
+                  </div>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--brand-primary)' }}>Legal Metrology Validated</span>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ width: '18px', height: '18px', borderRadius: '50%', backgroundColor: 'rgba(16, 185, 129, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <CheckCircle2 size={13} style={{ color: 'var(--status-good-solid)' }} />
-                    </div>
-                    <div style={{ fontSize: '0.75rem', lineHeight: 1.15 }}>
-                      <span style={{ fontWeight: 700, display: 'block' }}>FSSAI Compliance</span>
-                      <span style={{ fontSize: '0.6875rem', color: 'var(--status-good-text)' }}>Evaluated Compliant</span>
+                {/* Packaging Formats Grid */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '1rem', marginBottom: '1.25rem' }}>
+                  <div style={{ position: 'relative', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-default)' }}>
+                    <img src={pouch3D} alt="Stand-Up Pouch" style={{ width: '100%', height: '140px', objectFit: 'cover' }} />
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0.35rem 0.6rem', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', color: '#fff', fontSize: '0.75rem', fontWeight: 600 }}>
+                      Stand-Up Pouch
                     </div>
                   </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ width: '18px', height: '18px', borderRadius: '50%', backgroundColor: 'rgba(16, 185, 129, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <CheckCircle2 size={13} style={{ color: 'var(--status-good-solid)' }} />
-                    </div>
-                    <div style={{ fontSize: '0.75rem', lineHeight: 1.15 }}>
-                      <span style={{ fontWeight: 700, display: 'block' }}>Legal Metrology</span>
-                      <span style={{ fontSize: '0.6875rem', color: 'var(--status-good-text)' }}>Evaluated Compliant</span>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ width: '18px', height: '18px', borderRadius: '50%', backgroundColor: 'rgba(16, 185, 129, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <CheckCircle2 size={13} style={{ color: 'var(--status-good-solid)' }} />
-                    </div>
-                    <div style={{ fontSize: '0.75rem', lineHeight: 1.15 }}>
-                      <span style={{ fontWeight: 700, display: 'block' }}>Mandatory Declarations</span>
-                      <span style={{ fontSize: '0.6875rem', color: 'var(--status-good-text)' }}>Evaluated Compliant</span>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                    <div style={{ width: '18px', height: '18px', borderRadius: '50%', backgroundColor: 'rgba(16, 185, 129, 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <CheckCircle2 size={13} style={{ color: 'var(--status-good-solid)' }} />
-                    </div>
-                    <div style={{ fontSize: '0.75rem', lineHeight: 1.15 }}>
-                      <span style={{ fontWeight: 700, display: 'block' }}>Allergen Labelling</span>
-                      <span style={{ fontSize: '0.6875rem', color: 'var(--status-good-text)' }}>Evaluated Compliant</span>
+                  <div style={{ position: 'relative', borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-default)' }}>
+                    <img src={carton3D} alt="Carton Box" style={{ width: '100%', height: '140px', objectFit: 'cover' }} />
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, padding: '0.35rem 0.6rem', background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', color: '#fff', fontSize: '0.75rem', fontWeight: 600 }}>
+                      Carton Box
                     </div>
                   </div>
                 </div>
 
-                {/* Compliance Ready for Print badge */}
-                <div style={{ marginTop: '1rem', textAlign: 'center' }}>
-                  <div
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      padding: '0.35rem 0.85rem',
-                      borderRadius: 'var(--radius-full)',
-                      background: 'linear-gradient(135deg, #7C3AED 0%, #6366F1 100%)',
-                      color: '#FFFFFF',
-                      fontSize: '0.75rem',
-                      fontWeight: 700,
-                      boxShadow: '0 4px 12px rgba(124, 58, 237, 0.4)',
-                    }}
-                  >
-                    <span>Compliance Ready for Print</span>
-                    <CheckCircle2 size={13} />
-                  </div>
-                  <p style={{ fontSize: '0.625rem', color: 'var(--text-muted)', marginTop: '0.35rem', lineHeight: 1.2 }}>
-                    Evaluated workflow status; not government certification.
-                  </p>
-                </div>
-              </div>
-
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 3. Five Feature Cards Row */}
-      <section id="features" style={{ padding: '2.5rem 0 4rem' }}>
-        <div className="container">
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(5, 1fr)',
-              gap: '1rem',
-            }}
-          >
-            {featureCards.map((feat, idx) => {
-              const Icon = feat.icon;
-              const isActive = activeFeatureIndex === idx;
-
-              return (
-                <div
-                  key={feat.id}
-                  onClick={() => {
-                    setActiveFeatureIndex(idx);
-                    handleProtectedFeatureClick(feat.path);
-                  }}
-                  className="glass-card"
-                  style={{
-                    padding: '1.25rem 1rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    border: isActive ? `1px solid ${feat.color}` : '1px solid var(--border-default)',
-                    transform: isActive ? 'translateY(-4px)' : 'none',
-                    transition: 'all var(--transition-fast)',
-                  }}
-                >
+                {/* Audit Key Metrics Bar */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.75rem', padding: '0.85rem', backgroundColor: 'var(--bg-surface-subtle)', borderRadius: 'var(--radius-md)' }}>
                   <div>
-                    <div
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        marginBottom: '1rem',
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: '38px',
-                          height: '38px',
-                          borderRadius: 'var(--radius-md)',
-                          backgroundColor: `${feat.color}20`,
-                          color: feat.color,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          border: `1px solid ${feat.color}40`,
-                        }}
-                      >
-                        <Icon size={19} />
-                      </div>
-                      <div
-                        style={{
-                          width: '24px',
-                          height: '24px',
-                          borderRadius: '50%',
-                          backgroundColor: 'var(--bg-surface-subtle)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: 'var(--text-muted)',
-                        }}
-                      >
-                        <ArrowRight size={13} />
-                      </div>
-                    </div>
-
-                    <h3 style={{ fontSize: '0.9375rem', fontWeight: 700, marginBottom: '0.4rem', color: 'var(--text-primary)' }}>
-                      {feat.title}
-                    </h3>
-
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                      {feat.desc}
-                    </p>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Principal Display Area</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700 }}>220 cm²</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Min Font Height</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--status-good-solid)' }}>3.2 mm (Req: 3.0mm)</div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Statutory Declarations</div>
+                    <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--status-good-solid)' }}>100% Present</div>
                   </div>
                 </div>
-              );
-            })}
+              </div>
+            </motion.div>
           </div>
         </div>
       </section>
 
-      {/* 4. The Niyamura Workflow Section */}
-      <section
-        id="workflow"
-        style={{
-          padding: '5rem 0',
-          backgroundColor: 'var(--bg-surface)',
-          borderTop: '1px solid var(--border-default)',
-          borderBottom: '1px solid var(--border-default)',
-          borderRadius: 'var(--radius-2xl)',
-          margin: '0 1rem 4rem',
-        }}
-      >
+      {/* 3. Aceternity Bento Grid Features Section */}
+      <section id="features" style={{ padding: '5rem 0', backgroundColor: 'var(--bg-surface-subtle)' }}>
         <div className="container">
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '3.5rem', flexWrap: 'wrap', gap: '1.5rem' }}>
-            <div>
-              <span
-                style={{
-                  fontSize: '0.75rem',
-                  fontWeight: 800,
-                  letterSpacing: '0.08em',
-                  color: 'var(--brand-primary)',
-                  textTransform: 'uppercase',
-                  display: 'block',
-                  marginBottom: '0.4rem',
-                }}
-              >
-                The NIYAMURA Workflow
-              </span>
-              <h2 style={{ fontSize: '2.4rem', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: '0.5rem' }}>
-                From Upload to <span className="text-gradient-violet">Print-Ready</span>
+          <div style={{ textAlign: 'center', maxWidth: '640px', margin: '0 auto 3.5rem' }}>
+            <span className="badge badge-neutral" style={{ marginBottom: '0.75rem' }}>Enterprise Suite</span>
+            <h2 style={{ fontSize: '2.25rem', fontWeight: 800, letterSpacing: '-0.025em', marginBottom: '0.75rem' }}>
+              Built for Packaging & Legal Teams
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.6 }}>
+              Comprehensive pre-print inspection, real-time font measurement, and statutory compliance history in one unified workbench.
+            </p>
+          </div>
+
+          <BentoGrid>
+            {featureCards.map((item) => (
+              <BentoGridItem
+                key={item.id}
+                title={item.title}
+                description={item.desc}
+                icon={item.icon}
+                badge={item.badge}
+                onClick={() => handleProtectedFeatureClick(item.path)}
+                header={
+                  <div className="flex flex-1 w-full h-full min-h-[6rem] rounded-xl bg-gradient-to-br from-neutral-100 dark:from-neutral-900 to-neutral-200 dark:to-neutral-800 border border-neutral-200 dark:border-neutral-700/50 p-4 items-center justify-center">
+                    <div className="text-xs font-mono font-bold text-[var(--text-muted)] flex items-center gap-2">
+                      <Layers className="w-4 h-4" />
+                      <span>{item.title.toUpperCase()}</span>
+                    </div>
+                  </div>
+                }
+              />
+            ))}
+          </BentoGrid>
+        </div>
+      </section>
+
+      {/* 4. Container Scroll Interactive Demo */}
+      <section style={{ backgroundColor: 'var(--bg-app)', padding: '2rem 0' }}>
+        <ContainerScroll
+          titleComponent={
+            <div className="flex flex-col items-center">
+              <h2 className="text-3xl md:text-5xl font-extrabold text-[var(--text-primary)] tracking-tight">
+                Inspect Artwork Dielines <br />
+                <span className="text-gradient-violet">With Millimeter Precision</span>
               </h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', maxWidth: '620px' }}>
-                A structured, step-by-step pre-print compliance verification process.
+              <p className="text-sm md:text-base text-[var(--text-secondary)] mt-4 max-w-xl">
+                Automatic bounding box extraction across Net Quantity, MRP, FSSAI License Number, Allergen Info, and Manufacturer Address.
               </p>
             </div>
+          }
+        >
+          <div className="h-full w-full flex flex-col justify-between p-6 bg-zinc-950 text-white rounded-xl">
+            <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-3 h-3 rounded-full bg-red-500" />
+                <div className="w-3 h-3 rounded-full bg-amber-500" />
+                <div className="w-3 h-3 rounded-full bg-emerald-500" />
+                <span className="text-xs font-mono text-zinc-400 ml-2">NIYAMURA WORKBENCH V2.4</span>
+              </div>
+              <span className="text-xs font-semibold px-2.5 py-1 rounded bg-emerald-950 text-emerald-400 border border-emerald-800">
+                AUDIT PASS: PCR 2011 RULE 7
+              </span>
+            </div>
 
-            <div
-              style={{
-                fontSize: '0.9rem',
-                color: 'var(--brand-accent)',
-                fontStyle: 'italic',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.4rem',
-                paddingTop: '1rem',
-              }}
-            >
-              <span>Simple steps. Big confidence.</span>
-              <span style={{ fontSize: '1.2rem' }}>⤵</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 my-auto">
+              <div className="relative rounded-lg overflow-hidden border border-zinc-800 bg-zinc-900 p-4">
+                <img src={pouch3D} alt="Artwork Dieline Mockup" className="w-full h-48 object-cover rounded" />
+                <div className="absolute top-8 left-8 border-2 border-emerald-500 bg-emerald-500/20 px-2 py-1 text-[10px] font-bold text-white rounded">
+                  NET QTY: 250 g (3.2mm OK)
+                </div>
+                <div className="absolute bottom-8 right-8 border-2 border-amber-500 bg-amber-500/20 px-2 py-1 text-[10px] font-bold text-white rounded">
+                  MRP: ₹199.00 (INCL TAXES)
+                </div>
+              </div>
+
+              <div className="flex flex-col justify-center space-y-3 text-left">
+                <div className="text-sm font-semibold text-zinc-200">Legal Metrology Compliance Summary</div>
+                <div className="space-y-2">
+                  <div className="flex justify-between items-center text-xs p-2 rounded bg-zinc-900 border border-zinc-800">
+                    <span className="text-zinc-400">Net Quantity Font Height</span>
+                    <span className="text-emerald-400 font-bold">3.2 mm (Required ≥ 3.0mm)</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs p-2 rounded bg-zinc-900 border border-zinc-800">
+                    <span className="text-zinc-400">Manufacturer Address</span>
+                    <span className="text-emerald-400 font-bold">Verified Complete</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs p-2 rounded bg-zinc-900 border border-zinc-800">
+                    <span className="text-zinc-400">FSSAI Logo & License</span>
+                    <span className="text-emerald-400 font-bold">14-Digit Valid</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
+        </ContainerScroll>
+      </section>
 
-          {/* 5-Step Connected Stepper */}
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(5, 1fr)',
-              gap: '1rem',
-              position: 'relative',
-            }}
-          >
-            {workflowSteps.map((st) => {
-              const Icon = st.icon;
+      {/* 5. Workflow Section */}
+      <section id="workflow" style={{ padding: '5rem 0', backgroundColor: 'var(--bg-surface-subtle)' }}>
+        <div className="container">
+          <div style={{ textAlign: 'center', maxWidth: '600px', margin: '0 auto 3rem' }}>
+            <span className="badge badge-neutral" style={{ marginBottom: '0.75rem' }}>Streamlined Audit</span>
+            <h2 style={{ fontSize: '2.25rem', fontWeight: 800, letterSpacing: '-0.025em', marginBottom: '0.75rem' }}>
+              How NIYAMURA Works
+            </h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '1rem' }}>
+              5 simple steps from dieline upload to pre-print verification record.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem' }} className="grid-4">
+            {workflowSteps.map((step, idx) => {
+              const IconComp = step.icon;
               return (
                 <div
-                  key={st.number}
+                  key={idx}
+                  className="card"
                   style={{
+                    padding: '1.25rem 1rem',
+                    textAlign: 'center',
                     display: 'flex',
                     flexDirection: 'column',
-                    alignItems: 'flex-start',
-                    position: 'relative',
+                    alignItems: 'center',
+                    gap: '0.75rem',
                   }}
                 >
                   <div
                     style={{
-                      width: '48px',
-                      height: '48px',
-                      borderRadius: '50%',
-                      backgroundColor: st.badgeColor,
-                      color: '#FFFFFF',
+                      width: '44px',
+                      height: '44px',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'var(--bg-surface-subtle)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      marginBottom: '1rem',
-                      boxShadow: `0 4px 14px ${st.badgeColor}40`,
-                      position: 'relative',
-                      zIndex: 2,
+                      color: step.badgeColor,
                     }}
                   >
-                    <Icon size={22} />
+                    <IconComp size={22} />
                   </div>
-
-                  <h4 style={{ fontSize: '1rem', fontWeight: 800, marginBottom: '0.35rem', color: 'var(--text-primary)' }}>
-                    {st.title}
-                  </h4>
-
-                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.45 }}>
-                    {st.subtitle}
-                  </p>
+                  <div>
+                    <div style={{ fontSize: '0.85rem', fontWeight: 800, color: step.badgeColor, marginBottom: '0.25rem' }}>
+                      {step.title}
+                    </div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                      {step.subtitle}
+                    </div>
+                  </div>
                 </div>
               );
             })}
@@ -906,239 +656,28 @@ export const LandingPage: React.FC = () => {
         </div>
       </section>
 
-      {/* 5. Packaging Formats Showcase */}
-      <section id="regulations" style={{ padding: '2rem 0 5rem' }}>
-        <div className="container">
-          <div style={{ textAlign: 'center', maxWidth: '680px', margin: '0 auto 3rem' }}>
-            <span className="badge badge-sample" style={{ marginBottom: '0.5rem' }}>Packaging Coverage</span>
-            <h2 style={{ fontSize: '2.25rem', fontWeight: 800, marginBottom: '0.75rem' }}>
-              Multi-Format Commercial Packaging
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-              Screened against Legal Metrology PCR 2011 and FSSAI 2020 labelling requirements across standard commercial container formats.
-            </p>
-          </div>
-
-          <div className="grid-4" style={{ gap: '1.5rem' }}>
-            <div className="glass-card" style={{ padding: '1rem', overflow: 'hidden' }}>
-              <div style={{ height: '200px', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: '1rem' }}>
-                <img src={pouch3D} alt="Stand-Up Pouch" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              </div>
-              <h4 style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>Stand-Up Pouches</h4>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Zipper pouches, retort packs, and flexible food packaging.</p>
-            </div>
-
-            <div className="glass-card" style={{ padding: '1rem', overflow: 'hidden' }}>
-              <div style={{ height: '200px', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: '1rem' }}>
-                <img src={bottle3D} alt="Glass Bottle" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              </div>
-              <h4 style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>Glass Bottles & Jars</h4>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Oils, beverages, wellness elixirs, and liquid containers.</p>
-            </div>
-
-            <div className="glass-card" style={{ padding: '1rem', overflow: 'hidden' }}>
-              <div style={{ height: '200px', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: '1rem' }}>
-                <img src={carton3D} alt="Rigid Carton" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              </div>
-              <h4 style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>Rigid Cartons</h4>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Cosmetics, personal care, outer secondary packaging boxes.</p>
-            </div>
-
-            <div className="glass-card" style={{ padding: '1rem', overflow: 'hidden' }}>
-              <div style={{ height: '200px', borderRadius: 'var(--radius-md)', overflow: 'hidden', marginBottom: '1rem' }}>
-                <img src={jar3D} alt="Jars and Tubs" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              </div>
-              <h4 style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '0.25rem' }}>Canisters & Tubs</h4>
-              <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Nutraceutical tubs, protein powders, creams, and condiments.</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 6. Regulatory Resources Section (Publicly Viewable; Auth-Gated Download) */}
-      <section
-        id="resources"
-        style={{
-          padding: '4.5rem 0',
-          backgroundColor: 'var(--bg-surface)',
-          borderTop: '1px solid var(--border-default)',
-          borderBottom: '1px solid var(--border-default)',
-        }}
-      >
-        <div className="container">
-          <div style={{ textAlign: 'center', maxWidth: '680px', margin: '0 auto 3rem' }}>
-            <span className="badge badge-sample" style={{ marginBottom: '0.5rem' }}>Official Guidance</span>
-            <h2 style={{ fontSize: '2.25rem', fontWeight: 800, marginBottom: '0.75rem' }}>
-              Statutory Knowledge Base & Reference Guides
-            </h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
-              Official statutory provisions, gazette notifications, and pre-press checklists curated for packaging designers and regulatory specialists.
-            </p>
-          </div>
-
-          <div className="grid-3" style={{ gap: '1.5rem' }}>
-            <div className="card-tactile" style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-md)', backgroundColor: 'var(--brand-primary-light)', color: 'var(--brand-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
-                  <BookOpen size={22} />
-                </div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-                  Dept. of Consumer Affairs
-                </div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.5rem' }}>Legal Metrology PCR 2011 Guide</h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  Statutory provisions on minimum numeral font heights (Schedule-II & Rule 9), principal display panel calculations, and Unit Sale Price (USP) rules.
-                </p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1.5rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem' }}>
-                <Link to="/rules" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, fontSize: '0.875rem', color: 'var(--brand-primary)' }}>
-                  <span>View Rules</span>
-                  <ArrowRight size={14} />
-                </Link>
-                <button onClick={handleDownloadResourceClick} className="btn btn-ghost btn-sm" style={{ fontSize: '0.75rem' }}>
-                  Download Resource
-                </button>
-              </div>
-            </div>
-
-            <div className="card-tactile" style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-md)', backgroundColor: 'rgba(16, 185, 129, 0.15)', color: 'var(--status-good-solid)', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
-                  <CheckCircle2 size={22} />
-                </div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-                  FSSAI Authority of India
-                </div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.5rem' }}>FSSAI 2020 Labelling Regulations</h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  Mandatory nutritional panels, allergen declarations, vegetarian/non-vegetarian logos, FSSAI 14-digit license placement, and batch declarations.
-                </p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1.5rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem' }}>
-                <Link to="/rules" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, fontSize: '0.875rem', color: 'var(--brand-primary)' }}>
-                  <span>View FSSAI Specs</span>
-                  <ArrowRight size={14} />
-                </Link>
-                <button onClick={handleDownloadResourceClick} className="btn btn-ghost btn-sm" style={{ fontSize: '0.75rem' }}>
-                  Download Resource
-                </button>
-              </div>
-            </div>
-
-            <div className="card-tactile" style={{ padding: '1.75rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div>
-                <div style={{ width: '42px', height: '42px', borderRadius: 'var(--radius-md)', backgroundColor: 'rgba(249, 115, 22, 0.15)', color: '#F97316', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}>
-                  <FileCheck2 size={22} />
-                </div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-                  Pre-Press Standards
-                </div>
-                <h3 style={{ fontSize: '1.15rem', fontWeight: 700, marginBottom: '0.5rem' }}>Pre-Print Verification Checklist</h3>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                  Artwork guidelines covering bleed dimensions, barcode quiet zones, minimum contrast ratios, and mandatory manufacturer declaration grouping.
-                </p>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '1.5rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.75rem' }}>
-                <Link to="/rules" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontWeight: 700, fontSize: '0.875rem', color: 'var(--brand-primary)' }}>
-                  <span>Explore Catalog</span>
-                  <ArrowRight size={14} />
-                </Link>
-                <button onClick={handleDownloadResourceClick} className="btn btn-ghost btn-sm" style={{ fontSize: '0.75rem' }}>
-                  Download Resource
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 7. Final Call to Action Section */}
-      <section style={{ padding: '5rem 0' }}>
-        <div className="container">
-          <div
-            className="glass-panel"
-            style={{
-              padding: '3.5rem 2.5rem',
-              textAlign: 'center',
-              maxWidth: '840px',
-              margin: '0 auto',
-              borderRadius: 'var(--radius-2xl)',
-              background: 'linear-gradient(145deg, var(--bg-surface) 0%, var(--bg-surface-subtle) 100%)',
-              border: '1px solid var(--glass-border)',
-              boxShadow: 'var(--shadow-xl)',
-              position: 'relative',
-              overflow: 'hidden',
-            }}
-          >
-            <span className="badge badge-sample" style={{ marginBottom: '1rem' }}>
-              Pre-Print Packaging Verification
+      {/* 6. Footer */}
+      <footer style={{ marginTop: 'auto', borderTop: '1px solid var(--border-default)', backgroundColor: 'var(--bg-surface)', padding: '2.5rem 0' }}>
+        <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '1.5rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+            <NiyamuraLogo variant="compact" size="sm" />
+            <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+              © {new Date().getFullYear()} NIYAMURA. Legal Metrology & FSSAI Packaging Compliance Engine.
             </span>
-
-            <h2 style={{ fontSize: 'clamp(2rem, 4vw, 2.75rem)', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: '1rem' }}>
-              Ensure Compliance <span className="text-gradient-violet">Before You Print.</span>
-            </h2>
-
-            <p style={{ color: 'var(--text-secondary)', fontSize: '1.05rem', lineHeight: 1.6, maxWidth: '580px', margin: '0 auto 2.25rem auto' }}>
-              Screen your packaging artwork against Legal Metrology PCR 2011 and FSSAI 2020 rules before cylinder engraving and plate making.
-            </p>
-
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-              <button
-                onClick={handleStartCheckClick}
-                className="btn btn-primary btn-lg"
-                style={{
-                  padding: '0.9rem 2.25rem',
-                  borderRadius: 'var(--radius-lg)',
-                  boxShadow: '0 8px 24px rgba(124, 58, 237, 0.4)',
-                  fontSize: '1rem',
-                  fontWeight: 700,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                  <span>START A CHECK</span>
-                  <ArrowRight size={18} />
-                </div>
-              </button>
-
-              <Link
-                to="/rules"
-                className="btn btn-secondary btn-lg"
-                style={{
-                  padding: '0.9rem 1.75rem',
-                  borderRadius: 'var(--radius-lg)',
-                  fontSize: '1rem',
-                }}
-              >
-                <span>Browse Rule Library</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* 8. Footer */}
-      <footer style={{ marginTop: 'auto', borderTop: '1px solid var(--border-default)', backgroundColor: 'var(--bg-surface)', padding: '3rem 0' }}>
-        <div className="container">
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '2rem', marginBottom: '2rem' }}>
-            <NiyamuraLogo variant="full" size="md" to="/" />
-
-            <div style={{ display: 'flex', gap: '2rem', fontSize: '0.875rem', flexWrap: 'wrap' }}>
-              <Link to="/login" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Sign In</Link>
-              <Link to="/signup" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Create Account</Link>
-              <a href="#features" onClick={(e) => handleNavClick(e, 'features')} style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Product</a>
-              <a href="#workflow" onClick={(e) => handleNavClick(e, 'workflow')} style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>How it Works</a>
-              <Link to="/rules" style={{ color: 'var(--text-secondary)', fontWeight: 500 }}>Regulatory Library</Link>
-            </div>
           </div>
 
-          <div style={{ borderTop: '1px solid var(--border-default)', paddingTop: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            <p>© 2026 NIYAMURA. Packaging Compliance Before Print. All rights reserved.</p>
-            <p>Statutory screening against Legal Metrology PCR 2011 & FSSAI 2020. Internal verification record; not a government certification.</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
+            <Link to="/rules" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', textDecoration: 'none' }}>
+              Rule Library
+            </Link>
+            <Link to="/login" style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', textDecoration: 'none' }}>
+              Sign In
+            </Link>
           </div>
         </div>
       </footer>
 
-      {/* Auth Gate Modal */}
+      {/* Auth Required Modal */}
       <AuthRequiredModal
         isOpen={authModalOpen}
         onClose={() => setAuthModalOpen(false)}
