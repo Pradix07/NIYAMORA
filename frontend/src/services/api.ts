@@ -13,7 +13,7 @@ const getApiBaseUrl = (): string => {
   ) {
     return '';
   }
-  return 'https://niyamora-backend.onrender.com';
+  return 'https://niyamura-backend.onrender.com';
 };
 
 export const API_BASE_URL = getApiBaseUrl();

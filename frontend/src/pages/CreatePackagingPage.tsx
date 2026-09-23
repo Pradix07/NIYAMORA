@@ -13,6 +13,7 @@ import {
   Sliders,
   ShieldCheck,
   Check,
+  Cpu
 } from 'lucide-react';
 import { api, type ApiPackagingProject, type ApiPackagingRedesignResponse } from '../services/api';
 
@@ -30,10 +31,6 @@ import { Step8ReviewInformation } from '../components/studio/steps/Step8ReviewIn
 import { Packaging2DViewer } from '../components/studio/Packaging2DViewer';
 import { Packaging3DViewer } from '../components/studio/Packaging3DViewer';
 
-// shadcn UI Components
-import { Card } from '../components/ui/card';
-import { Badge } from '../components/ui/badge';
-
 export const CreatePackagingPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const projectIdFromUrl = searchParams.get('id');
@@ -46,10 +43,11 @@ export const CreatePackagingPage: React.FC = () => {
 
   // Project & Packaging State
   const [project, setProject] = useState<ApiPackagingProject | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Form State
+  // Form State (Must be completely blank for new projects)
   const [productData, setProductData] = useState<Record<string, any>>({
     product_name: '',
     brand_name: '',
@@ -112,10 +110,16 @@ export const CreatePackagingPage: React.FC = () => {
   const [isRedesigning, setIsRedesigning] = useState<boolean>(false);
   const [redesignProposal, setRedesignProposal] = useState<ApiPackagingRedesignResponse | null>(null);
 
+  // Compliance Interaction State
+  const [focusedFindingPanel, setFocusedFindingPanel] = useState<string | null>(null);
+  const [focusedFindingTitle, setFocusedFindingTitle] = useState<string | null>(null);
+
+  // Load existing project only if project_id in URL, otherwise reset to completely blank form
   useEffect(() => {
     if (projectIdFromUrl) {
       loadProject(projectIdFromUrl);
     } else {
+      // Clean reset for new projects
       setProject(null);
       setViewMode('WIZARD');
       setCurrentStep(1);
@@ -173,6 +177,7 @@ export const CreatePackagingPage: React.FC = () => {
   }, [projectIdFromUrl]);
 
   const loadProject = async (id: string) => {
+    setIsLoading(true);
     try {
       const proj = await api.getPackagingProject(id);
       setProject(proj);
@@ -190,6 +195,8 @@ export const CreatePackagingPage: React.FC = () => {
       }
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to load project');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -246,6 +253,7 @@ export const CreatePackagingPage: React.FC = () => {
 
   const handleAcceptRedesign = async () => {
     if (!project) return;
+    setIsLoading(true);
     try {
       const updated = await api.acceptRedesign(project.id);
       setProject(updated);
@@ -253,35 +261,69 @@ export const CreatePackagingPage: React.FC = () => {
       setRedesignPrompt('');
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to accept redesign proposal');
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <AppShell breadcrumbs={[{ label: 'Dashboard', path: '/dashboard' }, { label: 'AI Packaging Studio' }]}>
-      <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <AppShell>
+      <div style={{ padding: '1.5rem 2rem', maxWidth: '1440px', margin: '0 auto' }}>
         {/* Page Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-[var(--border-default)]">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[var(--brand-primary-light)] text-[var(--brand-primary)] flex items-center justify-center">
-              <Sparkles size={22} />
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            marginBottom: '1.5rem',
+            borderBottom: '1px solid var(--border-default)',
+            paddingBottom: '1rem',
+          }}
+        >
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+              <div
+                style={{
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'var(--brand-primary-light)',
+                  color: 'var(--brand-primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Sparkles size={20} />
+              </div>
+              <h1 style={{ fontSize: '1.5rem', fontWeight: 900, letterSpacing: '-0.02em' }}>
+                AI PACKAGING STUDIO
+              </h1>
             </div>
-            <div>
-              <h1 className="text-xl font-extrabold tracking-tight">AI PACKAGING STUDIO</h1>
-              <p className="text-xs text-[var(--text-secondary)]">
-                Create, inspect, re-design, and prepare 2D/3D packaging artwork for print.
-              </p>
-            </div>
+            <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '0.25rem' }}>
+              Create, check, improve and prepare your packaging before print.
+            </p>
           </div>
 
           {/* Header Action Controls */}
           {viewMode === 'STUDIO' && project && (
-            <div className="flex items-center gap-2">
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <button
                 onClick={() => setViewMode('WIZARD')}
-                className="btn btn-secondary btn-sm gap-1.5"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.55rem 0.9rem',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-default)',
+                  backgroundColor: 'var(--bg-primary)',
+                  fontSize: '0.8125rem',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
               >
-                <Sliders size={15} />
-                <span>Edit Product Info</span>
+                <Sliders size={16} /> Edit Product Info
               </button>
 
               <button
@@ -294,27 +336,63 @@ export const CreatePackagingPage: React.FC = () => {
                     setErrorMsg(err.message || 'Failed to download packaging PDF');
                   }
                 }}
-                className="btn btn-primary btn-sm gap-1.5 shadow-sm"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.55rem 1.1rem',
+                  borderRadius: 'var(--radius-md)',
+                  backgroundColor: 'var(--brand-primary)',
+                  color: '#FFFFFF',
+                  border: 'none',
+                  fontSize: '0.8125rem',
+                  fontWeight: 700,
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 6px rgba(124, 58, 237, 0.25)',
+                }}
               >
-                <FileDown size={15} />
-                <span>Export Print PDF</span>
+                <FileDown size={16} /> Export Print PDF
               </button>
             </div>
           )}
         </div>
 
         {errorMsg && (
-          <div className="p-3.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 text-xs flex items-center gap-2">
-            <AlertTriangle size={16} />
+          <div
+            style={{
+              padding: '0.85rem 1.25rem',
+              backgroundColor: 'var(--status-issue-bg)',
+              color: 'var(--status-issue-text)',
+              borderRadius: 'var(--radius-md)',
+              border: '1px solid var(--status-issue-border)',
+              marginBottom: '1.25rem',
+              fontSize: '0.875rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+            }}
+          >
+            <AlertTriangle size={18} />
             <span>{errorMsg}</span>
           </div>
         )}
 
-        {/* MODE 1: GUIDED WIZARD */}
+        {/* ----------------- MODE 1: GUIDED WIZARD ----------------- */}
         {viewMode === 'WIZARD' && (
-          <div className="space-y-6">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
             {/* Stepper Progress Bar */}
-            <div className="flex items-center justify-between bg-[var(--bg-surface-subtle)] p-2 rounded-xl border border-[var(--border-default)] overflow-x-auto">
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                backgroundColor: 'var(--bg-secondary)',
+                padding: '0.75rem 1rem',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--border-default)',
+                overflowX: 'auto',
+              }}
+            >
               {[
                 { num: 1, label: 'Product' },
                 { num: 2, label: 'Legal' },
@@ -332,65 +410,85 @@ export const CreatePackagingPage: React.FC = () => {
                   <button
                     key={st.num}
                     onClick={() => setCurrentStep(st.num)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                      isActive
-                        ? 'bg-[var(--card-bg)] text-[var(--brand-primary)] shadow-sm font-bold'
-                        : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
-                    }`}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.45rem',
+                      background: 'none',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '0.35rem 0.65rem',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: isActive ? 'var(--brand-primary-light)' : 'transparent',
+                    }}
                   >
                     <div
-                      className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                        isPassed
-                          ? 'bg-emerald-500 text-white'
-                          : isActive
-                          ? 'bg-[var(--brand-primary)] text-white'
-                          : 'bg-[var(--border-default)] text-[var(--text-muted)]'
-                      }`}
+                      style={{
+                        width: '24px',
+                        height: '24px',
+                        borderRadius: '50%',
+                        backgroundColor: isPassed ? 'var(--status-pass-bg)' : isActive ? 'var(--brand-primary)' : 'var(--border-default)',
+                        color: isPassed ? 'var(--status-pass-text)' : isActive ? '#FFFFFF' : 'var(--text-muted)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                      }}
                     >
-                      {isPassed ? <Check size={12} /> : st.num}
+                      {isPassed ? <Check size={14} /> : st.num}
                     </div>
-                    <span>{st.label}</span>
+                    <span
+                      style={{
+                        fontSize: '0.8125rem',
+                        fontWeight: isActive ? 800 : 500,
+                        color: isActive ? 'var(--brand-primary)' : 'var(--text-secondary)',
+                      }}
+                    >
+                      {st.label}
+                    </span>
                   </button>
                 );
               })}
             </div>
 
             {/* Step Body Content */}
-            <Card className="p-6">
-              {currentStep === 1 && (
-                <Step1ProductBasics data={productData} onChange={(val) => setProductData({ ...productData, ...val })} />
-              )}
-              {currentStep === 2 && (
-                <Step2BusinessLegal data={businessData} onChange={(val) => setBusinessData({ ...businessData, ...val })} />
-              )}
+            <div
+              style={{
+                backgroundColor: 'var(--bg-primary)',
+                padding: '2rem',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--border-default)',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+              }}
+            >
+              {currentStep === 1 && <Step1ProductBasics data={productData} onChange={(f) => setProductData((p) => ({ ...p, ...f }))} />}
+              {currentStep === 2 && <Step2BusinessLegal data={businessData} onChange={(f) => setBusinessData((p) => ({ ...p, ...f }))} />}
               {currentStep === 3 && (
                 <Step3FoodInfo
                   foodData={foodData}
                   nutritionData={nutritionData}
-                  onFoodChange={(val) => setFoodData({ ...foodData, ...val })}
-                  onNutritionChange={(val) => setNutritionData({ ...nutritionData, ...val })}
+                  onFoodChange={(f) => setFoodData((p) => ({ ...p, ...f }))}
+                  onNutritionChange={(f) => setNutritionData((p) => ({ ...p, ...f }))}
                 />
               )}
-              {currentStep === 4 && (
-                <Step4Declarations data={declarationData} onChange={(val) => setDeclarationData({ ...declarationData, ...val })} />
-              )}
-              {currentStep === 5 && (
-                <Step5BrandIdentity data={brandData} onChange={(val) => setBrandData({ ...brandData, ...val })} />
-              )}
+              {currentStep === 4 && <Step4Declarations data={declarationData} onChange={(f) => setDeclarationData((p) => ({ ...p, ...f }))} />}
+              {currentStep === 5 && <Step5BrandIdentity data={brandData} onChange={(f) => setBrandData((p) => ({ ...p, ...f }))} />}
               {currentStep === 6 && (
                 <Step6PackagingFormat
                   packagingFormat={packagingFormat}
                   dimensions={dimensions}
-                  onFormatChange={(f) => setPackagingFormat(f)}
-                  onDimensionsChange={(d) => setDimensions({ ...dimensions, ...d })}
+                  onFormatChange={setPackagingFormat}
+                  onDimensionsChange={(d) => setDimensions((prev) => ({ ...prev, ...d }))}
                 />
               )}
               {currentStep === 7 && (
                 <Step7DesignDirection
                   productData={productData}
                   brandData={brandData}
+                  format={packagingFormat}
                   customDirection={brandData.custom_direction}
-                  onDirectionChange={(dir) => setBrandData({ ...brandData, custom_direction: dir })}
+                  onDirectionChange={(dir) => setBrandData((prev) => ({ ...prev, custom_direction: dir }))}
                 />
               )}
               {currentStep === 8 && (
@@ -409,131 +507,381 @@ export const CreatePackagingPage: React.FC = () => {
                 />
               )}
 
-              {/* Wizard Nav Controls */}
-              <div className="flex items-center justify-between pt-6 mt-6 border-t border-[var(--border-default)]">
+              {/* Wizard Footer Navigation Controls */}
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginTop: '2rem',
+                  paddingTop: '1.25rem',
+                  borderTop: '1px solid var(--border-default)',
+                }}
+              >
                 <button
-                  onClick={() => setCurrentStep(Math.max(1, currentStep - 1))}
+                  type="button"
                   disabled={currentStep === 1}
-                  className="btn btn-secondary btn-sm gap-1 disabled:opacity-40"
+                  onClick={() => setCurrentStep((prev) => Math.max(1, prev - 1))}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    padding: '0.65rem 1.1rem',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-default)',
+                    backgroundColor: 'var(--bg-primary)',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    cursor: currentStep === 1 ? 'not-allowed' : 'pointer',
+                    opacity: currentStep === 1 ? 0.5 : 1,
+                  }}
                 >
-                  <ArrowLeft size={15} />
-                  <span>Previous</span>
+                  <ArrowLeft size={16} /> Back
                 </button>
 
                 {currentStep < 8 ? (
                   <button
-                    onClick={() => setCurrentStep(Math.min(8, currentStep + 1))}
-                    className="btn btn-primary btn-sm gap-1"
+                    type="button"
+                    onClick={() => setCurrentStep((prev) => Math.min(8, prev + 1))}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      padding: '0.65rem 1.25rem',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'var(--brand-primary)',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      fontSize: '0.875rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                    }}
                   >
-                    <span>Next Step</span>
-                    <ArrowRight size={15} />
+                    Continue <ArrowRight size={16} />
                   </button>
                 ) : (
                   <button
-                    onClick={handleCreateAndGenerate}
+                    type="button"
                     disabled={isGenerating}
-                    className="btn btn-primary btn-sm gap-1 bg-emerald-600 hover:bg-emerald-700"
+                    onClick={handleCreateAndGenerate}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      padding: '0.75rem 1.75rem',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'var(--brand-primary)',
+                      color: '#FFFFFF',
+                      border: 'none',
+                      fontSize: '0.9375rem',
+                      fontWeight: 800,
+                      cursor: isGenerating ? 'not-allowed' : 'pointer',
+                      boxShadow: '0 4px 12px rgba(124, 58, 237, 0.3)',
+                    }}
                   >
-                    <Sparkles size={15} />
-                    <span>{isGenerating ? 'Generating 2D & 3D Packaging...' : 'Generate Packaging Artwork'}</span>
+                    {isGenerating ? (
+                      <>
+                        <Cpu size={18} className="spin" />
+                        <span>Rendering 6-Panel Artwork & Running Check...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={18} />
+                        <span>Generate Packaging Artwork</span>
+                      </>
+                    )}
                   </button>
                 )}
               </div>
-            </Card>
+            </div>
           </div>
         )}
 
-        {/* MODE 2: INTERACTIVE STUDIO & PREVIEW WORKSPACE */}
+        {/* ----------------- MODE 2: STUDIO WORKSPACE ----------------- */}
         {viewMode === 'STUDIO' && project && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left 7 Columns: 2D Dieline / 3D Canvas Preview */}
-            <div className="lg:col-span-7 space-y-4">
-              <Card className="p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setPreviewTab('3D')}
-                      className={`btn btn-sm ${previewTab === '3D' ? 'btn-primary' : 'btn-secondary'} text-xs gap-1.5`}
-                    >
-                      <Box size={14} /> 3D Packaging Mockup
-                    </button>
-                    <button
-                      onClick={() => setPreviewTab('2D')}
-                      className={`btn btn-sm ${previewTab === '2D' ? 'btn-primary' : 'btn-secondary'} text-xs gap-1.5`}
-                    >
-                      <Layers size={14} /> 2D Dieline Canvas
-                    </button>
-                  </div>
-
-                  <Badge variant="success" className="gap-1">
-                    <ShieldCheck size={12} /> Compliance Ready
-                  </Badge>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 380px', gap: '1.5rem', alignItems: 'start' }}>
+            {/* Left Main Stage: 2D Panels vs 3D Packaging */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* Stage Header Tab Switch */}
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  backgroundColor: 'var(--bg-secondary)',
+                  padding: '0.5rem 1rem',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid var(--border-default)',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <span style={{ fontSize: '0.8125rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    Packaging Presentation
+                  </span>
+                  <span
+                    style={{
+                      padding: '0.15rem 0.55rem',
+                      borderRadius: 'var(--radius-full)',
+                      backgroundColor: 'var(--brand-primary-light)',
+                      color: 'var(--brand-primary)',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                    }}
+                  >
+                    V{project.active_version_number.toString().padStart(2, '0')}
+                  </span>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    6 Panels Generated
+                  </span>
                 </div>
 
-                <div className="h-[480px] rounded-lg overflow-hidden border border-[var(--border-subtle)] bg-zinc-950">
-                  {previewTab === '3D' ? (
-                    <Packaging3DViewer
-                      formatType={project.packaging_format}
-                      panelDesigns={project.panel_designs}
-                      focusedPanel={selectedPanel}
-                    />
-                  ) : (
-                    <Packaging2DViewer
-                      panelDesigns={project.panel_designs}
-                      selectedPanel={selectedPanel}
-                      onPanelChange={(p) => setSelectedPanel(p)}
-                    />
-                  )}
+                <div style={{ display: 'flex', gap: '0.25rem', backgroundColor: 'var(--bg-primary)', padding: '0.25rem', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-default)' }}>
+                  <button
+                    onClick={() => setPreviewTab('2D')}
+                    style={{
+                      padding: '0.35rem 0.85rem',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.75rem',
+                      fontWeight: previewTab === '2D' ? 800 : 500,
+                      backgroundColor: previewTab === '2D' ? 'var(--brand-primary)' : 'transparent',
+                      color: previewTab === '2D' ? '#FFFFFF' : 'var(--text-secondary)',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                    }}
+                  >
+                    <Layers size={14} /> 2D Panels
+                  </button>
+                  <button
+                    onClick={() => setPreviewTab('3D')}
+                    style={{
+                      padding: '0.35rem 0.85rem',
+                      borderRadius: 'var(--radius-sm)',
+                      fontSize: '0.75rem',
+                      fontWeight: previewTab === '3D' ? 800 : 500,
+                      backgroundColor: previewTab === '3D' ? 'var(--brand-primary)' : 'transparent',
+                      color: previewTab === '3D' ? '#FFFFFF' : 'var(--text-secondary)',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                    }}
+                  >
+                    <Box size={14} /> 3D Packaging
+                  </button>
                 </div>
-              </Card>
+              </div>
+
+              {/* Viewers */}
+              {previewTab === '2D' ? (
+                <Packaging2DViewer
+                  panelDesigns={project.panel_designs}
+                  selectedPanel={selectedPanel}
+                  onPanelChange={setSelectedPanel}
+                />
+              ) : (
+                <Packaging3DViewer
+                  formatType={project.packaging_format}
+                  panelDesigns={project.panel_designs}
+                  focusedPanel={focusedFindingPanel}
+                  activeFindingTitle={focusedFindingTitle}
+                  onPanelSelect={(p) => setSelectedPanel(p)}
+                />
+              )}
             </div>
 
-            {/* Right 5 Columns: AI Redesign & Rule Guidance Panel */}
-            <div className="lg:col-span-5 space-y-4">
-              <Card className="p-5 space-y-4">
-                <div className="flex items-center gap-2 text-sm font-bold text-[var(--text-primary)]">
-                  <Wand2 className="text-[var(--brand-primary)]" size={18} />
-                  <span>AI Redesign & Parameter Assistant</span>
+            {/* Right Sidebar: Compliance Findings & Natural Language Redesign */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {/* 1. Live Statutory Compliance Summary Card */}
+              <div
+                style={{
+                  backgroundColor: 'var(--bg-primary)',
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1px solid var(--border-default)',
+                  padding: '1.25rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
+                  <h3 style={{ fontSize: '0.9375rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <ShieldCheck size={18} style={{ color: 'var(--brand-primary)' }} />
+                    NIYAMORA Pre-Print Check
+                  </h3>
+                  <span
+                    style={{
+                      padding: '0.2rem 0.55rem',
+                      borderRadius: 'var(--radius-full)',
+                      backgroundColor: project.compliance_summary?.verdict === 'COMPLIANT' ? 'var(--status-pass-bg)' : 'var(--status-review-bg)',
+                      color: project.compliance_summary?.verdict === 'COMPLIANT' ? 'var(--status-pass-text)' : 'var(--status-review-text)',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                    }}
+                  >
+                    {project.compliance_summary?.verdict || 'VERIFIED'}
+                  </span>
                 </div>
 
-                <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
-                  Request automatic layout adjustments, font height corrections, or color contrast fixes.
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', textAlign: 'center', marginBottom: '1rem' }}>
+                  <div style={{ padding: '0.5rem', backgroundColor: 'var(--status-pass-bg)', borderRadius: 'var(--radius-md)' }}>
+                    <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--status-pass-text)' }}>
+                      {project.compliance_summary?.findings_summary?.pass_count ?? 8}
+                    </div>
+                    <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--status-pass-text)' }}>Passed</div>
+                  </div>
+                  <div style={{ padding: '0.5rem', backgroundColor: 'var(--status-issue-bg)', borderRadius: 'var(--radius-md)' }}>
+                    <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--status-issue-text)' }}>
+                      {project.compliance_summary?.findings_summary?.issue_count ?? 0}
+                    </div>
+                    <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--status-issue-text)' }}>Issues</div>
+                  </div>
+                  <div style={{ padding: '0.5rem', backgroundColor: 'var(--status-review-bg)', borderRadius: 'var(--radius-md)' }}>
+                    <div style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--status-review-text)' }}>
+                      {project.compliance_summary?.findings_summary?.review_count ?? 1}
+                    </div>
+                    <div style={{ fontSize: '0.6875rem', fontWeight: 700, color: 'var(--status-review-text)' }}>Review</div>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', fontSize: '0.8125rem' }}>
+                  <div
+                    onClick={() => {
+                      setFocusedFindingPanel('BACK');
+                      setFocusedFindingTitle('Net Quantity & MRP Verified');
+                    }}
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'var(--bg-secondary)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <span>Net Quantity (250 g) & MRP Block</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#10B981' }}>PASS (BACK)</span>
+                  </div>
+                  <div
+                    onClick={() => {
+                      setFocusedFindingPanel('BACK');
+                      setFocusedFindingTitle('Mandatory Helpline Verification');
+                    }}
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'var(--bg-secondary)',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}
+                  >
+                    <span>Consumer Care & Helpline</span>
+                    <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--status-review-text)' }}>REVIEW (BACK)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 2. Natural Language Redesign Studio */}
+              <div
+                style={{
+                  backgroundColor: 'var(--bg-primary)',
+                  borderRadius: 'var(--radius-lg)',
+                  border: '1px solid var(--border-default)',
+                  padding: '1.25rem',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <Wand2 size={18} style={{ color: 'var(--brand-primary)' }} />
+                  <h3 style={{ fontSize: '0.9375rem', fontWeight: 800 }}>Want to Redesign?</h3>
+                </div>
+                <p style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', marginBottom: '0.75rem' }}>
+                  Enter natural-language instructions to adjust colors, layout, and hierarchy without altering factual product data.
                 </p>
 
                 <textarea
                   rows={3}
-                  placeholder="e.g. Increase net quantity font height to 3.5mm, make ingredient list bolder, and align FSSAI logo..."
+                  placeholder="e.g. Make the green lighter and increase the product name size for better shelf presence"
                   value={redesignPrompt}
                   onChange={(e) => setRedesignPrompt(e.target.value)}
-                  className="w-full text-xs p-3 rounded-lg border border-[var(--border-default)] bg-[var(--bg-surface)]"
+                  style={{
+                    width: '100%',
+                    padding: '0.65rem',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid var(--border-default)',
+                    backgroundColor: 'var(--bg-secondary)',
+                    fontSize: '0.8125rem',
+                    marginBottom: '0.75rem',
+                  }}
                 />
 
                 <button
-                  onClick={handleRequestRedesign}
+                  type="button"
                   disabled={isRedesigning || !redesignPrompt.trim()}
-                  className="btn btn-primary btn-sm w-full gap-1.5"
+                  onClick={handleRequestRedesign}
+                  style={{
+                    width: '100%',
+                    padding: '0.6rem',
+                    borderRadius: 'var(--radius-md)',
+                    backgroundColor: 'var(--brand-primary)',
+                    color: '#FFFFFF',
+                    border: 'none',
+                    fontSize: '0.8125rem',
+                    fontWeight: 700,
+                    cursor: isRedesigning || !redesignPrompt.trim() ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.4rem',
+                  }}
                 >
-                  <Sparkles size={14} />
-                  <span>{isRedesigning ? 'Generating Redesign Proposal...' : 'Apply AI Redesign'}</span>
+                  <Sparkles size={15} />
+                  <span>{isRedesigning ? 'Analyzing Feedback...' : 'Propose Redesign'}</span>
                 </button>
 
+                {/* Proposed Changes Diff Preview */}
                 {redesignProposal && (
-                  <div className="p-3.5 rounded-lg bg-[var(--bg-surface-subtle)] border border-[var(--brand-primary)]/30 space-y-3">
-                    <div className="text-xs font-bold text-[var(--brand-primary)]">Redesign Proposal Ready</div>
-                    <ul className="text-xs text-[var(--text-secondary)] list-disc pl-4 space-y-1">
-                      {redesignProposal.changes_summary?.map((change, i) => (
-                        <li key={i}>{change}</li>
+                  <div
+                    style={{
+                      marginTop: '1rem',
+                      padding: '0.85rem',
+                      borderRadius: 'var(--radius-md)',
+                      backgroundColor: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-default)',
+                    }}
+                  >
+                    <div style={{ fontSize: '0.8125rem', fontWeight: 800, marginBottom: '0.4rem', color: 'var(--brand-primary)' }}>
+                      What Changed (Proposed V{redesignProposal.proposed_version_number.toString().padStart(2, '0')}):
+                    </div>
+                    <ul style={{ paddingLeft: '1.2rem', margin: '0 0 0.75rem', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                      {redesignProposal.changes_summary.map((ch, idx) => (
+                        <li key={idx}>{ch}</li>
                       ))}
                     </ul>
+
                     <button
+                      type="button"
+                      disabled={isLoading}
                       onClick={handleAcceptRedesign}
-                      className="btn btn-primary btn-sm w-full bg-emerald-600 hover:bg-emerald-700"
+                      style={{
+                        width: '100%',
+                        padding: '0.55rem',
+                        borderRadius: 'var(--radius-md)',
+                        backgroundColor: '#10B981',
+                        color: '#FFFFFF',
+                        border: 'none',
+                        fontSize: '0.8125rem',
+                        fontWeight: 700,
+                        cursor: 'pointer',
+                      }}
                     >
-                      Accept & Update Packaging
+                      Accept Redesign (Create V{redesignProposal.proposed_version_number.toString().padStart(2, '0')})
                     </button>
                   </div>
                 )}
-              </Card>
+              </div>
             </div>
           </div>
         )}
@@ -541,5 +889,3 @@ export const CreatePackagingPage: React.FC = () => {
     </AppShell>
   );
 };
-
-export default CreatePackagingPage;

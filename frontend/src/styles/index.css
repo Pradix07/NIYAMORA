@@ -395,27 +395,12 @@ input:focus, select:focus, textarea:focus {
   50% { transform: translateY(-6px); }
 }
 
-@keyframes spotlight {
-  0% {
-    opacity: 0;
-    transform: translate(-72%, -62%) scale(0.5);
-  }
-  100% {
-    opacity: 1;
-    transform: translate(-50%,-40%) scale(1);
-  }
-}
-
 .animate-fade-in {
   animation: fadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .animate-float {
   animation: floatSmooth 4s ease-in-out infinite;
-}
-
-.animate-spotlight {
-  animation: spotlight 2s ease 0.5s 1 forwards;
 }
 
 /* Grid helper utilities */
