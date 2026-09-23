@@ -116,13 +116,20 @@ def get_current_company(
         return company
 
     # Default development company context
-    company = db.query(Company).first()
-    if not company:
-        company = Company(name="NIYAMORA Primary Workspace")
-        db.add(company)
-        db.commit()
-        db.refresh(company)
-    return company
+    try:
+        company = db.query(Company).first()
+        if not company:
+            company = Company(name="NIYAMORA Primary Workspace")
+            db.add(company)
+            db.commit()
+            db.refresh(company)
+        return company
+    except Exception as db_err:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database error resolving company context: {str(db_err)}. "
+                   "Ensure database migrations have been applied."
+        )
 
 def verify_product_ownership(product: Product, company: Company) -> None:
     if product.company_id != company.id:

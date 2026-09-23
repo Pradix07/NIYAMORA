@@ -512,7 +512,10 @@ export const clearAuthToken = () => {
   localStorage.removeItem('niyamora_user');
 };
 
-// Authenticated fetch helper
+// Authenticated fetch helper with single retry for Render cold-start and CORS-blocked server errors.
+// When the backend returns an unhandled 500 without CORS headers, browsers reject the response
+// entirely (TypeError: Failed to fetch) — indistinguishable from "server unreachable".
+// A single retry gives the backend time to recover from cold-start or transient errors.
 async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const token = getAuthToken();
   const headers = new Headers(options.headers || {});
@@ -521,19 +524,27 @@ async function authFetch(url: string, options: RequestInit = {}): Promise<Respon
     headers.set('Authorization', `Bearer ${token}`);
   }
 
+  const doFetch = () => fetch(url, { ...options, headers });
+
   let res: Response;
   try {
-    res = await fetch(url, {
-      ...options,
-      headers,
-    });
-  } catch (networkError: any) {
-    // Network-level failure: backend unreachable, CORS preflight rejected, or connection timeout
-    const isLocal = !API_BASE_URL || API_BASE_URL === '';
-    const hint = isLocal
-      ? 'Ensure the backend server is running on http://127.0.0.1:8000'
-      : `Could not reach the backend at ${API_BASE_URL}. The server may be starting up (cold start) — please retry in 30 seconds.`;
-    throw new Error(`Network error: ${hint}`);
+    res = await doFetch();
+  } catch (firstError: any) {
+    // First attempt failed at the network level.
+    // This can be: (a) backend cold-starting on Render free tier,
+    // (b) backend returned 500 without CORS headers (browser blocks response),
+    // (c) genuine network outage.
+    // Retry once after a short delay to handle (a) and (b).
+    try {
+      await new Promise((r) => setTimeout(r, 3000));
+      res = await doFetch();
+    } catch (retryError: any) {
+      const isLocal = !API_BASE_URL || API_BASE_URL === '';
+      const hint = isLocal
+        ? 'Ensure the backend server is running on http://127.0.0.1:8000'
+        : `The server at ${API_BASE_URL} may be starting up or encountered an internal error. Please retry in 30 seconds.`;
+      throw new Error(`Connection failed: ${hint}`);
+    }
   }
 
   if (res.status === 401) {

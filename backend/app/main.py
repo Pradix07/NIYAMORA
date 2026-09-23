@@ -139,6 +139,20 @@ app.add_middleware(
     expose_headers=["*"],
 )
 
+# Global exception handler: ensures unhandled 500 errors return JSON responses
+# that pass through CORSMiddleware (so browsers receive CORS headers and don't
+# silently reject the error response as a CORS violation).
+from fastapi import Request
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.exception(f"Unhandled server error on {request.method} {request.url.path}: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Internal server error: {str(exc)}"},
+    )
+
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 @app.get("/health")
