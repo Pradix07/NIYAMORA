@@ -201,6 +201,7 @@ def download_suggested_design_pdf(
         media_type="application/pdf",
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
-            "Content-Type": "application/pdf"
+            "Content-Type": "application/pdf",
+            "Access-Control-Expose-Headers": "Content-Disposition"
         }
     )

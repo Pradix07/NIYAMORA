@@ -45,13 +45,38 @@ export const Step3FoodInfo: React.FC<Step3Props> = ({
 
   const handleUpdateNutrient = (index: number, key: string, value: string) => {
     const next = [...nutrients];
-    (next[index] as any)[key] = value;
+    const currentItem = { ...(next[index] || { nutrient_name: '', amount: '', unit: '' }), [key]: value };
+
+    // When the nutrient name is updated, suggest a sensible default unit if unit is blank or was an auto-default
+    if (key === 'nutrient_name') {
+      const lower = value.toLowerCase().trim();
+      const currentUnit = next[index]?.unit || '';
+      if (!currentUnit || currentUnit === 'g' || currentUnit === 'kcal' || currentUnit === 'mg') {
+        if (lower.includes('energy') || lower.includes('calorie')) {
+          currentItem.unit = 'kcal';
+        } else if (
+          lower.includes('sodium') ||
+          lower.includes('salt') ||
+          lower.includes('iron') ||
+          lower.includes('calcium') ||
+          lower.includes('zinc') ||
+          lower.includes('potassium')
+        ) {
+          currentItem.unit = 'mg';
+        } else if (lower.length > 0) {
+          currentItem.unit = 'g';
+        }
+      }
+    }
+
+    next[index] = currentItem;
     onNutritionChange({ nutrients: next });
   };
 
   const handleAddNutrient = () => {
+    // Start with blank unit — each row manages its own independently
     onNutritionChange({
-      nutrients: [...nutrients, { nutrient_name: '', amount: '', unit: 'g' }],
+      nutrients: [...nutrients, { nutrient_name: '', amount: '', unit: '' }],
     });
   };
 
@@ -251,8 +276,8 @@ export const Step3FoodInfo: React.FC<Step3Props> = ({
                 />
                 <input
                   type="text"
-                  placeholder="Unit (g/kcal/mg)"
-                  value={nut.unit || 'g'}
+                  placeholder="g / kcal / mg"
+                  value={nut.unit}
                   onChange={(e) => handleUpdateNutrient(idx, 'unit', e.target.value)}
                   style={{ padding: '0.45rem 0.65rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-default)', backgroundColor: 'var(--bg-primary)', fontSize: '0.8125rem' }}
                 />

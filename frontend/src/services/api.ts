@@ -521,10 +521,20 @@ async function authFetch(url: string, options: RequestInit = {}): Promise<Respon
     headers.set('Authorization', `Bearer ${token}`);
   }
 
-  const res = await fetch(url, {
-    ...options,
-    headers,
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...options,
+      headers,
+    });
+  } catch (networkError: any) {
+    // Network-level failure: backend unreachable, CORS preflight rejected, or connection timeout
+    const isLocal = !API_BASE_URL || API_BASE_URL === '';
+    const hint = isLocal
+      ? 'Ensure the backend server is running on http://127.0.0.1:8000'
+      : `Could not reach the backend at ${API_BASE_URL}. The server may be starting up (cold start) — please retry in 30 seconds.`;
+    throw new Error(`Network error: ${hint}`);
+  }
 
   if (res.status === 401) {
     // If unauthorized, clear stale token
@@ -1147,6 +1157,29 @@ export const api = {
       url += `?token=${encodeURIComponent(token)}`;
     }
     return url;
+  },
+
+  async downloadPackagingPdf(id: string, customFilename?: string): Promise<void> {
+    const res = await authFetch(`${API_BASE_URL}/api/packaging-studio/projects/${id}/export-pdf`);
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.detail || 'Failed to download packaging PDF');
+    }
+    const blob = await res.blob();
+    const contentDisposition = res.headers.get('Content-Disposition') || '';
+    let filename = customFilename || 'NIYAMORA_Packaging_Export.pdf';
+    const match = contentDisposition.match(/filename="?([^"]+)"?/);
+    if (match && match[1]) {
+      filename = match[1];
+    }
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
   },
 
   getPackagingPanelImageUrl(projectId: string, panelType: string): string {

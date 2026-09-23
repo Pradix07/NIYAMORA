@@ -249,5 +249,8 @@ def export_packaging_pdf(
         path=pdf_path,
         media_type="application/pdf",
         filename=filename,
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
     )

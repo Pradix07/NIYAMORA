@@ -198,21 +198,27 @@ export const CreatePackagingPage: React.FC = () => {
     setErrorMsg(null);
     try {
       let activeProj = project;
+      const title = `${brandData.brand_name || productData.brand_name || 'Brand'} ${productData.product_name || 'Product'} Packaging`;
+      const projectPayload = {
+        title,
+        packaging_format: packagingFormat,
+        dimensions,
+        product_data: productData,
+        business_data: businessData,
+        food_data: foodData,
+        nutrition_data: nutritionData,
+        declaration_data: declarationData,
+        brand_data: brandData,
+        custom_direction: brandData.custom_direction,
+      };
+
       if (!activeProj) {
-        activeProj = await api.createPackagingProject({
-          title: `${brandData.brand_name || productData.brand_name || 'Brand'} ${productData.product_name} Packaging`,
-          packaging_format: packagingFormat,
-          dimensions,
-          product_data: productData,
-          business_data: businessData,
-          food_data: foodData,
-          nutrition_data: nutritionData,
-          declaration_data: declarationData,
-          brand_data: brandData,
-          custom_direction: brandData.custom_direction,
-        });
+        activeProj = await api.createPackagingProject(projectPayload);
         setProject(activeProj);
         setSearchParams({ id: activeProj.id });
+      } else {
+        activeProj = await api.updatePackagingProject(activeProj.id, projectPayload);
+        setProject(activeProj);
       }
 
       const generated = await api.generatePackaging(activeProj.id);
@@ -278,14 +284,21 @@ export const CreatePackagingPage: React.FC = () => {
                 <span>Edit Product Info</span>
               </button>
 
-              <a
-                href={api.getPackagingPdfUrl(project.id)}
-                download
+              <button
+                onClick={async () => {
+                  try {
+                    const title = project.title || 'Packaging';
+                    const safe = title.replace(/[^a-zA-Z0-9_\-]/g, '_');
+                    await api.downloadPackagingPdf(project.id, `${safe}_Print_Export.pdf`);
+                  } catch (err: any) {
+                    setErrorMsg(err.message || 'Failed to download packaging PDF');
+                  }
+                }}
                 className="btn btn-primary btn-sm gap-1.5 shadow-sm"
               >
                 <FileDown size={15} />
                 <span>Export Print PDF</span>
-              </a>
+              </button>
             </div>
           )}
         </div>
