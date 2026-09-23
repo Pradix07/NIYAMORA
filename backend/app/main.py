@@ -26,9 +26,36 @@ logging.basicConfig(
 )
 logger = logging.getLogger("niyamora.main")
 
+def _apply_missing_columns():
+    """
+    Auto-migration: detect columns defined in SQLAlchemy models but missing from
+    the live database schema, and issue ALTER TABLE ADD COLUMN statements.
+    This is required because create_all() only creates NEW tables —
+    it will NOT add new columns to tables that already exist.
+    """
+    from sqlalchemy import inspect as sa_inspect, text
+    inspector = sa_inspect(engine)
+    for table_name, table_obj in Base.metadata.tables.items():
+        if not inspector.has_table(table_name):
+            continue  # create_all() will handle new tables
+        existing_cols = {col["name"] for col in inspector.get_columns(table_name)}
+        for col in table_obj.columns:
+            if col.name not in existing_cols:
+                # Build the column type for the ALTER TABLE statement
+                col_type = col.type.compile(dialect=engine.dialect)
+                nullable = "NULL" if col.nullable else "NOT NULL"
+                default_clause = ""
+                if col.default is not None and col.default.is_scalar:
+                    default_clause = f" DEFAULT '{col.default.arg}'"
+                sql = f'ALTER TABLE "{table_name}" ADD COLUMN "{col.name}" {col_type} {nullable}{default_clause}'
+                logger.info(f"Auto-migration: {sql}")
+                with engine.begin() as conn:
+                    conn.execute(text(sql))
+
 def init_db_and_seed():
     """Initializes tables and seeds default company workspace if empty."""
     Base.metadata.create_all(bind=engine)
+    _apply_missing_columns()
     db = SessionLocal()
     try:
         company = db.query(Company).first()
